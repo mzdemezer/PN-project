@@ -8,5 +8,7 @@ void exit_activate(void*);
 
 void change_menu(struct menu_structure *, struct menu_elem *, int);
 void return_menu(struct menu_structure *);
+void clear_menu();
+void draw_menu(struct GameSharedData* Data);
 
 #endif

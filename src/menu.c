@@ -54,21 +54,25 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
                         arg.CallType = meatDOWN;
                         (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
+                        Data->DrawCall = true;
                     }
                     break;
                 case ALLEGRO_KEY_RIGHT:
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
                         arg.CallType = meatUP;
                         (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
+                        Data->DrawCall = true;
                     }
                     break;
                 case ALLEGRO_KEY_UP:
                     Data->Menu.Current -= 1;
                     normalize_menu_selection(&(Data->Menu));
+                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_DOWN:
                     Data->Menu.Current += 1;
                     normalize_menu_selection(&(Data->Menu));
+                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_ENTER:
                     arg.CallType = meatACCEPT;
@@ -84,9 +88,11 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
                             (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
                             break;
                     }
+                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_ESCAPE:
                     return_menu(&(Data->Menu));
+                    Data->DrawCall = true;
                     break;
             }
             break;
@@ -102,3 +108,27 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
     }
     printf("event handled in menu\n");
 };
+
+void clear_menu(){
+    al_clear_to_color(al_map_rgb(0,0,0));
+}
+
+void draw_menu(struct GameSharedData* Data){
+    int i, NumberOfElems;
+
+    clear_menu();
+
+    NumberOfElems = Data->Menu.CurrentMenu[0].Type;
+    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), 400, 120, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
+    for(i = 1; i < Data->Menu.Current; ++i){
+        al_draw_text(Data->MenuRegularFont, al_map_rgb(255,255,255), 400, (i + 1.5) * 80, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+    }
+    al_draw_text(Data->MenuSelectedFont, al_map_rgb(255,255,0), 400, (i + 1.5) * 80, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+    for(++i; i <= NumberOfElems; ++i){
+        al_draw_text(Data->MenuRegularFont, al_map_rgb(255,255,255), 400, (i + 1.5) * 80, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+    }
+
+    al_flip_display();
+
+    Data->DrawCall = false;
+}

@@ -6,6 +6,8 @@
 #define _INCLUDE_MAIN_H
 
 #include <allegro5/allegro.h>
+#include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
 
 #define MAIN_MENU_SIZE 4
 #define HIGH_SCORES_MENU_SIZE 1
@@ -77,9 +79,22 @@ struct GameSharedData{
     enum game_state_enum GameState;
     bool MouseWorking;
 
+
+    ALLEGRO_DISPLAY *Display;
+    int DisplayWidth;
+    int DisplayHeight;
+
     struct menu_structure Menu;
+    ALLEGRO_FONT *MenuRegularFont;
+    ALLEGRO_FONT *MenuBigFont;
+    ALLEGRO_FONT *MenuSelectedFont;
+
     //struct keyboard_structure Keyboard;
 
+    /**
+        Flags
+        */
+    bool DrawCall;
     bool CloseNow;
 };
 
