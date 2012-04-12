@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "main.h"
 #include "menu.h"
@@ -49,35 +50,89 @@ void scale_fonts(struct GameSharedData *Data){
 
     Data->MenuRegularFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuBigFont->height * 0.62), 0);
     Data->MenuSelectedFont = al_load_ttf_font("pirulen.ttf", (int)((Data->MenuBigFont->height +  Data->MenuRegularFont->height) / 2), 0);
-    Data->MenuConfigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuRegularFont->height * 0.62), 0);
-    Data->MenuConfigSelectedFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuSelectedFont->height * 0.62), 0);
+    Data->MenuConfigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuRegularFont->height * 0.45), 0);
+    Data->MenuConfigSelectedFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuSelectedFont->height * 0.45), 0);
+}
+
+int rzad(int a){
+    int res = 1, lim = 10;
+    a = abs(a);
+    while(a > lim){
+        res += 1;
+        lim *= 10;
+    }
+    return res;
+}
+
+char int_to_char(int digit){
+    return (char)(digit | 0x30);
+}
+
+char* int_to_str(int a){
+    bool sign = a < 0;
+    int length = rzad(a) + (int)sign, i, digit;
+    char* result = (char*)malloc(sizeof(char) * (length + 1) );
+    result[length] = '\0';
+    a = abs(a);
+    for(i = length - 1; i >= (int)sign; --i){
+        digit = a % 10;
+        a /= 10;
+        result[i] = int_to_char(digit);
+    }
+    if(sign){
+        result[0] = '-';
+    }
+    return result;
+}
+
+char* stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData){
+    char* str = (char*)malloc(sizeof(char) * 20 ); //na zapas
+    strcpy(str, int_to_str(DispData->width));
+    strcpy(str + strlen(str) + 1, int_to_str(DispData->height));
+    str[strlen(str)] = 'x';
+    return str;
 }
 
 void resolution_activate(void*argument){
+    ALLEGRO_FONT *Font;
+    ALLEGRO_COLOR Color;
+    char *CurrentResolution;
+
     printf("RESOLUTION CHANGE\n");
 
     struct activation_argument *arg = (struct activation_argument*) argument;
     switch(arg->CallType){
         case meatACCEPT:
-            arg->Data->ChosenResolution = arg->Data->ChosenInMenu;
-            arg->Data->DisplayData = arg->Data->InMenuDisplayData;
-            al_destroy_display(arg->Data->Display);
-            arg->Data->Display = al_create_display(arg->Data->DisplayData.width, arg->Data->DisplayData.height);
-            scale_fonts(arg->Data);
+            if(arg->Data->ChosenResolution != arg->Data->ChosenInMenu){
+                arg->Data->ChosenResolution = arg->Data->ChosenInMenu;
+                arg->Data->DisplayData = arg->Data->InMenuDisplayData;
+                al_destroy_display(arg->Data->Display);
+                arg->Data->Display = al_create_display(arg->Data->DisplayData.width, arg->Data->DisplayData.height);
+                scale_fonts(arg->Data);
+            }
             break;
         case meatUP:
             arg->Data->ChosenInMenu += 1;
             normalize_resolution_selection(&arg->Data->ChosenInMenu, arg->Data->MaxResolutionIndex);
-            al_get_display_mode(arg->Data->ChosenResolution, &arg->Data->InMenuDisplayData);
+            al_get_display_mode(arg->Data->ChosenInMenu, &arg->Data->InMenuDisplayData);
             break;
         case meatDOWN:
             arg->Data->ChosenInMenu -= 1;
             normalize_resolution_selection(&arg->Data->ChosenInMenu, arg->Data->MaxResolutionIndex);
-            al_get_display_mode(arg->Data->ChosenResolution, &arg->Data->InMenuDisplayData);
+            al_get_display_mode(arg->Data->ChosenInMenu, &arg->Data->InMenuDisplayData);
             break;
-        case meatDRAW:
-
-        default: return;
+        default: printf("Argument: %d,  Current: %d\n", arg->CallType - meatDRAW, arg->Data->Menu.Current);
+                if(arg->CallType - (int) meatDRAW == arg->Data->Menu.Current){
+                    Font = arg->Data->MenuConfigSelectedFont;
+                    Color = al_map_rgb(255, 255, 0);
+                }
+                else{
+                    Font = arg->Data->MenuConfigFont;
+                    Color = al_map_rgb(255, 255, 255);
+                }
+                CurrentResolution = stringify_resolution(&arg->Data->InMenuDisplayData);
+                printf("currres: %s\n", CurrentResolution);
+                al_draw_text(Font, Color, arg->Data->DisplayData.width * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
     }
 }
 
@@ -167,7 +222,9 @@ void clear_menu(){
 }
 
 void draw_menu(struct GameSharedData* Data){
-    int i, NumberOfElems;
+    int i, NumberOfElems, flags;
+    float align_x;
+    struct activation_argument arg;
     ALLEGRO_FONT *RegFont, *SelectFont;
 
     clear_menu();
@@ -176,20 +233,39 @@ void draw_menu(struct GameSharedData* Data){
     if((int)Data->Menu.CurrentMenu[0].Type > 0){
         RegFont = Data->MenuRegularFont;
         SelectFont = Data->MenuSelectedFont;
+        flags = ALLEGRO_ALIGN_CENTRE;
+        align_x = Data->DisplayData.width/2;
     }
     else{//Configuration menu
         RegFont = Data->MenuConfigFont;
         SelectFont = Data->MenuConfigSelectedFont;
+        flags = ALLEGRO_ALIGN_LEFT;
+        align_x = Data->DisplayData.width/10;
     }
 
     NumberOfElems = abs(Data->Menu.CurrentMenu[0].Type);
     al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), Data->DisplayData.width/2, Data->DisplayData.height/10, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
     for(i = 1; i < Data->Menu.Current; ++i){
-        al_draw_text(RegFont, al_map_rgb(255,255,255), Data->DisplayData.width/2, (i + 1.5) * (Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+        if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
+            arg.CallType = meatDRAW + i;
+            arg.Data = Data;
+            Data->Menu.CurrentMenu[i].Activate((void*)&arg);
+        }
     }
-    al_draw_text(SelectFont, al_map_rgb(255,255,0),Data->DisplayData.width/2, (i + 1.5) * (Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+    al_draw_text(SelectFont, al_map_rgb(255,255,0), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+    if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
+            arg.CallType = meatDRAW + i;
+            arg.Data = Data;
+            Data->Menu.CurrentMenu[i].Activate((void*)&arg);
+        }
     for(++i; i <= NumberOfElems; ++i){
-        al_draw_text(RegFont, al_map_rgb(255,255,255), Data->DisplayData.width/2, (i + 1.5) * (Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[i].Name);
+        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+        if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
+            arg.CallType = meatDRAW + i;
+            arg.Data = Data;
+            Data->Menu.CurrentMenu[i].Activate((void*)&arg);
+        }
     }
 
     al_flip_display();

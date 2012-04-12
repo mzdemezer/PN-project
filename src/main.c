@@ -21,6 +21,7 @@ void menu_elem_init(struct menu_elem*Item,
 }
 
 int main(){
+
     ALLEGRO_EVENT_QUEUE *main_event_queue = NULL;
 
     if(!al_init()){
@@ -142,9 +143,12 @@ int main(){
 
     Data.MaxResolutionIndex = al_get_num_display_modes() - 1;
     Data.ChosenResolution = Data.MaxResolutionIndex;
-    al_get_display_mode(Data.ChosenResolution, &Data.DisplayData);
 
-    al_set_new_display_flags(ALLEGRO_FULLSCREEN);
+    al_get_display_mode(Data.ChosenResolution, &Data.DisplayData);
+    Data.InMenuDisplayData = Data.DisplayData;
+    Data.ChosenInMenu = Data.ChosenResolution;
+
+    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
     Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
 
     if(!Data.Display){

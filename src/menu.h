@@ -9,6 +9,10 @@ void exit_activate(void*);
 
 void scale_fonts(struct GameSharedData*);
 void resolution_activate(void*);
+char* stringify_resolution(const ALLEGRO_DISPLAY_MODE *);
+int rzad(int);
+char int_to_char(int);
+char* int_to_str(int);
 
 void change_menu(struct menu_structure *, struct menu_elem *, int);
 void return_menu(struct menu_structure *);
