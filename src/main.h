@@ -36,6 +36,7 @@ enum menu_elem_activation_type{
     meatACCEPT,
     meatUP,
     meatDOWN,
+    meatRESTORE_CURRENT,
     meatDRAW
 };
 

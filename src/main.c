@@ -134,6 +134,9 @@ int main(){
     Data.Menu.CurrentMenu = &MainMenu[0];
     Data.Menu.Current = 1;
 
+    /**
+        Initializing fonts
+        */
     al_init_font_addon();
     al_init_ttf_addon();
 
@@ -148,6 +151,10 @@ int main(){
     Data.InMenuDisplayData = Data.DisplayData;
     Data.ChosenInMenu = Data.ChosenResolution;
 
+    /**
+        Creating display
+        */
+
     al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
     Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
 
@@ -160,15 +167,20 @@ int main(){
     /**
         Setting font size accordingly to resolution
         */
-
     scale_fonts(&Data);
 
+    /**
+        Initializing keyboard
+        */
     if(!al_install_keyboard()) {
         fprintf(stderr, "failed to initialize the keyboard!\n");
         printf("Nie możesz grać w tą grę bez klawiatury gościu...");
         return -1;
     }
 
+    /**
+        Initializing mouse
+        */
     if(!al_install_mouse()) {
         fprintf(stderr, "failed to initialize the mouse!\n");
         Data.MouseWorking = false;
@@ -177,6 +189,9 @@ int main(){
         Data.MouseWorking = true;
     }
 
+    /**
+        Initializing event_queue
+        */
     main_event_queue = al_create_event_queue();
     if(!main_event_queue) {
         fprintf(stderr, "failed to create main_event_queue!\n");
@@ -187,6 +202,9 @@ int main(){
     al_register_event_source(main_event_queue, al_get_display_event_source(Data.Display));
     al_register_event_source(main_event_queue, al_get_mouse_event_source());
 
+    /**
+        First draw
+        */
     draw_menu(&Data);
 
     ALLEGRO_EVENT ev;
@@ -215,7 +233,9 @@ int main(){
 
 
 
-
+    /**
+        Clean-up
+        */
     al_destroy_display(Data.Display);
     al_destroy_event_queue(main_event_queue);
 

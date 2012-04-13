@@ -121,7 +121,11 @@ void resolution_activate(void*argument){
             normalize_resolution_selection(&arg->Data->ChosenInMenu, arg->Data->MaxResolutionIndex);
             al_get_display_mode(arg->Data->ChosenInMenu, &arg->Data->InMenuDisplayData);
             break;
-        default: printf("Argument: %d,  Current: %d\n", arg->CallType - meatDRAW, arg->Data->Menu.Current);
+        case meatRESTORE_CURRENT: printf("\nyes\n\n");
+            arg->Data->ChosenInMenu = arg->Data->ChosenResolution;
+            arg->Data->InMenuDisplayData = arg->Data->DisplayData;
+            break;
+        default:
                 if(arg->CallType - (int) meatDRAW == arg->Data->Menu.Current){
                     Font = arg->Data->MenuConfigSelectedFont;
                     Color = al_map_rgb(255, 255, 0);
@@ -131,20 +135,36 @@ void resolution_activate(void*argument){
                     Color = al_map_rgb(255, 255, 255);
                 }
                 CurrentResolution = stringify_resolution(&arg->Data->InMenuDisplayData);
-                printf("currres: %s\n", CurrentResolution);
                 al_draw_text(Font, Color, arg->Data->DisplayData.width * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
     }
 }
 
-void change_menu(struct menu_structure *Menu, struct menu_elem *NewMenu, int NewCurrent){
-    Menu->CurrentMenu = NewMenu;
-    Menu->Current = NewCurrent;
+void restore_current_settings(struct GameSharedData *Data){
+    int i;
+    struct activation_argument arg;
+    arg.CallType = meatRESTORE_CURRENT;
+    arg.Data = Data;
+    if((int)Data->Menu.CurrentMenu[0].Type < 0){
+        for(i = 1; i <= abs((int)Data->Menu.CurrentMenu[0].Type); ++i){
+            printf("I'm trying, master\n");
+            if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
+                Data->Menu.CurrentMenu[i].Activate((void*)&arg);
+                printf("I'm working, master\n");
+            }
+        }
+    }
+}
+
+void change_menu(struct GameSharedData *Data, struct menu_elem *NewMenu, int NewCurrent){
+    restore_current_settings(Data);
+    Data->Menu.CurrentMenu = NewMenu;
+    Data->Menu.Current = NewCurrent;
     printf("MENU CHANGED\n");
 }
 
-void return_menu(struct menu_structure *Menu){
-    change_menu(Menu, (struct menu_elem*)Menu->CurrentMenu[0].Activate, 1);
-    normalize_menu_selection(Menu);
+void return_menu(struct GameSharedData *Data){
+    change_menu(Data, (struct menu_elem*)Data->Menu.CurrentMenu[0].Activate, 1);
+    normalize_menu_selection(&(Data->Menu));
 }
 
 
@@ -186,10 +206,9 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
                     arg.CallType = meatACCEPT;
                     switch (Data->Menu.CurrentMenu[Data->Menu.Current].Type){
                         case metSUBMENU:
-                            change_menu(&(Data->Menu), (struct menu_elem*) Data->Menu.CurrentMenu[Data->Menu.Current].Activate, 1);
+                            change_menu(Data, (struct menu_elem*) Data->Menu.CurrentMenu[Data->Menu.Current].Activate, 1);
                             break;
                         case metACTIVATE:
-
                             (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
                             break;
                         case metUPDOWN:
@@ -199,7 +218,7 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
                     Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_ESCAPE:
-                    return_menu(&(Data->Menu));
+                    return_menu(Data);
                     Data->DrawCall = true;
                     break;
             }
@@ -214,7 +233,6 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
             printf("mouse up: %d\n", ev->mouse.button);
             break;
     }
-    printf("event handled in menu #%d\n", ev->type);
 };
 
 void clear_menu(){

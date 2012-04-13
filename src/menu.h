@@ -14,8 +14,10 @@ int rzad(int);
 char int_to_char(int);
 char* int_to_str(int);
 
-void change_menu(struct menu_structure *, struct menu_elem *, int);
-void return_menu(struct menu_structure *);
+
+void restore_current_settings(struct GameSharedData *);
+void change_menu(struct GameSharedData *, struct menu_elem *, int);
+void return_menu(struct GameSharedData *);
 void clear_menu();
 void draw_menu(struct GameSharedData* Data);
 
