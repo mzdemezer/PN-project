@@ -20,8 +20,9 @@
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
 
-enum game_state_enum{
+enum game_state{
     gsMENU,
+    gsLOADING,
     gsPAUSE,
     gsGAME
 };
@@ -39,6 +40,7 @@ enum menu_elem_activation_type{
     meatRESTORE_CURRENT,
     meatDRAW
 };
+
 
 struct activation_argument{
     enum menu_elem_activation_type CallType;
@@ -103,10 +105,49 @@ struct keyboard_structure{
     bool Keys[5];
 };*/
 
+enum fixed_object_type{//e.g.
+    fotSQUARE,
+    fotRECTANGLE
+};
+
+enum movable_object_type{//e.g.
+    motPLAYER,
+    motTURRET,
+    motBULLET
+};
+
+/**
+    This structure enables objectivization
+    by casting on different objects in
+    relation to Type. It anables also
+    creating lists of objects that are
+    logically connected with each other
+    */
+
+struct fixed_object_structure{
+    enum fixed_object_type Type;
+    void* ObjectData;
+};
+
+struct movable_object_structure{
+    enum fixed_object_type Type;
+    void* ObjectData;
+};
+
+struct level_structure{
+    int LevelNumber;
+
+    int NumberOfMovableObjects;
+    int NumberOfFixedObjects;
+    struct fixed_object_structure *Fixed;
+    struct fixed_object_structure *Movable;
+};
+
 struct GameSharedData{
-    enum game_state_enum GameState;
+    enum game_state GameState;
     bool MouseWorking;
 
+    ALLEGRO_THREAD *LoadingThread;
 
     ALLEGRO_DISPLAY *Display;
     ALLEGRO_DISPLAY_MODE DisplayData;
@@ -114,6 +155,9 @@ struct GameSharedData{
     int MaxResolutionIndex;
     int ChosenResolution;
     int ChosenInMenu;
+
+    ALLEGRO_EVENT_QUEUE *MainEventQueue;
+    ALLEGRO_EVENT LastEvent;
 
     struct menu_structure Menu;
     ALLEGRO_FONT *MenuRegularFont;
@@ -124,12 +168,16 @@ struct GameSharedData{
 
     //struct keyboard_structure Keyboard;
 
+    struct level_structure Level;
+
     /**
         Flags
         */
     bool DrawCall;
     bool CloseNow;
 };
+
+void* load_level(ALLEGRO_THREAD *, void *);
 
 //Math
 

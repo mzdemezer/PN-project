@@ -2,7 +2,7 @@
 #define _INCLUDE_MENU_H
 
 void normalize_menu_selection(struct menu_structure *);
-void handle_event_menu(const ALLEGRO_EVENT*, struct GameSharedData*);
+void handle_event_menu(struct GameSharedData*);
 
 void new_game_activate(void*);
 void exit_activate(void*);

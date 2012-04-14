@@ -5,6 +5,17 @@
 #include "main.h"
 #include "menu.h"
 #include "game.h"
+#include "loading.h"
+
+void* load_level(ALLEGRO_THREAD *thread, void *argument){
+    printf("Loading... level\n");
+
+    struct GameSharedData *Data = (struct GameSharedData*) argument;
+
+    printf("Loading finished\n");
+    return NULL;
+};
+
 
 int abs(int a){
     return a<0 ? -a : a;
@@ -21,8 +32,6 @@ void menu_elem_init(struct menu_elem*Item,
 }
 
 int main(){
-
-    ALLEGRO_EVENT_QUEUE *main_event_queue = NULL;
 
     if(!al_init()){
         fprintf(stderr, "Problems when initilizing Allegro");
@@ -192,30 +201,44 @@ int main(){
     /**
         Initializing event_queue
         */
-    main_event_queue = al_create_event_queue();
-    if(!main_event_queue) {
+    Data.MainEventQueue = NULL;
+    Data.MainEventQueue = al_create_event_queue();
+    if(!Data.MainEventQueue) {
         fprintf(stderr, "failed to create main_event_queue!\n");
         al_destroy_display(Data.Display);
         return -1;
     }
-    al_register_event_source(main_event_queue, al_get_keyboard_event_source());
-    al_register_event_source(main_event_queue, al_get_display_event_source(Data.Display));
-    al_register_event_source(main_event_queue, al_get_mouse_event_source());
+    al_register_event_source(Data.MainEventQueue, al_get_keyboard_event_source());
+    al_register_event_source(Data.MainEventQueue, al_get_display_event_source(Data.Display));
+    al_register_event_source(Data.MainEventQueue, al_get_mouse_event_source());
+
+    /**
+        Initializing data
+        */
+
+    Data.Level.LevelNumber = 0;
+    Data.Level.NumberOfMovableObjects = 0;
+    Data.Level.NumberOfFixedObjects = 0;
+    Data.Level.Fixed = NULL;
+    Data.Level.Movable = NULL;
 
     /**
         First draw
         */
     draw_menu(&Data);
 
-    ALLEGRO_EVENT ev;
+    /**
+        Main loop
+        */
     while(1){
-        al_wait_for_event(main_event_queue, &ev);
+        al_wait_for_event(Data.MainEventQueue, &Data.LastEvent);
         //printf("event type#%d\n", ev.type);
 
         switch(Data.GameState){
-            case gsMENU: handle_event_menu(&ev, &Data); break;
+            case gsGAME: handle_event_game(&Data); break;
+            case gsMENU: handle_event_menu(&Data); break;
             case gsPAUSE: break;
-            case gsGAME: handle_event_game(&ev, &Data); break;
+            case gsLOADING: handle_event_loading(&Data); break;
         }
 
         if(Data.CloseNow){
@@ -223,10 +246,11 @@ int main(){
         }
 
         if(Data.DrawCall){
-                switch(Data.GameState){
+            switch(Data.GameState){
+                case gsGAME: break;
+                case gsLOADING: draw_loading(&Data); break;
                 case gsMENU: draw_menu(&Data); break;
                 case gsPAUSE: break;
-                case gsGAME: break;
             }
         }
     }
@@ -237,7 +261,7 @@ int main(){
         Clean-up
         */
     al_destroy_display(Data.Display);
-    al_destroy_event_queue(main_event_queue);
+    al_destroy_event_queue(Data.MainEventQueue);
 
     return 0;
 }

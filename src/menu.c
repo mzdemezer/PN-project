@@ -13,10 +13,6 @@ void normalize_menu_selection(struct menu_structure *Menu){
     else if(Menu->Current <= 0){
         Menu->Current = NumberOfElems;
     }
-    printf("\nCurrent: %d\n"
-           "Name: %s\n"
-           "Type: %d\n", Menu->Current, Menu->CurrentMenu[Menu->Current].Name,
-                                      Menu->CurrentMenu[Menu->Current].Type);
 }
 
 void normalize_resolution_selection(int*current, const int max){
@@ -30,6 +26,23 @@ void normalize_resolution_selection(int*current, const int max){
 
 void new_game_activate(void *argument){
     printf("NEW GAME ACTIVATED\n");
+    struct activation_argument *arg = (struct activation_argument*) argument;
+    arg->Data->GameState = gsLOADING;
+    arg->Data->DrawCall = true;
+
+    //necessary settings
+    arg->Data->Level.LevelNumber = 1;
+
+    //start loading thread
+    arg->Data->LoadingThread = NULL;
+    arg->Data->LoadingThread = al_create_thread(&load_level, (void*)arg->Data);
+    if(!arg->Data->LoadingThread){
+        fprintf(stderr, "Failed to create loading thread.");
+        arg->Data->CloseNow = true;
+    }
+    else{
+        al_start_thread(arg->Data->LoadingThread);
+    }
 };
 
 void exit_activate(void *argument){
@@ -98,9 +111,10 @@ void resolution_activate(void*argument){
     ALLEGRO_COLOR Color;
     char *CurrentResolution;
 
-    printf("RESOLUTION CHANGE\n");
+
 
     struct activation_argument *arg = (struct activation_argument*) argument;
+    printf("RESOLUTION activate call with: %d\n", arg->CallType);
     switch(arg->CallType){
         case meatACCEPT:
             if(arg->Data->ChosenResolution != arg->Data->ChosenInMenu){
@@ -121,7 +135,7 @@ void resolution_activate(void*argument){
             normalize_resolution_selection(&arg->Data->ChosenInMenu, arg->Data->MaxResolutionIndex);
             al_get_display_mode(arg->Data->ChosenInMenu, &arg->Data->InMenuDisplayData);
             break;
-        case meatRESTORE_CURRENT: printf("\nyes\n\n");
+        case meatRESTORE_CURRENT:
             arg->Data->ChosenInMenu = arg->Data->ChosenResolution;
             arg->Data->InMenuDisplayData = arg->Data->DisplayData;
             break;
@@ -168,16 +182,16 @@ void return_menu(struct GameSharedData *Data){
 }
 
 
-void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
+void handle_event_menu(struct GameSharedData *Data){
     struct activation_argument arg;
     arg.Data = Data;
-    switch(ev->type){
+    switch(Data->LastEvent.type){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->CloseNow = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
-            printf("keycode down: %d\n", ev->keyboard.keycode);
-            switch(ev->keyboard.keycode){
+            printf("keycode down: %d\n", Data->LastEvent.keyboard.keycode);
+            switch(Data->LastEvent.keyboard.keycode){
                 case ALLEGRO_KEY_LEFT:
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
                         arg.CallType = meatDOWN;
@@ -224,13 +238,13 @@ void handle_event_menu(const ALLEGRO_EVENT *ev, struct GameSharedData *Data){
             }
             break;
         case ALLEGRO_EVENT_KEY_UP:
-            printf("keycode up: %d\n", ev->keyboard.keycode);
+            printf("keycode up: %d\n", Data->LastEvent.keyboard.keycode);
             break;
         case ALLEGRO_EVENT_MOUSE_AXES:
             printf("mouse moved in menu\n");
             break;
         case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-            printf("mouse up: %d\n", ev->mouse.button);
+            printf("mouse up: %d\n", Data->LastEvent.mouse.button);
             break;
     }
 };
