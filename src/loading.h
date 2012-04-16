@@ -3,5 +3,6 @@
 
 void draw_loading(struct GameSharedData *);
 void handle_event_loading(struct GameSharedData *);
+void request_loading(struct GameSharedData *);
 
 #endif

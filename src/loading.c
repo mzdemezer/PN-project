@@ -1,10 +1,9 @@
 #include "main.h"
 #include "loading.h"
+#include <stdio.h>
 
 void draw_loading(struct GameSharedData *Data){
-    printf("Drawing the loading-screen\n");
-
-    Data->DrawCall = false;
+    //printf("Drawing the loading-screen\n");
 
     al_clear_to_color(al_map_rgb(0,0,0));
 
@@ -18,5 +17,19 @@ void handle_event_loading(struct GameSharedData *Data){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->CloseNow = true;
             break;
+    }
+}
+
+void request_loading(struct GameSharedData *Data){
+    if(!Data->ThreadLoading){
+        fprintf(stderr, "Failed to create loading thread.");
+        Data->CloseNow = true;
+    }
+    else{
+        al_lock_mutex(Data->MutexChangeState);
+            Data->RequestChangeState = false;
+            Data->GameState = gsLOADING;
+        al_unlock_mutex(Data->MutexChangeState);
+        al_start_thread(Data->ThreadLoading);
     }
 }

@@ -13,9 +13,23 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     struct GameSharedData *Data = (struct GameSharedData*) argument;
 
     printf("Loading finished\n");
+    al_lock_mutex(Data->MutexChangeState);
+        Data->NewState = gsGAME;
+        Data->RequestChangeState = true;
+    al_unlock_mutex(Data->MutexChangeState);
+
     return NULL;
 };
 
+void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
+    struct GameSharedData *Data = (struct GameSharedData*) argument;
+
+    while(!Data->CloseNow){
+        al_rest(2.0);
+        printf("Iterated\n");
+    }
+    return NULL;
+}
 
 int abs(int a){
     return a<0 ? -a : a;
@@ -208,19 +222,46 @@ int main(){
         al_destroy_display(Data.Display);
         return -1;
     }
+    Data.DrawTimer = NULL;
+    Data.DrawTimer = al_create_timer(1.0 / 60);
+    if(!Data.DrawTimer) {
+        fprintf(stderr, "failed to create timer!\n");
+        al_destroy_display(Data.Display);
+        al_destroy_event_queue(Data.MainEventQueue);
+        return -1;
+    }
+
+    al_register_event_source(Data.MainEventQueue, al_get_timer_event_source(Data.DrawTimer));
     al_register_event_source(Data.MainEventQueue, al_get_keyboard_event_source());
     al_register_event_source(Data.MainEventQueue, al_get_display_event_source(Data.Display));
     al_register_event_source(Data.MainEventQueue, al_get_mouse_event_source());
-
+    /**
+        Initializing threads
+        */
+    Data.ThreadMainIteration = NULL;
+    Data.ThreadMainIteration = al_create_thread(main_iteration, (void*)&Data);
+    if(!Data.ThreadMainIteration){
+        fprintf(stderr, "Failed to initialize main_iteration thread, sorry");
+        al_destroy_display(Data.Display);
+        al_destroy_event_queue(Data.MainEventQueue);
+        al_destroy_timer(Data.DrawTimer);
+        return -1;
+    }
     /**
         Initializing data
         */
+
+
 
     Data.Level.LevelNumber = 0;
     Data.Level.NumberOfMovableObjects = 0;
     Data.Level.NumberOfFixedObjects = 0;
     Data.Level.Fixed = NULL;
     Data.Level.Movable = NULL;
+
+    Data.RequestChangeState = false;
+    Data.MutexChangeState = al_create_mutex();
+
 
     /**
         First draw
@@ -230,10 +271,14 @@ int main(){
     /**
         Main loop
         */
+    al_start_timer(Data.DrawTimer);
     while(1){
         al_wait_for_event(Data.MainEventQueue, &Data.LastEvent);
-        //printf("event type#%d\n", ev.type);
+        //printf("event type#%d\n", Data.LastEvent.type);
 
+        if(Data.LastEvent.type == ALLEGRO_EVENT_TIMER){
+            Data.DrawCall = true;
+        }
         switch(Data.GameState){
             case gsGAME: handle_event_game(&Data); break;
             case gsMENU: handle_event_menu(&Data); break;
@@ -245,14 +290,25 @@ int main(){
             break;
         }
 
+        if(Data.RequestChangeState){
+            switch(Data.NewState){
+                case gsPAUSE: break;
+                case gsLOADING: request_loading(&Data); break;
+                case gsGAME: request_game(&Data); break;
+                case gsMENU: break;
+            }
+        }
+
         if(Data.DrawCall){
+            Data.DrawCall = false;
             switch(Data.GameState){
-                case gsGAME: break;
+                case gsGAME: draw_game(&Data); break;
                 case gsLOADING: draw_loading(&Data); break;
                 case gsMENU: draw_menu(&Data); break;
                 case gsPAUSE: break;
             }
         }
+
     }
 
 
@@ -262,6 +318,7 @@ int main(){
         */
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
+    al_destroy_timer(Data.DrawTimer);
 
     return 0;
 }

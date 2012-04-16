@@ -27,22 +27,14 @@ void normalize_resolution_selection(int*current, const int max){
 void new_game_activate(void *argument){
     printf("NEW GAME ACTIVATED\n");
     struct activation_argument *arg = (struct activation_argument*) argument;
-    arg->Data->GameState = gsLOADING;
-    arg->Data->DrawCall = true;
-
     //necessary settings
+    al_lock_mutex(arg->Data->MutexChangeState);
+        arg->Data->RequestChangeState = true;
+        arg->Data->NewState = gsLOADING;
+    al_unlock_mutex(arg->Data->MutexChangeState);
     arg->Data->Level.LevelNumber = 1;
-
-    //start loading thread
-    arg->Data->LoadingThread = NULL;
-    arg->Data->LoadingThread = al_create_thread(&load_level, (void*)arg->Data);
-    if(!arg->Data->LoadingThread){
-        fprintf(stderr, "Failed to create loading thread.");
-        arg->Data->CloseNow = true;
-    }
-    else{
-        al_start_thread(arg->Data->LoadingThread);
-    }
+    arg->Data->ThreadLoading = NULL;
+    arg->Data->ThreadLoading = al_create_thread(&load_level, (void*)arg->Data);
 };
 
 void exit_activate(void *argument){
@@ -196,25 +188,21 @@ void handle_event_menu(struct GameSharedData *Data){
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
                         arg.CallType = meatDOWN;
                         (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
-                        Data->DrawCall = true;
                     }
                     break;
                 case ALLEGRO_KEY_RIGHT:
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
                         arg.CallType = meatUP;
                         (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
-                        Data->DrawCall = true;
                     }
                     break;
                 case ALLEGRO_KEY_UP:
                     Data->Menu.Current -= 1;
                     normalize_menu_selection(&(Data->Menu));
-                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_DOWN:
                     Data->Menu.Current += 1;
                     normalize_menu_selection(&(Data->Menu));
-                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_ENTER:
                     arg.CallType = meatACCEPT;
@@ -229,11 +217,9 @@ void handle_event_menu(struct GameSharedData *Data){
                             (Data->Menu.CurrentMenu[Data->Menu.Current].Activate)((void*)&arg);
                             break;
                     }
-                    Data->DrawCall = true;
                     break;
                 case ALLEGRO_KEY_ESCAPE:
                     return_menu(Data);
-                    Data->DrawCall = true;
                     break;
             }
             break;
@@ -301,6 +287,4 @@ void draw_menu(struct GameSharedData* Data){
     }
 
     al_flip_display();
-
-    Data->DrawCall = false;
 }

@@ -145,9 +145,14 @@ struct level_structure{
 
 struct GameSharedData{
     enum game_state GameState;
-    bool MouseWorking;
+    bool RequestChangeState;
+    enum game_state NewState;
+    ALLEGRO_MUTEX *MutexChangeState;
 
-    ALLEGRO_THREAD *LoadingThread;
+    ALLEGRO_TIMER *DrawTimer;
+
+    ALLEGRO_THREAD *ThreadLoading;
+    ALLEGRO_THREAD *ThreadMainIteration;
 
     ALLEGRO_DISPLAY *Display;
     ALLEGRO_DISPLAY_MODE DisplayData;
@@ -175,9 +180,14 @@ struct GameSharedData{
         */
     bool DrawCall;
     bool CloseNow;
+
+    /**
+        */
+    bool MouseWorking;
 };
 
 void* load_level(ALLEGRO_THREAD *, void *);
+void* main_iteration(ALLEGRO_THREAD *, void *);
 
 //Math
 
