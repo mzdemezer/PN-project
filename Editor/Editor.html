@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Editor</title>
+	<script type="text/javascript" src="jquery-1.7.min.js"></script>
+	<script type="text/javascript" src="main.js"></script>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+	<div class="contents canva">
+		<canvas id="canva">Zmieñ przegl¹darkê mule</canvas>
+	</div>
+	
+	<div class="contents">
+		<div>
+			<div class="contents">
+				<input class="radio" type="radio" name="objType" id="objTypeCircle" onmouseup="checkedOne = 'Circle'" checked="checked" />Circle<br />
+				<input class="radio" type="radio" name="objType" id="objTypeSquare" onmouseup="checkedOne = 'Square';" />Square<br />
+				<input class="radio" type="radio" name="objType" id="objTypeRectangle" onmouseup="checkedOne = 'Rectangle';" />Rectangle<br />
+				<input class="radio" type="radio" name="objType" id="objTypePlayer" onmouseup="checkedOne = 'Player';" />Player<br />
+				<input class="radio" type="radio" name="objType" id="objTypeEntrance" onmouseup="checkedOne = 'Entrance';" />Entrance<br />
+				<input class="radio" type="radio" name="objType" id="objTypeExit" onmouseup="checkedOne = 'Exit';" />Exit<br />
+				<input class="radio" type="radio" name="objType" id="objTypeSwitch" onmouseup="checkedOne = 'Switch';" />Switch<br />
+				<input class="radio" type="radio" name="objType" id="objTypeDoor" onmouseup="checkedOne = 'Door';" />Door<br />
+				<input class="radio" type="radio" name="objType" id="objTypeParticle" onmouseup="checkedOne = 'Particle';" />Particle<br />
+			</div>
+			<div id="ObjListParent" class="contents">
+				<div class="contents">
+					<button onclick="newObject()">New</button><br />
+					<button onclick="cloneObject(-30, 30)">Clone</button><br />
+					<button onclick="delObject()">Del</button>
+				</div>
+			
+				<input class="check" type="checkbox" checked="checked" onchange="if(CallDrawing){CallDrawing = false;}else{CallDrawing = true; ReDraw();}" />Always ReDraw()<br />
+				<button onclick="GenerateOutput()">Output</button><br />
+				<button onclick="Load()">Load</button><br />
+				<button onclick="Clear()">Clear</button><br />
+				<select id="ObjListSelect" onchange="SelectObject()">
+					<optgroup label="Players" id="OptPlayers">
+					</optgroup>	
+					<optgroup label="Circles" id="OptCircles">
+					</optgroup>
+					<optgroup label="Squares" id="OptSquares">
+					</optgroup>
+					<optgroup label="Rectangles" id="OptRectangles">
+					</optgroup>
+					<optgroup label="Entrances" id="OptEntrances">
+					</optgroup>	
+					<optgroup label="Exits" id="OptExits">
+					</optgroup>
+					<optgroup label="Switches" id="OptSwitches">
+					</optgroup>
+					<optgroup label="Doors" id="OptDoors">
+					</optgroup>
+					<optgroup label="Particles" id="OptParticles">
+					</optgroup>
+				</select>
+			</div>
+		</div>
+		<div width="250px">
+			<h2>Parameters</h2>
+			<h3>Object type: &nbsp;&nbsp;<span id="SpanObjType"></span></h3>
+			<p class="etiq" id="firstP">
+				x
+				<input type="text" class="text" id="FirstText" value="0" onchange="Change('First')" />
+			</p>
+			<p class="etiq" id="secondP">
+				y
+				<input type="text" class="text" id="SecondText" value="0" onchange="Change('Second')" />
+			</p>
+			<p class="etiq" id="thirdP">
+				Third
+				<input type="text" class="text" id="ThirdText" value="0" onchange="Change('Third')" />
+			</p>
+			<p class="etiq" id="forthP">
+				bok 2
+				<input type="text" class="text" id="ForthText" value="0" onchange="Change('Forth')" />
+			</p>
+			<p class="etiq" id="fifthP">
+				fi<sub>0</sub>
+				<input type="text" class="text" id="FifthText" value="0" onchange="Change('Fifth')" />
+			</p>
+			<p class="etiq" id="sixthP">
+				wsp<sub>1</sub>
+				<input type="text" class="text" id="SixthText" value="0" onchange="Change('Sixth')" />
+			</p>
+			<p class="etiq" id="seventhP">
+				wsp<sub>2</sub>
+				<input type="text" class="text" id="SeventhText" value="0" onchange="Change('Seventh')" />
+			</p>
+			<p class="etiq" id="r0P">
+				r<sub>0<sub>
+				<input type="text" class="text" id="r0Text" value="0" onchange="Change('r0')" />
+			</p>
+			<p class="etiq" id="angleP">
+				Angle
+				<input type="text" class="text" id="AngleText" value="0" onchange="Change('Angle')" />
+			</p>
+			<p class="etiq" id="colorP">
+				Color
+				<input type="text" class="text" id="ColorText" value="0" onchange="Change('Color')" />
+			</p>
+			<p class="etiq" id="massP">
+				Mass
+				<input type="text" class="text" id="MassText" value="0" onchange="Change('Mass')" />
+			</p>
+		</div>
+		<div>
+			<p class="etiq" id="backgroundP">
+				Background
+				<input type="text" class="text" id="BackgroundText" value="default" onchange="SetBackground(this.value);" />
+			</p>
+		</div>
+	</div>
+	<div class="contents">
+		<textarea id="output" rows="30" cols="60"></textarea>
+	</div>
+
+	<div class="container">
+		<pre id="disp">x=BOO y=BOO undefined</pre>
+	</div>
+</body>
+</html>
