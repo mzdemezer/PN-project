@@ -48,7 +48,8 @@ void scale_fonts(struct GameSharedData *Data){
     Data->MenuBigFont = NULL;
     Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->DisplayData.height / 10), 0);
 
-    if (!Data->MenuRegularFont){
+
+    if (!Data->MenuBigFont){
         fprintf(stderr, "Could not load 'pirulen.ttf'.\n");
         exit(-1);
     }
@@ -57,37 +58,6 @@ void scale_fonts(struct GameSharedData *Data){
     Data->MenuSelectedFont = al_load_ttf_font("pirulen.ttf", (int)((Data->MenuBigFont->height +  Data->MenuRegularFont->height) / 2), 0);
     Data->MenuConfigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuRegularFont->height * 0.45), 0);
     Data->MenuConfigSelectedFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuSelectedFont->height * 0.45), 0);
-}
-
-int rzad(int a){
-    int res = 1, lim = 10;
-    a = abs(a);
-    while(a > lim){
-        res += 1;
-        lim *= 10;
-    }
-    return res;
-}
-
-char int_to_char(int digit){
-    return (char)(digit | 0x30);
-}
-
-char* int_to_str(int a){
-    bool sign = a < 0;
-    int length = rzad(a) + (int)sign, i, digit;
-    char* result = (char*)malloc(sizeof(char) * (length + 1) );
-    result[length] = '\0';
-    a = abs(a);
-    for(i = length - 1; i >= (int)sign; --i){
-        digit = a % 10;
-        a /= 10;
-        result[i] = int_to_char(digit);
-    }
-    if(sign){
-        result[0] = '-';
-    }
-    return result;
 }
 
 char* stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData){

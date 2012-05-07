@@ -105,15 +105,19 @@ struct keyboard_structure{
     bool Keys[5];
 };*/
 
-enum fixed_object_type{//e.g.
+enum fixed_object_type{
     fotSQUARE,
-    fotRECTANGLE
+    fotRECTANGLE,
+    fotCIRCLE,
+    fotENTRANCE,
+    fotEXIT
 };
 
-enum movable_object_type{//e.g.
+enum movable_object_type{
     motPLAYER,
-    motTURRET,
-    motBULLET
+    motSWITCH,
+    motDOOR,
+    motPARTICLE
 };
 
 /**
@@ -127,11 +131,27 @@ enum movable_object_type{//e.g.
 struct fixed_object_structure{
     enum fixed_object_type Type;
     void* ObjectData;
+    struct fixed_object_structure *next;
 };
 
 struct movable_object_structure{
-    enum fixed_object_type Type;
+    enum movable_object_type Type;
     void* ObjectData;
+    struct movable_object_structure *next;
+};
+
+struct ObjectWorkshop{
+    struct playerData *NewPlayer;
+    struct rectangleData *NewRectangle;
+};
+
+struct playerData{
+    float x, y, ang;
+};
+
+struct rectangleData{
+    float x, y, a, b, ang;
+    ALLEGRO_COLOR color;
 };
 
 struct level_structure{
@@ -139,8 +159,12 @@ struct level_structure{
 
     int NumberOfMovableObjects;
     int NumberOfFixedObjects;
-    struct fixed_object_structure *Fixed;
-    struct fixed_object_structure *Movable;
+    struct fixed_object_structure *FixedObjects;
+    struct movable_object_structure *MovableObjects;
+
+    struct playerData *Player;
+
+    ALLEGRO_BITMAP *Background;
 };
 
 struct GameSharedData{
@@ -149,6 +173,7 @@ struct GameSharedData{
     enum game_state NewState;
     ALLEGRO_MUTEX *MutexChangeState;
 
+    ALLEGRO_MUTEX *DrawMutex;
     ALLEGRO_TIMER *DrawTimer;
 
     ALLEGRO_THREAD *ThreadLoading;
@@ -186,13 +211,19 @@ struct GameSharedData{
     bool MouseWorking;
 };
 
-void* load_level(ALLEGRO_THREAD *, void *);
-void* main_iteration(ALLEGRO_THREAD *, void *);
 
+void* main_iteration(ALLEGRO_THREAD *, void *);
+void* load_level(ALLEGRO_THREAD *, void *);
+
+void add_movable_object(struct GameSharedData*, enum movable_object_type, void*);
+void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
 //Math
 
 int abs(int);
 
+int rzad(int);
+char int_to_char(int);
+char* int_to_str(int);
 
 
 #endif

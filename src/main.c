@@ -7,20 +7,6 @@
 #include "game.h"
 #include "loading.h"
 
-void* load_level(ALLEGRO_THREAD *thread, void *argument){
-    printf("Loading... level\n");
-
-    struct GameSharedData *Data = (struct GameSharedData*) argument;
-
-    printf("Loading finished\n");
-    al_lock_mutex(Data->MutexChangeState);
-        Data->NewState = gsGAME;
-        Data->RequestChangeState = true;
-    al_unlock_mutex(Data->MutexChangeState);
-
-    return NULL;
-};
-
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     struct GameSharedData *Data = (struct GameSharedData*) argument;
 
@@ -32,9 +18,8 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
 }
 
 int abs(int a){
-    return a<0 ? -a : a;
+    return a < 0 ? -a : a;
 }
-
 
 void menu_elem_init(struct menu_elem*Item,
                     enum menu_elem_type NewType,
@@ -43,6 +28,53 @@ void menu_elem_init(struct menu_elem*Item,
     Item->Type = NewType;
     Item->Name = NewName;
     Item->Activate = NewActivate;
+}
+
+int rzad(int a){
+    int res = 1, lim = 10;
+    a = abs(a);
+    while(a > lim){
+        res += 1;
+        lim *= 10;
+    }
+    return res;
+}
+
+char int_to_char(int digit){
+    return (char)(digit | 0x30);
+}
+
+char* int_to_str(int a){
+    bool sign = a < 0;
+    int length = rzad(a) + (int)sign, i, digit;
+    char* result = (char*)malloc(sizeof(char) * (length + 1) );
+    result[length] = '\0';
+    a = abs(a);
+    for(i = length - 1; i >= (int)sign; --i){
+        digit = a % 10;
+        a /= 10;
+        result[i] = int_to_char(digit);
+    }
+    if(sign){
+        result[0] = '-';
+    }
+    return result;
+}
+
+void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
+    struct movable_object_structure *NewObject = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure));
+    NewObject->Type = NewObjectType;
+    NewObject->ObjectData = NewObjectData;
+    NewObject->next = Data->Level.MovableObjects;
+    Data->Level.MovableObjects = NewObject;
+}
+
+void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
+    struct fixed_object_structure *NewObject = (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure));
+    NewObject->Type = NewObjectType;
+    NewObject->ObjectData = NewObjectData;
+    NewObject->next = Data->Level.FixedObjects;
+    Data->Level.FixedObjects = NewObject;
 }
 
 int main(){
@@ -158,10 +190,16 @@ int main(){
     Data.Menu.Current = 1;
 
     /**
-        Initializing fonts
+        Initializing addons
         */
+
     al_init_font_addon();
     al_init_ttf_addon();
+
+    if(!al_init_image_addon()){
+        fprintf(stderr, "Failed to initialize al_init_image_addon!");
+        return -1;
+    }
 
     /**
         Getting resolution
@@ -256,12 +294,17 @@ int main(){
     Data.Level.LevelNumber = 0;
     Data.Level.NumberOfMovableObjects = 0;
     Data.Level.NumberOfFixedObjects = 0;
-    Data.Level.Fixed = NULL;
-    Data.Level.Movable = NULL;
+    Data.Level.FixedObjects = NULL;
+    Data.Level.MovableObjects = NULL;
 
     Data.RequestChangeState = false;
     Data.MutexChangeState = al_create_mutex();
+    Data.DrawMutex = al_create_mutex();
 
+    /**
+        crap
+        */
+    int sec = 0;
 
     /**
         First draw
@@ -278,6 +321,10 @@ int main(){
 
         if(Data.LastEvent.type == ALLEGRO_EVENT_TIMER){
             Data.DrawCall = true;
+             /**
+                crap
+                */
+            ++sec; if(sec == 60){printf("Second passed\n"); sec=0;}
         }
         switch(Data.GameState){
             case gsGAME: handle_event_game(&Data); break;
