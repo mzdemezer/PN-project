@@ -112,9 +112,9 @@ struct keyboard_structure{
 };*/
 
 enum fixed_object_type{
-    fotSQUARE,
     fotRECTANGLE,
     fotCIRCLE,
+    fotSQUARE,
     fotENTRANCE,
     fotEXIT
 };

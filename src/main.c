@@ -62,23 +62,23 @@ char* int_to_str(int a){
 }
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
-    Data->Level.NumberOfMovableObjects += 1;
-    if(Data->Level.NumberOfMovableObjects > Data->Level.BoundryMovable){
+    if(Data->Level.NumberOfMovableObjects == Data->Level.BoundryMovable){
         Data->Level.BoundryMovable *= 2;
         Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.BoundryMovable);
     }
     Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].Type = NewObjectType;
     Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].ObjectData = NewObjectData;
+    Data->Level.NumberOfMovableObjects += 1;
 }
 
 void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
-    Data->Level.NumberOfFixedObjects += 1;
-    if(Data->Level.NumberOfFixedObjects > Data->Level.BoundryFixed){
+    if(Data->Level.NumberOfFixedObjects == Data->Level.BoundryFixed){
         Data->Level.BoundryFixed *= 2;
         Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.BoundryFixed);
     }
     Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].Type = NewObjectType;
     Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].ObjectData = NewObjectData;
+    Data->Level.NumberOfFixedObjects += 1;
 }
 
 void clear_fixed_object_list(struct GameSharedData *Data){

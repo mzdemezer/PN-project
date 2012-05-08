@@ -11,6 +11,10 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     // Actual loading
     load_level_from_file(Data);
 
+    int i;
+    for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
+        printf("%d: %d\n", i, Data->Level.FixedObjects[i].Type);
+    }
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
