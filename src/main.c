@@ -310,6 +310,7 @@ int main(){
         First draw
         */
     draw_menu(&Data);
+    Data.FPS = 0;
 
     /**
         Main loop
@@ -324,7 +325,7 @@ int main(){
              /**
                 crap
                 */
-            ++sec; if(sec == 60){printf("Second passed\n"); sec=0;}
+            ++sec; if(sec == 60){printf("Second passed, FPS: %d\n", Data.FPS); sec=0; Data.FPS = 0;}
         }
         switch(Data.GameState){
             case gsGAME: handle_event_game(&Data); break;
@@ -346,7 +347,8 @@ int main(){
             }
         }
 
-        if(Data.DrawCall){
+        if(Data.DrawCall && al_is_event_queue_empty(Data.MainEventQueue)){
+            ++Data.FPS;
             Data.DrawCall = false;
             switch(Data.GameState){
                 case gsGAME: draw_game(&Data); break;

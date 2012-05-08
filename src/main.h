@@ -8,6 +8,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_image.h>
 
 /**
     Negatives values are for configuration menus
@@ -19,6 +20,9 @@
 #define HIGH_SCORES_MENU_SIZE 1
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
+
+
+#define ERROR_COLOR al_map_rgb(128, 128, 128)
 
 enum game_state{
     gsMENU,
@@ -143,6 +147,13 @@ struct movable_object_structure{
 struct ObjectWorkshop{
     struct playerData *NewPlayer;
     struct rectangleData *NewRectangle;
+    struct circleData *NewCircle;
+    struct squareData *NewSquare;
+    struct entranceData *NewEntrance;
+    struct exitData *NewExit;
+    struct switchData *NewSwitch;
+    struct doorData *NewDoor;
+    struct particleData *NewParticle;
 };
 
 struct playerData{
@@ -153,6 +164,63 @@ struct rectangleData{
     float x, y, a, b, ang;
     ALLEGRO_COLOR color;
 };
+
+struct circleData{
+    float x, y, r0, ang;
+    ALLEGRO_COLOR color;
+};
+
+struct squareData{
+    float x, y, bok, ang;
+    ALLEGRO_COLOR color;
+};
+
+struct entranceData{
+    float x, y, a, b, ang;
+    ALLEGRO_COLOR color;
+};
+
+struct exitData{
+    float x, y, a, b, ang;
+    ALLEGRO_COLOR color;
+};
+
+enum switch_type{
+    stSLIDE
+
+};
+
+struct connectedData{
+    int number_of_doors,
+        number_of_switches,
+        *doors,
+        *switches;
+};
+
+struct switchData{
+    float x, y, a, b, ang, mass;
+    int pos;
+    enum switch_type swType;
+    struct connectedData connected;
+    ALLEGRO_COLOR color;
+};
+
+enum door_type{
+    dt1WINGSLIDE
+};
+
+struct doorData{
+    float x, y, a, b, ang, mass, openingTime;
+    int pos;
+    enum door_type doorType;
+    ALLEGRO_COLOR color;
+};
+
+struct particleData{
+    float x, y, r0, mass, charge;
+    ALLEGRO_COLOR color;
+};
+
 
 struct level_structure{
     int LevelNumber;
@@ -174,6 +242,7 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexChangeState;
 
     ALLEGRO_MUTEX *DrawMutex;
+    unsigned char FPS;
     ALLEGRO_TIMER *DrawTimer;
 
     ALLEGRO_THREAD *ThreadLoading;
