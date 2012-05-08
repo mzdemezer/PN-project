@@ -329,26 +329,38 @@ function GenerateOutput(){
 		op2 += swTypeToNumber(Data.Switches[i].swType) + " ";
 		
 		op3 = roundToTwo(Data.Switches[i].pos) + " " +
-			   Data.Switches[i].connected.Doors.length + " ";
+			   Data.Switches[i].connected.Doors.length;
+		op += op3 + " ";
+		op2 += op3 + "\n";
+		op3 = "";
 		
 		Data.Switches[i].connected.Doors.sort(sortfunc);
 		Data.Switches[i].connected.Switches.sort(sortfunc);
 		for(var j in Data.Switches[i].connected.Doors){
 			op3 += Data.Switches[i].connected.Doors[j] + " ";
 		}
-		op3 += Data.Switches[i].connected.Switches.length + " ";
+		if(op3 != ""){
+			op += op3;
+			op2 += op3.slice(0,-1) + "\n";
+		}
+		
+		op3 = Data.Switches[i].connected.Switches.length;
+		op += op3 + " ";
+		op2 += op3 + "\n";
+		
+		op3 = "";
 		for(var j in Data.Switches[i].connected.Switches){
 			op3 += Data.Switches[i].connected.Switches[j] + " ";
 		}
-		op3 += roundToTwo(Data.Switches[i].mass) + " ";
+		if(op3 != ""){
+			op += op3;
+			op2 += op3.slice(0,-1) + "\n";
+		}
+		op3 = roundToTwo(Data.Switches[i].mass) + " ";
 		
-		
-		op += op3;
-		op2 += op3;
-		
-		op += Data.Switches[i].color + 
+		op += op3 + Data.Switches[i].color + 
 			  "\n";
-		op2 += ColorToNumbers(Data.Switches[i].color) +
+		op2 += op3 + ColorToNumbers(Data.Switches[i].color) +
 			  "\n";
 		$output.value += op;
 		$sieczka.value += op2;
@@ -388,6 +400,8 @@ function GenerateOutput(){
 		$output.value += op;
 		$sieczka.value += op;
 	}
+	$output.value += $output.value.slice(0, -1);
+	$sieczka.value = $sieczka.value.slice(0, -1);
 }
 
 function ColorToNumbers(color){
@@ -396,16 +410,16 @@ function ColorToNumbers(color){
 	if(color[0] === "#"){
 		switch(color.length){
 			case 4:
-				return "3 " + Shorth2d(color[1]) + " " + Shorth2d(color[2]) + " " + Shorth2d(color[3]);
+				return "3\n" + Shorth2d(color[1]) + " " + Shorth2d(color[2]) + " " + Shorth2d(color[3]);
 			case 7:
-				return "3 " + (h2d(color[1]) * 16 + h2d(color[2])) + " " + (h2d(color[3]) * 16 + h2d(color[4])) + " " + (h2d(color[5]) * 16 + h2d(color[6]));
+				return "3\n" + (h2d(color[1]) * 16 + h2d(color[2])) + " " + (h2d(color[3]) * 16 + h2d(color[4])) + " " + (h2d(color[5]) * 16 + h2d(color[6]));
 		}
 	}
 	switch(color.slice(0,4)){
 		case "rgb(":
 			op = color.slice(4, -1);
 			pos = op.indexOf(",");
-			color = "3 " + (op.slice(0, pos) - 0) + " ";
+			color = "3\n" + (op.slice(0, pos) - 0) + " ";
 			op = op.slice(pos + 1);
 			pos = op.indexOf(",");
 			color += op.slice(0, pos) - 0 + " ";
@@ -415,7 +429,7 @@ function ColorToNumbers(color){
 		case "rgba":
 			op = color.slice(5, -1);
 			pos = op.indexOf(",");
-			color = "4 " + (op.slice(0, pos) - 0) + " ";
+			color = "4\n" + (op.slice(0, pos) - 0) + " ";
 			op = op.slice(pos + 1);
 			pos = op.indexOf(",");
 			color += op.slice(0, pos) - 0 + " ";
