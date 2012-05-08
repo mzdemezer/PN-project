@@ -62,19 +62,31 @@ char* int_to_str(int a){
 }
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
-    struct movable_object_structure *NewObject = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure));
-    NewObject->Type = NewObjectType;
-    NewObject->ObjectData = NewObjectData;
-    NewObject->next = Data->Level.MovableObjects;
-    Data->Level.MovableObjects = NewObject;
+    Data->Level.NumberOfMovableObjects += 1;
+    if(Data->Level.NumberOfMovableObjects > Data->Level.BoundryMovable){
+        Data->Level.BoundryMovable *= 2;
+        Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.BoundryMovable);
+    }
+    Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].Type = NewObjectType;
+    Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].ObjectData = NewObjectData;
 }
 
 void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
-    struct fixed_object_structure *NewObject = (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure));
-    NewObject->Type = NewObjectType;
-    NewObject->ObjectData = NewObjectData;
-    NewObject->next = Data->Level.FixedObjects;
-    Data->Level.FixedObjects = NewObject;
+    Data->Level.NumberOfFixedObjects += 1;
+    if(Data->Level.NumberOfFixedObjects > Data->Level.BoundryFixed){
+        Data->Level.BoundryFixed *= 2;
+        Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.BoundryFixed);
+    }
+    Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].Type = NewObjectType;
+    Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].ObjectData = NewObjectData;
+}
+
+void clear_fixed_object_list(struct GameSharedData *Data){
+    ;
+}
+
+void delete_fixed_object(enum fixed_object_type ObjectType, void* ObjectData){
+    ;
 }
 
 int main(){
@@ -294,8 +306,10 @@ int main(){
     Data.Level.LevelNumber = 0;
     Data.Level.NumberOfMovableObjects = 0;
     Data.Level.NumberOfFixedObjects = 0;
-    Data.Level.FixedObjects = NULL;
-    Data.Level.MovableObjects = NULL;
+    Data.Level.BoundryMovable = INITIAL_BOUNDRY_MOVABLE;
+    Data.Level.BoundryFixed = INITIAL_BOUNDRY_FIXED;
+    Data.Level.MovableObjects = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure) * Data.Level.BoundryMovable);
+    Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.BoundryFixed);
 
     Data.RequestChangeState = false;
     Data.MutexChangeState = al_create_mutex();

@@ -16,7 +16,12 @@ void draw_game(struct GameSharedData *Data){
         al_draw_bitmap(Data->Level.Background, 0, 0, 0);
     }
 
-    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), Data->DisplayData.width / 2, Data->DisplayData.height / 2, ALLEGRO_ALIGN_CENTRE, "GAME");
+    al_draw_text(Data->MenuBigFont,
+                 al_map_rgb(255,255,255),
+                 Data->DisplayData.width / 2,
+                 Data->DisplayData.height / 2,
+                 ALLEGRO_ALIGN_CENTRE,
+                 "GAME");
 
     al_flip_display();
 }

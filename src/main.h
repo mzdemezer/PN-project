@@ -21,6 +21,8 @@
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
 
+#define INITIAL_BOUNDRY_MOVABLE 300
+#define INITIAL_BOUNDRY_FIXED 1000
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
 
@@ -135,13 +137,11 @@ enum movable_object_type{
 struct fixed_object_structure{
     enum fixed_object_type Type;
     void* ObjectData;
-    struct fixed_object_structure *next;
 };
 
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
-    struct movable_object_structure *next;
 };
 
 struct ObjectWorkshop{
@@ -223,10 +223,11 @@ struct particleData{
 
 
 struct level_structure{
-    int LevelNumber;
-
-    int NumberOfMovableObjects;
-    int NumberOfFixedObjects;
+    int LevelNumber,
+        NumberOfMovableObjects,
+        NumberOfFixedObjects,
+        BoundryMovable,
+        BoundryFixed;
     struct fixed_object_structure *FixedObjects;
     struct movable_object_structure *MovableObjects;
 
