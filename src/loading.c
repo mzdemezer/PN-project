@@ -11,10 +11,8 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     // Actual loading
     load_level_from_file(Data);
 
-    int i;
-    for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
-        printf("%d: %d\n", i, Data->Level.FixedObjects[i].Type);
-    }
+    initialize_level(Data);
+
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
@@ -23,6 +21,21 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
 
     return NULL;
 };
+
+void initialize_level(struct GameSharedData *Data){
+    int i;
+    al_lock_mutex(Data->DrawMutex);
+        al_set_target_bitmap(Data->Level.Background);
+        for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
+        if(Data->Level.FixedObjects[i].Type == fotCIRCLE)//do skasowania
+            Data->Level.FixedObjects[i].draw(Data->Level.FixedObjects[i].ObjectData);
+
+
+            //printf("%d: %d\n", i, Data->Level.FixedObjects[i].Type);
+        }
+        al_set_target_bitmap(al_get_backbuffer(Data->Display));
+    al_unlock_mutex(Data->DrawMutex);
+}
 
 void load_level_from_file(struct GameSharedData *Data){
     ALLEGRO_FILE *level;
@@ -120,6 +133,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Firing circle constructor... oh, it's not here! I wonder why...
             */
+        construct_circle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
     }
 
     /**

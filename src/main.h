@@ -5,10 +5,18 @@
 #ifndef _INCLUDE_MAIN_H
 #define _INCLUDE_MAIN_H
 
+
+#define TESTS
+
+#ifdef TESTS
+#include "Tests/CuTest.h"
+#endif
+
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_image.h>
+#include <allegro5/allegro_primitives.h>
 
 /**
     Negatives values are for configuration menus
@@ -25,6 +33,17 @@
 #define INITIAL_BOUNDRY_FIXED 1000
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
+
+#define dwaPI 6.28318531
+#define PI74 5.49778714
+#define PI32 4.71238898
+#define PI54 3.92699081
+#define PI 3.14159265
+#define PI34 2.35619449
+#define PIpol 1.57079633
+#define PI4 0.78539816
+
+#define eps 0.0000000001
 
 enum game_state{
     gsMENU,
@@ -137,6 +156,7 @@ enum movable_object_type{
 struct fixed_object_structure{
     enum fixed_object_type Type;
     void* ObjectData;
+    void (*draw)(void*);
 };
 
 struct movable_object_structure{
@@ -287,8 +307,17 @@ void* load_level(ALLEGRO_THREAD *, void *);
 
 void add_movable_object(struct GameSharedData*, enum movable_object_type, void*);
 void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
-//Math
 
+//Draw
+
+void draw_circle(void*);
+void draw_fixed(const struct fixed_object_structure*);
+
+//Constructors
+
+void construct_circle(struct fixed_object_structure *);
+
+//Math
 int abs(int);
 
 int rzad(int);

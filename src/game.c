@@ -1,5 +1,6 @@
 #include "main.h"
 #include "game.h"
+#include <math.h>
 
 void handle_event_game(struct GameSharedData *Data){
     //printf("event handled in game\n");
@@ -32,4 +33,36 @@ void request_game(struct GameSharedData *Data){
         Data->GameState = gsGAME;
     al_unlock_mutex(Data->MutexChangeState);
     al_start_thread(Data->ThreadMainIteration);
+}
+
+float VectorAngle(float x, float y){
+   if(x != 0){
+		float b;
+		b = atan(abs(y / x));
+		if(y == 0){
+			if(x < 0){
+				b = PI;
+			}
+		}
+		else if(x < 0){
+			if(y > 0){
+				b = PI - b;
+			}else{
+				b += PI;
+			}
+		}
+		else if(y < 0){
+			b = dwaPI - b;
+		}
+        return b;
+    }
+    else{
+		if(y == 0){
+			return 0;
+		}else if(y > 0){
+			return PIpol;
+		}else{
+            return PI32;
+		}
+    }
 }

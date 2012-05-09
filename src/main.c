@@ -33,7 +33,7 @@ void menu_elem_init(struct menu_elem*Item,
 int rzad(int a){
     int res = 1, lim = 10;
     a = abs(a);
-    while(a > lim){
+    while(a >= lim){
         res += 1;
         lim *= 10;
     }
@@ -59,6 +59,15 @@ char* int_to_str(int a){
         result[0] = '-';
     }
     return result;
+}
+
+void draw_circle(void *arg){
+    struct circleData *Circle = (struct circleData*) arg;
+    al_draw_filled_circle(Circle->x, Circle->y, Circle->r0, Circle->color);
+}
+
+void construct_circle(struct fixed_object_structure *Object){
+    Object->draw = draw_circle;
 }
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
@@ -89,7 +98,16 @@ void delete_fixed_object(enum fixed_object_type ObjectType, void* ObjectData){
     ;
 }
 
+extern void RunAllTests(void);
+
 int main(){
+
+#ifdef TESTS
+
+    printf("Running in test mode\n\n");
+    RunAllTests();
+
+#else
 
     if(!al_init()){
         fprintf(stderr, "Problems when initilizing Allegro");
@@ -210,6 +228,11 @@ int main(){
 
     if(!al_init_image_addon()){
         fprintf(stderr, "Failed to initialize al_init_image_addon!");
+        return -1;
+    }
+
+    if(!al_init_primitives_addon()){
+        fprintf(stderr, "Failed to initialize al_init_primitives_addon!");
         return -1;
     }
 
@@ -362,14 +385,17 @@ int main(){
         }
 
         if(Data.DrawCall && al_is_event_queue_empty(Data.MainEventQueue)){
-            ++Data.FPS;
-            Data.DrawCall = false;
-            switch(Data.GameState){
-                case gsGAME: draw_game(&Data); break;
-                case gsLOADING: draw_loading(&Data); break;
-                case gsMENU: draw_menu(&Data); break;
-                case gsPAUSE: break;
-            }
+            al_lock_mutex(Data.DrawMutex);
+                ++Data.FPS;
+                Data.DrawCall = false;
+
+                switch(Data.GameState){
+                    case gsGAME: draw_game(&Data); break;
+                    case gsLOADING: draw_loading(&Data); break;
+                    case gsMENU: draw_menu(&Data); break;
+                    case gsPAUSE: break;
+                }
+            al_unlock_mutex(Data.DrawMutex);
         }
 
     }
@@ -382,6 +408,8 @@ int main(){
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);
+
+#endif
 
     return 0;
 }
