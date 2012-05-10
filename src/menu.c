@@ -6,7 +6,7 @@
 #include "menu.h"
 
 void normalize_menu_selection(struct menu_structure *Menu){
-    int NumberOfElems = abs(Menu->CurrentMenu->Type);
+    int NumberOfElems = int_abs(Menu->CurrentMenu->Type);
     if(Menu->Current > NumberOfElems){
         Menu->Current = 1;
     }
@@ -26,7 +26,7 @@ void normalize_resolution_selection(int*current, const int max){
 
 void new_game_activate(void *argument){
     printf("NEW GAME ACTIVATED\n");
-    struct activation_argument *arg = (struct activation_argument*) argument;
+    #define arg ((struct activation_argument*)argument)
     //necessary settings
     al_lock_mutex(arg->Data->MutexChangeState);
         arg->Data->RequestChangeState = true;
@@ -35,13 +35,14 @@ void new_game_activate(void *argument){
     arg->Data->Level.LevelNumber = 1;
     arg->Data->ThreadLoading = NULL;
     arg->Data->ThreadLoading = al_create_thread(&load_level, (void*)arg->Data);
+    #undef arg
 };
 
 void exit_activate(void *argument){
     printf("EXIT ACTIVATED\n");
-
-    struct activation_argument *arg = (struct activation_argument*) argument;
+    #define arg ((struct activation_argument*)argument)
     arg->Data->CloseNow = true;
+    #undef arg
 };
 
 void scale_fonts(struct GameSharedData *Data){
@@ -69,13 +70,13 @@ char* stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData){
 }
 
 void resolution_activate(void*argument){
+    #define arg ((struct activation_argument*)argument)
     ALLEGRO_FONT *Font;
     ALLEGRO_COLOR Color;
     char *CurrentResolution;
 
 
 
-    struct activation_argument *arg = (struct activation_argument*) argument;
     printf("RESOLUTION activate call with: %d\n", arg->CallType);
     switch(arg->CallType){
         case meatACCEPT:
@@ -113,6 +114,7 @@ void resolution_activate(void*argument){
                 CurrentResolution = stringify_resolution(&arg->Data->InMenuDisplayData);
                 al_draw_text(Font, Color, arg->Data->DisplayData.width * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
     }
+    #undef arg
 }
 
 void restore_current_settings(struct GameSharedData *Data){
@@ -121,7 +123,7 @@ void restore_current_settings(struct GameSharedData *Data){
     arg.CallType = meatRESTORE_CURRENT;
     arg.Data = Data;
     if((int)Data->Menu.CurrentMenu[0].Type < 0){
-        for(i = 1; i <= abs((int)Data->Menu.CurrentMenu[0].Type); ++i){
+        for(i = 1; i <= int_abs((int)Data->Menu.CurrentMenu[0].Type); ++i){
             printf("I'm trying, master\n");
             if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
                 Data->Menu.CurrentMenu[i].Activate((void*)&arg);
@@ -174,6 +176,7 @@ void handle_event_menu(struct GameSharedData *Data){
                     Data->Menu.Current += 1;
                     normalize_menu_selection(&(Data->Menu));
                     break;
+                case ALLEGRO_KEY_PAD_ENTER:
                 case ALLEGRO_KEY_ENTER:
                     arg.CallType = meatACCEPT;
                     switch (Data->Menu.CurrentMenu[Data->Menu.Current].Type){
@@ -231,7 +234,7 @@ void draw_menu(struct GameSharedData* Data){
         align_x = Data->DisplayData.width/10;
     }
 
-    NumberOfElems = abs(Data->Menu.CurrentMenu[0].Type);
+    NumberOfElems = int_abs(Data->Menu.CurrentMenu[0].Type);
     al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), Data->DisplayData.width/2, Data->DisplayData.height/10, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
     for(i = 1; i < Data->Menu.Current; ++i){
         al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);

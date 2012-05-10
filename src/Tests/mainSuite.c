@@ -1,5 +1,6 @@
 #include "CuTest.h"
 #include "../main.h"
+#include <math.h>
 
 void testabsTrue1(CuTest *tc){
     CuAssertTrue(tc, abs(5) == 5);
@@ -167,7 +168,39 @@ void testrzadTrue34(CuTest *tc){
     CuAssertTrue(tc, rzad(-100000000) == 9);
 }
 
-CuSuite* mainGetSuite(){
+void testnormTrue01(CuTest *tc){
+    CuAssertTrue(tc, norm(0) == 0);
+}
+
+void testnormTrue02(CuTest *tc){
+    CuAssertTrue(tc, norm(-dwaPI) == 0);
+}
+
+void testnormTrue03(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(dwaPI)) < eps);
+}
+
+void testnormTrue04(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(dwaPI * 2)) < eps);
+}
+
+void testnormTrue05(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(dwaPI * 16 + PI4) - PI4) < eps);
+}
+
+void testnormTrue06(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(dwaPI * 300 + PI34) - PI34) < eps);
+}
+
+void testnormTrue07(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(-dwaPI * 16 + PI4) - PI4) < eps);
+}
+
+void testnormTrue08(CuTest *tc){
+    CuAssertTrue(tc, abs(norm(-dwaPI * 300 + PI34) - PI34) < eps);
+}
+
+CuSuite* mainGetSuite(void){
     CuSuite* suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, testabsTrue1);
@@ -209,6 +242,15 @@ CuSuite* mainGetSuite(){
     SUITE_ADD_TEST(suite, testrzadTrue32);
     SUITE_ADD_TEST(suite, testrzadTrue33);
     SUITE_ADD_TEST(suite, testrzadTrue34);
+
+    SUITE_ADD_TEST(suite, testnormTrue01);
+    SUITE_ADD_TEST(suite, testnormTrue02);
+    SUITE_ADD_TEST(suite, testnormTrue03);
+    SUITE_ADD_TEST(suite, testnormTrue04);
+    SUITE_ADD_TEST(suite, testnormTrue05);
+    SUITE_ADD_TEST(suite, testnormTrue06);
+    SUITE_ADD_TEST(suite, testnormTrue07);
+    SUITE_ADD_TEST(suite, testnormTrue08);
 
     return suite;
 }

@@ -6,7 +6,7 @@
 #define _INCLUDE_MAIN_H
 
 
-#define TESTS
+//#define TESTS
 
 #ifdef TESTS
 #include "Tests/CuTest.h"
@@ -42,6 +42,8 @@
 #define PI34 2.35619449
 #define PIpol 1.57079633
 #define PI4 0.78539816
+
+#define SQRT2 1.41421356
 
 #define eps 0.0000000001
 
@@ -157,11 +159,14 @@ struct fixed_object_structure{
     enum fixed_object_type Type;
     void* ObjectData;
     void (*draw)(void*);
+    float (*r)(void*, float);
 };
 
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
+    void (*draw)(void*);
+    float (*r)(void*, float);
 };
 
 struct ObjectWorkshop{
@@ -176,32 +181,44 @@ struct ObjectWorkshop{
     struct particleData *NewParticle;
 };
 
+struct point{
+    float x, y;
+};
+
 struct playerData{
-    float x, y, ang;
+    struct point center;
+    float ang;
 };
 
 struct rectangleData{
-    float x, y, a, b, ang;
+    struct point center, v1, v2, v3, v4;
+    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
     ALLEGRO_COLOR color;
 };
 
 struct circleData{
-    float x, y, r0, ang;
+    struct point center;
+    float r0, ang;
     ALLEGRO_COLOR color;
 };
 
+float squareEquation(float f0, float fi);
+
 struct squareData{
-    float x, y, bok, ang;
+    struct point center, v1, v2, v3, v4;
+    float bok, ang, r0;
     ALLEGRO_COLOR color;
 };
 
 struct entranceData{
-    float x, y, a, b, ang;
+    struct point center, v1, v2, v3, v4;
+    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
     ALLEGRO_COLOR color;
 };
 
 struct exitData{
-    float x, y, a, b, ang;
+    struct point center, v1, v2, v3, v4;
+    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
     ALLEGRO_COLOR color;
 };
 
@@ -218,11 +235,14 @@ struct connectedData{
 };
 
 struct switchData{
-    float x, y, a, b, ang, mass;
+    struct point center, v1, v2, v3, v4;
+    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    ALLEGRO_COLOR color;
+
     int pos;
+    float mass;
     enum switch_type swType;
     struct connectedData connected;
-    ALLEGRO_COLOR color;
 };
 
 enum door_type{
@@ -230,17 +250,28 @@ enum door_type{
 };
 
 struct doorData{
-    float x, y, a, b, ang, mass, openingTime;
-    int pos;
-    enum door_type doorType;
+    struct point center, v1, v2, v3, v4;
+    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
     ALLEGRO_COLOR color;
+
+    int pos;
+    float openingTime, mass;
+    enum door_type doorType;
 };
 
 struct particleData{
-    float x, y, r0, mass, charge;
+    struct point center;
+    float r0, mass, charge;
     ALLEGRO_COLOR color;
 };
 
+
+struct keyboard_structure{
+    int KeyUp,
+        KeyDown,
+        KeyLeft,
+        KeyRight;
+};
 
 struct level_structure{
     int LevelNumber,
@@ -286,7 +317,7 @@ struct GameSharedData{
     ALLEGRO_FONT *MenuConfigFont;
     ALLEGRO_FONT *MenuConfigSelectedFont;
 
-    //struct keyboard_structure Keyboard;
+    struct keyboard_structure Keyboard;
 
     struct level_structure Level;
 
@@ -310,15 +341,37 @@ void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
 
 //Draw
 
-void draw_circle(void*);
-void draw_fixed(const struct fixed_object_structure*);
+#define DRAW(OBJECT) OBJECT.draw(OBJECT.ObjectData)
+
+void draw_tetragon(struct point *v1, struct point *v2, struct point *v3, struct point *v4, ALLEGRO_COLOR);
+void draw_square(void *ObjectData);
+void draw_circle(void *ObjectData);
+void draw_rectangle(void *ObjectData);
+
+void draw_player(void *ObjectData);
 
 //Constructors
 
 void construct_circle(struct fixed_object_structure *);
+void construct_square(struct fixed_object_structure *);
+void construct_rectangle(struct fixed_object_structure *);
+
+void construct_player(struct movable_object_structure *);
+void construct_particle(struct movable_object_structure *);
 
 //Math
-int abs(int);
+int int_abs(int);
+float float_abs(float);
+int sign(float);
+float norm(float fi);
+
+float squareEquation(float r0, float fi);
+float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, float wsp2);
+float rSquare(void *ObjectData, float fi);
+float rCircle(void *ObjectData, float fi);
+float rRectangle(void *ObjectData, float fi);
+float rPlayer(void *ObjectData, float fi);
+
 
 int rzad(int);
 char int_to_char(int);

@@ -400,7 +400,7 @@ function GenerateOutput(){
 		$output.value += op;
 		$sieczka.value += op;
 	}
-	$output.value += $output.value.slice(0, -1);
+	$output.value = $output.value.slice(0, -1);
 	$sieczka.value = $sieczka.value.slice(0, -1);
 }
 
@@ -1204,11 +1204,33 @@ function SetBackground(Path){
 }
 
 //-------------------------------------------------------------
+
 function sqr(r0,fi){
 	fi -= pi4;
 	var sin=Math.sin(fi),
 		 cos=Math.cos(fi);
-	return abs(r0 / (sin + sign(sin*cos)*cos));
+	sin = (sin + sign(sin * cos) * cos);
+	if(sin === 0){
+		sin = 1;
+	}
+	return abs(r0 / sin);
+}
+
+function findRectVertices(Rec){
+	var fi = pipol - Rec.ang + Rec.fi0 / 2,
+		 verts = [{x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}];
+	verts[0].x = Rec.x + Rec.r0 * Math.cos(fi);
+	verts[0].y = Rec.y + Rec.r0 * Math.sin(fi);
+	fi += pi;
+	verts[2].x = Rec.x + Rec.r0 * Math.cos(fi);
+	verts[2].y = Rec.y + Rec.r0 * Math.sin(fi);
+	fi = pipol - Rec.ang - Rec.fi0 / 2;
+	verts[1].x = Rec.x + Rec.r0 * Math.cos(fi);
+	verts[1].y = Rec.y + Rec.r0 * Math.sin(fi);
+	fi += pi;
+	verts[3].x = Rec.x + Rec.r0 * Math.cos(fi);
+	verts[3].y = Rec.y + Rec.r0 * Math.sin(fi);
+	return verts;
 }
 
 function circleRadius(){return this.r0};
@@ -1272,7 +1294,7 @@ function rectangle(R){	//{a:a,b:b,x:x,y:y,ang:ang,color:color}
 							return this.wsp1;
 						};
 	function r(fi){
-							fi -= pi - this.fi0 / 2 - this.ang;
+							fi -= - this.fi0 / 2 - this.ang; //ew   + pi
 							var res=Math.sin(fi) - this.wsp(fi) * Math.cos(fi);
 							if(res)
 								res=Math.abs(this.r0/res);							
@@ -1919,7 +1941,7 @@ function VectorAtan(x,y){
 			return 0;
 		if(y > 0)
 			return pi / 2;
-		return 1.5 * pi;
+		return pi32;
     }
 }
 

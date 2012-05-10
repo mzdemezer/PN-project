@@ -38,7 +38,7 @@ void teststringify_resolutionTrue5(CuTest *tc){
     CuAssertTrue(tc, strcmp(stringify_resolution(&TestedDisplay), "1280x1024") == 0);
 }
 
-CuSuite* menuGetSuite(){
+CuSuite* menuGetSuite(void){
     CuSuite* suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, teststringify_resolutionTrue1);

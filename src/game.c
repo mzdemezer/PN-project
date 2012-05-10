@@ -8,11 +8,21 @@ void handle_event_game(struct GameSharedData *Data){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->CloseNow = true;
             break;
+        default:
+            if(Data->LastEvent.type == Data->Keyboard.KeyUp){
+
+            }else if(Data->LastEvent.type == Data->Keyboard.KeyDown){
+
+            }else if(Data->LastEvent.type == Data->Keyboard.KeyLeft){
+
+            }else if(Data->LastEvent.type == Data->Keyboard.KeyRight){
+
+            }
     }
 }
 
 void draw_game(struct GameSharedData *Data){
-    al_clear_to_color(al_map_rgb(0, 0, 0));
+    al_clear_to_color(al_map_rgb(170, 0, 0));
     if(Data->Level.Background){
         al_draw_bitmap(Data->Level.Background, 0, 0, 0);
     }
@@ -38,7 +48,7 @@ void request_game(struct GameSharedData *Data){
 float VectorAngle(float x, float y){
    if(x != 0){
 		float b;
-		b = atan(abs(y / x));
+		b = atan(float_abs(y / x));
 		if(y == 0){
 			if(x < 0){
 				b = PI;

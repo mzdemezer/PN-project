@@ -8,16 +8,20 @@
 #include "loading.h"
 
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
-    struct GameSharedData *Data = (struct GameSharedData*) argument;
-
+    #define Data ((struct GameSharedData*)argument)
     while(!Data->CloseNow){
         al_rest(2.0);
         printf("Iterated\n");
     }
     return NULL;
+    #undef Data
 }
 
-int abs(int a){
+int int_abs(int a){
+    return a < 0 ? -a : a;
+}
+
+float float_abs(float a){
     return a < 0 ? -a : a;
 }
 
@@ -32,7 +36,7 @@ void menu_elem_init(struct menu_elem*Item,
 
 int rzad(int a){
     int res = 1, lim = 10;
-    a = abs(a);
+    a = int_abs(a);
     while(a >= lim){
         res += 1;
         lim *= 10;
@@ -49,7 +53,7 @@ char* int_to_str(int a){
     int length = rzad(a) + (int)sign, i, digit;
     char* result = (char*)malloc(sizeof(char) * (length + 1) );
     result[length] = '\0';
-    a = abs(a);
+    a = int_abs(a);
     for(i = length - 1; i >= (int)sign; --i){
         digit = a % 10;
         a /= 10;
@@ -61,14 +65,227 @@ char* int_to_str(int a){
     return result;
 }
 
-void draw_circle(void *arg){
-    struct circleData *Circle = (struct circleData*) arg;
-    al_draw_filled_circle(Circle->x, Circle->y, Circle->r0, Circle->color);
+/**
+    Maths
+    */
+
+int sign(float a){
+    if(a == 0){
+        return 0;
+    }else if(a > 0){
+        return 1;
+    }else{
+        return -1;
+    }
 }
+
+/**
+    Ensures that  fi  angle is in [0, dwaPI)
+    */
+
+float norm(float fi){
+	if(fi > 0){
+		while(fi - dwaPI > eps){
+			fi -= dwaPI;
+		}
+	}else
+		while(fi < 0){
+			fi += dwaPI;
+		}
+    if(float_abs(fi - dwaPI) < eps){
+        fi = 0;
+    }
+	return fi;
+}
+
+float squareEquation(float r0, float fi){
+	fi -= PI4;
+	float s = sin(fi),
+          c = cos(fi);
+	s = (s + sign(s * c) * c);
+	if(s == 0){
+		s = 1;
+	}
+	return float_abs(r0 / s);
+}
+
+/**
+    Returns   true   if   the first factor (wsp1)   should be used,
+              false  if   the second one   (wsp2).
+    Used to say which pair of sides is pointed by angle  fi
+    fi0 - angle between two closer verticies and center of the rectangle
+    */
+
+bool rectangleWsp(float fi, float fi0){
+    fi = norm(fi);
+    if( ((fi >= PIpol) && (fi <= PIpol + fi0)) ||
+        ((fi >= PI32)  && (fi <= PI32  + fi0)) ){
+        return false;
+    }else{
+        return true;
+    }
+}
+
+float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, float wsp2){
+    fi += fi02;
+    float res = sin(fi);
+
+    if(rectangleWsp(fi, fi0)){
+        res -= wsp1 * cos(fi);
+    }else{
+        res -= wsp2 * cos(fi);
+    }
+    if(res != 0){
+        res = float_abs(r0 / res);
+    }
+
+    return res;
+}
+
+float rSquare(void *ObjectData, float fi){
+    #define Data ((struct squareData*)ObjectData)
+    return squareEquation(Data->r0, fi - Data->ang);
+    #undef Data
+}
+
+float rCircle(void *ObjectData, float fi){
+    return ((struct circleData*)ObjectData)->r0;
+}
+
+float rPlayer(void *ObjectData, float fi){
+    return 40;
+}
+
+float rRectangle(void *ObjectData, float fi){
+    #define Data ((struct rectangleData*)ObjectData)
+    return rectangleEquation(Data->r0, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
+    #undef Data
+}
+
+/**
+    Draw functions
+    */
+
+void draw_tetragon(struct point *v1, struct point *v2, struct point *v3, struct point *v4, ALLEGRO_COLOR color){
+    al_draw_filled_triangle(v1->x, v1->y, v2->x, v2->y, v3->x, v3->y, color);
+    al_draw_filled_triangle(v1->x, v1->y, v4->x, v4->y, v3->x, v3->y, color);
+}
+
+void draw_square(void *ObjectData){
+    #define Data ((struct squareData*)ObjectData)
+    draw_tetragon(&Data->v1, &Data->v2, &Data->v3, &Data->v4, Data->color);
+    #undef Data
+}
+
+void draw_circle(void *ObjectData){
+    #define Data ((struct circleData*)ObjectData)
+    al_draw_filled_circle(Data->center.x, Data->center.y, Data->r0, Data->color);
+    #undef Data
+}
+
+void draw_rectangle(void *ObjectData){
+    #define Data ((struct rectangleData*)ObjectData)
+    draw_tetragon(&Data->v1, &Data->v2, &Data->v3, &Data->v4, Data->color);
+    #undef Data
+}
+
+void draw_player(void *ObjectData){
+    #define Data ((struct playerData*)ObjectData)
+    al_draw_filled_circle(Data->center.x, Data->center.y, 40, al_map_rgb(255, 255, 255));
+    #undef Data
+}
+
+void draw_particle(void *ObjectData){
+    #define Data ((struct particleData*)ObjectData)
+    al_draw_filled_circle(Data->center.x, Data->center.y, Data->r0, al_map_rgb(255, 0, 255));
+    #undef Data
+}
+
+/**
+    Constructors
+    */
 
 void construct_circle(struct fixed_object_structure *Object){
     Object->draw = draw_circle;
+    Object->r = rCircle;
 }
+
+void construct_square(struct fixed_object_structure *Object){
+    #define Data ((struct squareData*)Object->ObjectData)
+    Object->draw = draw_square;
+    Object->r = rSquare;
+    Data->r0 = Data->bok * SQRT2;
+    float fi = PI4 + Data->ang;
+    Data->v1.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v1.y = Data->center.y + Data->r0 * sin(fi);
+    fi += PIpol;
+    Data->v2.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v2.y = Data->center.y + Data->r0 * sin(fi);
+    fi += PIpol;
+    Data->v3.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v3.y = Data->center.y + Data->r0 * sin(fi);
+    fi += PIpol;
+    Data->v4.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v4.y = Data->center.y + Data->r0 * sin(fi);
+    #undef Data
+}
+
+/**
+    This sets the values for a rectangle,
+    but due to order of variables it works also for
+    entrances, exits, switches and doors
+    (which of course need further initialization, btw);
+    SO DON'T ANYONE DARE CHANGE THE ORDER!!!
+    */
+
+void construct_rectangle(struct fixed_object_structure *Object){
+    #define Data ((struct rectangleData*)Object->ObjectData)
+    float fi;
+    Object->draw = draw_rectangle;
+    Object->r = rRectangle;
+
+    if(Data->b > Data->a){
+        fi = Data->a;
+        Data->a = Data->b;
+        Data->b = fi;
+        Data->ang = norm(Data->ang + PIpol);
+    }
+
+    Data->fi0 = float_abs(2 * atan(Data->b / Data->a));
+    Data->fi02 = Data->fi0 * 0.5;
+    Data->wsp1 = tan(PIpol + Data->fi02);
+    Data->wsp2 = tan(Data->fi02);
+
+    Data->r0 = Data->b / (sin(Data->fi02) * 2);
+
+    fi = PIpol - Data->ang + Data->fi02;
+    Data->v1.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v1.y = Data->center.y + Data->r0 * sin(fi);
+    fi += PI;
+    Data->v3.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v3.y = Data->center.y + Data->r0 * sin(fi);
+    fi = PIpol - Data->ang - Data->fi02;
+    Data->v2.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v2.y = Data->center.y + Data->r0 * sin(fi);
+    fi += PI;
+    Data->v4.x = Data->center.x + Data->r0 * cos(fi);
+    Data->v4.y = Data->center.y + Data->r0 * sin(fi);
+    #undef Data
+}
+
+void construct_player(struct movable_object_structure *Object){
+    Object->draw = draw_player;
+    Object->r = rPlayer;
+}
+
+void construct_particle(struct movable_object_structure *Object){
+    Object->draw = draw_particle;
+    Object->r = rCircle;
+}
+
+/**
+    Arrays interface
+    */
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
     if(Data->Level.NumberOfMovableObjects == Data->Level.BoundryMovable){
@@ -125,12 +342,12 @@ int main(){
         */
     //this needs to be somehow compressed... macroes?
 
-    struct menu_elem MainMenu[1 + abs(MAIN_MENU_SIZE)],
-                     OptionsMenu[1 + abs(OPTIONS_MENU_SIZE)],
-                     HighScoresMenu[1 + abs(HIGH_SCORES_MENU_SIZE)],
-                     GraphicMenu[1 + abs(GRAPHIC_MENU_SIZE)],
-                     SoundMenu[1 + abs(SOUND_MENU_SIZE)],
-                     ControlsMenu[1 + abs(CONTROLS_MENU_SIZE)];
+    struct menu_elem MainMenu[1 + int_abs(MAIN_MENU_SIZE)],
+                     OptionsMenu[1 + int_abs(OPTIONS_MENU_SIZE)],
+                     HighScoresMenu[1 + int_abs(HIGH_SCORES_MENU_SIZE)],
+                     GraphicMenu[1 + int_abs(GRAPHIC_MENU_SIZE)],
+                     SoundMenu[1 + int_abs(SOUND_MENU_SIZE)],
+                     ControlsMenu[1 + int_abs(CONTROLS_MENU_SIZE)];
 
     menu_elem_init(&MainMenu[mmeDESCRIPTOR],
                    MAIN_MENU_SIZE,
@@ -252,7 +469,16 @@ int main(){
         */
 
     al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
+    //al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
+    //al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
+
     Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
+    if (al_get_display_option(Data.Display, ALLEGRO_SAMPLE_BUFFERS)) {
+        printf("With multisampling, level %i\n", al_get_display_option(Data.Display, ALLEGRO_SAMPLES));
+    }
+    else {
+        printf("Without multisampling.\n");
+    }
 
     if(!Data.Display){
         fprintf(stderr, "Problems when creating the display");
@@ -333,6 +559,11 @@ int main(){
     Data.Level.BoundryFixed = INITIAL_BOUNDRY_FIXED;
     Data.Level.MovableObjects = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure) * Data.Level.BoundryMovable);
     Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.BoundryFixed);
+
+    Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
+    Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;
+    Data.Keyboard.KeyLeft = ALLEGRO_KEY_LEFT;
+    Data.Keyboard.KeyRight = ALLEGRO_KEY_RIGHT;
 
     Data.RequestChangeState = false;
     Data.MutexChangeState = al_create_mutex();

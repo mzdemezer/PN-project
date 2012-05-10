@@ -2,6 +2,10 @@
 
 #include "CuTest.h"
 
+extern CuSuite* mainGetSuite(void);
+extern CuSuite* menuGetSuite(void);
+extern CuSuite* gameGetSuite(void);
+
 void RunAllTests(void)
 {
 	CuString *output = CuStringNew();

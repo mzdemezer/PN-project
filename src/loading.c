@@ -5,8 +5,7 @@
 
 void* load_level(ALLEGRO_THREAD *thread, void *argument){
     printf("Loading... level\n");
-
-    struct GameSharedData *Data = (struct GameSharedData*) argument;
+    #define Data ((struct GameSharedData*)argument)
 
     // Actual loading
     load_level_from_file(Data);
@@ -20,20 +19,33 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     al_unlock_mutex(Data->MutexChangeState);
 
     return NULL;
+    #undef Data
 };
 
 void initialize_level(struct GameSharedData *Data){
     int i;
     al_lock_mutex(Data->DrawMutex);
-        al_set_target_bitmap(Data->Level.Background);
-        for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
-        if(Data->Level.FixedObjects[i].Type == fotCIRCLE)//do skasowania
-            Data->Level.FixedObjects[i].draw(Data->Level.FixedObjects[i].ObjectData);
-
-
-            //printf("%d: %d\n", i, Data->Level.FixedObjects[i].Type);
-        }
         al_set_target_bitmap(al_get_backbuffer(Data->Display));
+        al_clear_to_color(al_map_rgb(170, 0, 0));
+        if(Data->Level.Background){
+            al_draw_bitmap(Data->Level.Background, 0, 0, 0);
+        }else{
+            Data->Level.Background = al_create_bitmap(800, 800);
+        }
+
+        for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
+            DRAW(Data->Level.FixedObjects[i]);
+        }
+
+        //This loop will be moved to game section, when it will be executed over and over again
+        for(i = 0; i < Data->Level.NumberOfMovableObjects; ++i){
+           DRAW(Data->Level.MovableObjects[i]);
+        }
+
+        al_set_target_bitmap(Data->Level.Background);
+        al_draw_bitmap(al_get_backbuffer(Data->Display), 0, 0, 0);
+        al_set_target_bitmap(al_get_backbuffer(Data->Display));
+
     al_unlock_mutex(Data->DrawMutex);
 }
 
@@ -84,12 +96,13 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(Data, motPLAYER, (void*)Data->Level.Player);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f", &Data->Level.Player->x,
-                                   &Data->Level.Player->y,
+        sscanf(buffer, "%f %f %f", &Data->Level.Player->center.x,
+                                   &Data->Level.Player->center.y,
                                    &Data->Level.Player->ang);
         /**
             Firing player constructor, that happens not to be present in the code at the moment
             */
+        construct_player(&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);
     }
 
     /**
@@ -102,8 +115,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(Data, fotRECTANGLE, (void*)Factory.NewRectangle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewRectangle->x,
-                                            &Factory.NewRectangle->y,
+        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewRectangle->center.x,
+                                            &Factory.NewRectangle->center.y,
                                             &Factory.NewRectangle->a,
                                             &Factory.NewRectangle->b,
                                             &Factory.NewRectangle->ang,
@@ -113,6 +126,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Firing temporarily non-existant rectangle constructor
             */
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
     }
 
     /**
@@ -125,8 +139,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(Data, fotCIRCLE, (void*)Factory.NewCircle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %d",   &Factory.NewCircle->x,
-                                        &Factory.NewCircle->y,
+        sscanf(buffer, "%f %f %f %d",   &Factory.NewCircle->center.x,
+                                        &Factory.NewCircle->center.y,
                                         &Factory.NewCircle->r0,
                                         &op0);
         read_color(buffer, level, &Factory.NewCircle->color, op0, "Invalid level input: circle#%d color\n", i);
@@ -146,8 +160,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(Data, fotSQUARE, (void*)Factory.NewSquare);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %d",    &Factory.NewSquare->x,
-                                            &Factory.NewSquare->y,
+        sscanf(buffer, "%f %f %f %f %d",    &Factory.NewSquare->center.x,
+                                            &Factory.NewSquare->center.y,
                                             &Factory.NewSquare->bok,
                                             &Factory.NewSquare->ang,
                                             &op0);
@@ -155,6 +169,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             They say this is a perfect place to run something they call "Square constructor"
             */
+        construct_square(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
     }
 
     /**
@@ -167,8 +182,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(Data, fotENTRANCE, (void*)Factory.NewEntrance);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewEntrance->x,
-                                            &Factory.NewEntrance->y,
+        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewEntrance->center.x,
+                                            &Factory.NewEntrance->center.y,
                                             &Factory.NewEntrance->a,
                                             &Factory.NewEntrance->b,
                                             &Factory.NewEntrance->ang,
@@ -177,6 +192,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Enter the Matrix with my constructor that does not exist
             */
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);//for the meantime
     }
 
     /**
@@ -189,8 +205,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(Data, fotEXIT, (void*)Factory.NewExit);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewExit->x,
-                                            &Factory.NewExit->y,
+        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewExit->center.x,
+                                            &Factory.NewExit->center.y,
                                             &Factory.NewExit->a,
                                             &Factory.NewExit->b,
                                             &Factory.NewExit->ang,
@@ -200,6 +216,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Calling saws and hammers for constructing an exit
             */
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);//destroy this after righting the function!
     }
 
     /**
@@ -212,8 +229,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(Data, motSWITCH, (void*)Factory.NewSwitch);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d %d %d",   &Factory.NewSwitch->x,
-                                                    &Factory.NewSwitch->y,
+        sscanf(buffer, "%f %f %f %f %f %d %d %d",   &Factory.NewSwitch->center.x,
+                                                    &Factory.NewSwitch->center.y,
                                                     &Factory.NewSwitch->a,
                                                     &Factory.NewSwitch->b,
                                                     &Factory.NewSwitch->ang,
@@ -258,6 +275,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             This is the right place, yes Luke
             */
+        construct_rectangle((struct fixed_object_structure*)&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);//for the meantime also
     }
 
     /**
@@ -270,8 +288,8 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(Data, motDOOR, (void*)Factory.NewDoor);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d %d %f %d",    &Factory.NewDoor->x,
-                                                        &Factory.NewDoor->y,
+        sscanf(buffer, "%f %f %f %f %f %d %d %f %d",    &Factory.NewDoor->center.x,
+                                                        &Factory.NewDoor->center.y,
                                                         &Factory.NewDoor->a,
                                                         &Factory.NewDoor->b,
                                                         &Factory.NewDoor->ang,
@@ -285,6 +303,7 @@ void load_level_from_file(struct GameSharedData *Data){
          /**
             The door should be now built
             */
+        construct_rectangle((struct fixed_object_structure*)&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);//the last one to be DESTROYED!
     }
 
     /**
@@ -297,14 +316,15 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(Data, motPARTICLE, (void*)Factory.NewParticle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f",    &Factory.NewParticle->x,
-                                            &Factory.NewParticle->y,
+        sscanf(buffer, "%f %f %f %f %f",    &Factory.NewParticle->center.x,
+                                            &Factory.NewParticle->center.y,
                                             &Factory.NewParticle->r0,
                                             &Factory.NewParticle->mass,
                                             &Factory.NewParticle->charge);
         /**
             I heard news, that here will be particle constructor
             */
+        construct_particle(&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);
     }
 
     al_fclose(level);

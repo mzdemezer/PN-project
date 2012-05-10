@@ -237,7 +237,7 @@ void testVectorAngleTrue56(CuTest *tc){
     CuAssertTrue(tc, abs(VectorAngle(5, -1) - 6.08578974) < eps);
 }
 
-CuSuite* gameGetSuite(){
+CuSuite* gameGetSuite(void){
     CuSuite* suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, testVectorAngleTrue00);
