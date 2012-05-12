@@ -7,12 +7,101 @@
 #include "game.h"
 #include "loading.h"
 
-void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
-    #define Data ((struct GameSharedData*)argument)
-    while(!Data->CloseNow){
-        al_rest(2.0);
-        printf("Iterated\n");
+void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
+
+    /**
+        crap
+        */
+    int sec = 0, i;
+
+    #define Data ((struct GameSharedData*)arg)
+    /**
+        Main loop
+        */
+    while(1){
+    al_wait_for_event(Data->MainEventQueue, &Data->LastEvent);
+        //printf("event type#%d\n", Data->LastEvent.type);
+
+        if(Data->LastEvent.type == ALLEGRO_EVENT_TIMER){
+            if(Data->GameState == gsGAME){
+                printf("lock T\t");
+                al_lock_mutex(Data->MutexMainIteration);
+                    if(Data->IterationFinished){
+                        Data->IterationFinished = false;
+                        al_broadcast_cond(Data->CondMainIteration);
+                    }
+                al_unlock_mutex(Data->MutexMainIteration);
+                printf("unlock T\t");
+            }else{
+                al_lock_mutex(Data->MutexDrawCall);
+                    Data->DrawCall = true;
+                al_unlock_mutex(Data->MutexDrawCall);
+            }
+
+             /**
+                crap
+                */
+            ++sec; if(sec == 60){printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS); sec=0; Data->FPS = 0;}
+        }
+        switch(Data->GameState){
+            case gsGAME: handle_event_game(Data); break;
+            case gsMENU: handle_event_menu(Data); break;
+            case gsPAUSE: break;
+            case gsLOADING: handle_event_loading(Data); break;
+        }
+
+        if(Data->CloseNow){
+            printf("Closing\n");
+            Data->CloseLevel = true;
+            break;
+        }
+
+        if(Data->RequestChangeState){
+            switch(Data->NewState){
+                case gsPAUSE: break;
+                case gsLOADING: request_loading(Data); break;
+                case gsGAME: request_game(Data); break;
+                case gsMENU: break;
+            }
+        }
+
+        al_lock_mutex(Data->MutexDrawCall);
+            if(Data->DrawCall){
+                Data->DrawCall = false;
+                al_lock_mutex(Data->MutexThreadDraw);
+                    if(Data->ThreadDrawWaiting){
+                        Data->ThreadDrawWaiting = false;
+                        al_broadcast_cond(Data->CondDrawCall);
+                    }
+                al_unlock_mutex(Data->MutexThreadDraw);
+            }
+        al_unlock_mutex(Data->MutexDrawCall);
     }
+    /**
+        Cleaning-up threads
+        */
+
+    terminate_iteration(Data);
+    for(i = 0; i < NumOfThreads; ++i){printf("waiting for #%d thread\n", i);
+        al_destroy_thread(Data->IterationThreads[i].Thread);
+    }
+    printf("Small threads closed, waiting for Main-iter-thread\n");
+    al_lock_mutex(Data->MutexMainIteration);
+        Data->IterationFinished = false;
+        al_broadcast_cond(Data->CondMainIteration);
+    al_unlock_mutex(Data->MutexMainIteration);
+    al_destroy_thread(Data->ThreadMainIteration);
+
+
+    /**
+        Sending shut-down signal to the main thread
+        */
+    printf("Lock: event-queue thread\n");
+    al_lock_mutex(Data->MutexThreadDraw);
+        Data->ThreadDrawWaiting = false;
+        al_broadcast_cond(Data->CondDrawCall);printf("Event-queue thread: signal sent\n");
+    al_unlock_mutex(Data->MutexThreadDraw);
+    printf("Event queue thread closed\n");
     return NULL;
     #undef Data
 }
@@ -325,6 +414,7 @@ int main(){
     RunAllTests();
 
 #else
+    int i;
 
     if(!al_init()){
         fprintf(stderr, "Problems when initilizing Allegro");
@@ -537,20 +627,37 @@ int main(){
     /**
         Initializing threads
         */
-    Data.ThreadMainIteration = NULL;
-    Data.ThreadMainIteration = al_create_thread(main_iteration, (void*)&Data);
+    Data.ThreadEventQueue = NULL;
+    Data.ThreadEventQueue = al_create_thread(thread_event_queue, (void*)&Data);
     if(!Data.ThreadMainIteration){
-        fprintf(stderr, "Failed to initialize main_iteration thread, sorry");
+        fprintf(stderr, "Failed to initialize DrawThread");
         al_destroy_display(Data.Display);
         al_destroy_event_queue(Data.MainEventQueue);
         al_destroy_timer(Data.DrawTimer);
         return -1;
     }
+    Data.ThreadMainIteration = NULL;
+    Data.ThreadMainIteration = al_create_thread(main_iteration, (void*)&Data);
+    if(!Data.ThreadMainIteration){
+        fprintf(stderr, "Failed to initialize main_iteration thread");
+        al_destroy_display(Data.Display);
+        al_destroy_event_queue(Data.MainEventQueue);
+        al_destroy_timer(Data.DrawTimer);
+        return -1;
+    }
+    Data.IterationThreads[0].Job = iteration_0;
+    Data.IterationThreads[1].Job = iteration_1;
+    Data.IterationThreads[2].Job = iteration_2;
+
+    for(i = 0; i < NumOfThreads; ++i){
+        Data.IterationThreads[i].Thread = al_create_thread(Data.IterationThreads[i].Job, (void*)&Data);
+    }
     /**
         Initializing data
         */
 
-
+    Data.IterationFinished = true;
+    Data.CloseLevel = false;
 
     Data.Level.LevelNumber = 0;
     Data.Level.NumberOfMovableObjects = 0;
@@ -568,74 +675,50 @@ int main(){
     Data.RequestChangeState = false;
     Data.MutexChangeState = al_create_mutex();
     Data.DrawMutex = al_create_mutex();
-
-    /**
-        crap
-        */
-    int sec = 0;
+    Data.MutexMainIteration = al_create_mutex();
+    Data.MutexIterations = al_create_mutex();
+    Data.CondIterations = al_create_cond();
+    Data.CondMainIteration = al_create_cond();
+    Data.MutexDrawCall = al_create_mutex();
+    Data.CondDrawCall = al_create_cond();
+    Data.MutexThreadDraw = al_create_mutex();
 
     /**
         First draw
         */
+    Data.DrawFunction = draw_menu;
     draw_menu(&Data);
     Data.FPS = 0;
 
     /**
-        Main loop
+        Draw thread
         */
+    printf("Starting The Game\n\n\n");
+    al_start_thread(Data.ThreadEventQueue);
     al_start_timer(Data.DrawTimer);
-    while(1){
-        al_wait_for_event(Data.MainEventQueue, &Data.LastEvent);
-        //printf("event type#%d\n", Data.LastEvent.type);
-
-        if(Data.LastEvent.type == ALLEGRO_EVENT_TIMER){
-            Data.DrawCall = true;
-             /**
-                crap
-                */
-            ++sec; if(sec == 60){printf("Second passed, FPS: %d\n", Data.FPS); sec=0; Data.FPS = 0;}
-        }
-        switch(Data.GameState){
-            case gsGAME: handle_event_game(&Data); break;
-            case gsMENU: handle_event_menu(&Data); break;
-            case gsPAUSE: break;
-            case gsLOADING: handle_event_loading(&Data); break;
-        }
-
-        if(Data.CloseNow){
-            break;
-        }
-
-        if(Data.RequestChangeState){
-            switch(Data.NewState){
-                case gsPAUSE: break;
-                case gsLOADING: request_loading(&Data); break;
-                case gsGAME: request_game(&Data); break;
-                case gsMENU: break;
+    while(!Data.CloseNow){
+        printf("lock: Draw thread \n");
+        al_lock_mutex(Data.MutexThreadDraw);
+            Data.ThreadDrawWaiting = true;
+            while(Data.ThreadDrawWaiting){
+                al_wait_cond(Data.CondDrawCall, Data.MutexThreadDraw);
             }
-        }
+        ++Data.FPS;
+        al_unlock_mutex(Data.MutexThreadDraw);
+        printf("unlock: Draw thread \n");
 
-        if(Data.DrawCall && al_is_event_queue_empty(Data.MainEventQueue)){
-            al_lock_mutex(Data.DrawMutex);
-                ++Data.FPS;
-                Data.DrawCall = false;
-
-                switch(Data.GameState){
-                    case gsGAME: draw_game(&Data); break;
-                    case gsLOADING: draw_loading(&Data); break;
-                    case gsMENU: draw_menu(&Data); break;
-                    case gsPAUSE: break;
-                }
-            al_unlock_mutex(Data.DrawMutex);
-        }
-
+        printf("lock: Draw\n");
+        al_lock_mutex(Data.DrawMutex);
+            Data.DrawFunction(&Data);
+        al_unlock_mutex(Data.DrawMutex);
+        printf("unlock: Draw\n");
     }
-
-
-
     /**
         Clean-up
         */
+    printf("Main thread at clean-up\n");
+    al_destroy_thread(Data.ThreadEventQueue);
+
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "loading.h"
+#include "game.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -16,6 +17,7 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
         Data->RequestChangeState = true;
+        Data->DrawFunction = draw_game;
     al_unlock_mutex(Data->MutexChangeState);
 
     return NULL;

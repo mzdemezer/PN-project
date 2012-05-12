@@ -287,6 +287,16 @@ struct level_structure{
     ALLEGRO_BITMAP *Background;
 };
 
+/**
+    Auxilary threads
+    */
+
+struct iteration_thread_structure{
+    ALLEGRO_THREAD *Thread;
+    bool Finished;
+    void* (*Job)(ALLEGRO_THREAD *, void*);
+};
+
 struct GameSharedData{
     enum game_state GameState;
     bool RequestChangeState;
@@ -296,9 +306,20 @@ struct GameSharedData{
     ALLEGRO_MUTEX *DrawMutex;
     unsigned char FPS;
     ALLEGRO_TIMER *DrawTimer;
+    void (*DrawFunction)(struct GameSharedData *);
 
     ALLEGRO_THREAD *ThreadLoading;
+    ALLEGRO_THREAD *ThreadEventQueue;
     ALLEGRO_THREAD *ThreadMainIteration;
+    ALLEGRO_COND *CondMainIteration;
+    ALLEGRO_MUTEX *MutexMainIteration;
+    ALLEGRO_MUTEX *MutexIterations;
+    ALLEGRO_COND *CondIterations;
+    #define NumOfThreads 3
+    struct iteration_thread_structure IterationThreads[NumOfThreads];
+    bool IterationFinished;
+    bool MainIterationThreadsIsWaiting;
+    bool CloseLevel;
 
     ALLEGRO_DISPLAY *Display;
     ALLEGRO_DISPLAY_MODE DisplayData;
@@ -324,7 +345,12 @@ struct GameSharedData{
     /**
         Flags
         */
+    ALLEGRO_MUTEX *MutexDrawCall;
+    ALLEGRO_COND *CondDrawCall;
+    ALLEGRO_MUTEX *MutexThreadDraw;
+    bool ThreadDrawWaiting;
     bool DrawCall;
+
     bool CloseNow;
 
     /**

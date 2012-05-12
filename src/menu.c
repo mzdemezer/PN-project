@@ -4,6 +4,7 @@
 
 #include "main.h"
 #include "menu.h"
+#include "loading.h"
 
 void normalize_menu_selection(struct menu_structure *Menu){
     int NumberOfElems = int_abs(Menu->CurrentMenu->Type);
@@ -31,6 +32,7 @@ void new_game_activate(void *argument){
     al_lock_mutex(arg->Data->MutexChangeState);
         arg->Data->RequestChangeState = true;
         arg->Data->NewState = gsLOADING;
+        arg->Data->DrawFunction = draw_loading;
     al_unlock_mutex(arg->Data->MutexChangeState);
     arg->Data->Level.LevelNumber = 1;
     arg->Data->ThreadLoading = NULL;
