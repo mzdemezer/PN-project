@@ -93,8 +93,18 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         /**
             Main iteration thread main work
             */
-        al_rest(0.001);
-
+        if(Data->Keyboard.Flags[ekKEY_DOWN]){
+            Data->Level.Player->center.y += 2;
+        }
+        if(Data->Keyboard.Flags[ekKEY_UP]){
+            Data->Level.Player->center.y -= 2;
+        }
+        if(Data->Keyboard.Flags[ekKEY_RIGHT]){
+            Data->Level.Player->center.x += 2;
+        }
+        if(Data->Keyboard.Flags[ekKEY_LEFT]){
+            Data->Level.Player->center.x -= 2;
+        }
         /**
             Waiting until other threads finish
             */
@@ -221,7 +231,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
 }
 
 void handle_event_game(struct GameSharedData *Data){
-    //printf("event handled in game\n");
     switch(Data->LastEvent.type){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->CloseLevel = true;
