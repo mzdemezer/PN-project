@@ -82,16 +82,6 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
         */
 
     terminate_iteration(Data);
-    for(i = 0; i < NumOfThreads; ++i){printf("waiting for #%d thread\n", i);
-        al_destroy_thread(Data->IterationThreads[i].Thread);
-    }
-    printf("Small threads closed, waiting for Main-iter-thread\n");
-    al_lock_mutex(Data->MutexMainIteration);
-        Data->IterationFinished = false;
-        al_broadcast_cond(Data->CondMainIteration);
-    al_unlock_mutex(Data->MutexMainIteration);
-    al_destroy_thread(Data->ThreadMainIteration);
-
 
     /**
         Sending shut-down signal to the main thread
@@ -716,9 +706,10 @@ int main(){
     /**
         Clean-up
         */
-    printf("Main thread at clean-up\n");
+    printf("Main thread at clean-up, waiting for EventQueue Thread\n");
     al_destroy_thread(Data.ThreadEventQueue);
 
+    printf("Main thread at last clean-up, all threads safely closed\n");
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);

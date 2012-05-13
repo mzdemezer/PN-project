@@ -3,19 +3,18 @@
 #include <math.h>
 #include <stdio.h>
 
-void terminate_i_thread(int i, struct GameSharedData *Data){printf("Terminating: #%d\n", i);
-    al_lock_mutex(Data->MutexMainIteration);
-        al_lock_mutex(Data->MutexIterations);
-            Data->IterationThreads[i].Finished = true;
-            al_broadcast_cond(Data->CondMainIteration);
-        al_unlock_mutex(Data->MutexIterations);
-    al_unlock_mutex(Data->MutexMainIteration);
-}
-
+/**
+    This procedure forces termination of all iteration threads
+    and is enough to be assured, that they are closed. Also, it
+    always shuts them down in a way, that the whole iteration
+    cycle is done, never in between.
+    */
 void terminate_iteration(struct GameSharedData *Data){
     int i;
+    /**
+        Terminating small threads
+        */
     al_lock_mutex(Data->MutexIterations);
-        al_set_thread_should_stop(Data->ThreadMainIteration);
         for(i = 0; i < NumOfThreads; ++i){
             al_set_thread_should_stop(Data->IterationThreads[i].Thread);
         }
@@ -24,6 +23,24 @@ void terminate_iteration(struct GameSharedData *Data){
         }
         al_broadcast_cond(Data->CondIterations);
     al_unlock_mutex(Data->MutexIterations);
+    for(i = 0; i < NumOfThreads; ++i){printf("waiting for #%d thread\n", i);
+        al_destroy_thread(Data->IterationThreads[i].Thread);
+    }
+printf("Small threads closed, waiting for Main-iter-thread\n");
+
+    /**
+        Terminating MainIteration Thread
+        */
+    al_lock_mutex(Data->MutexMainIteration);
+        al_set_thread_should_stop(Data->ThreadMainIteration);
+        for(i = 0; i < NumOfThreads; ++i){
+            Data->IterationThreads[i].Finished = true;
+        }
+        Data->IterationFinished = false;
+        al_broadcast_cond(Data->CondMainIteration);
+    al_unlock_mutex(Data->MutexMainIteration);
+    al_destroy_thread(Data->ThreadMainIteration);
+
 }
 
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
@@ -79,7 +96,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         /**
             Main iteration thread main work
             */
-        al_rest(0.1);
+        al_rest(0.001);
 
         /**
             Waiting until other threads finish
@@ -136,14 +153,14 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     and then sets it to wait
     */
 
-void StopThread(int i, struct GameSharedData *Data){
+void StopThread(int i, struct GameSharedData *Data, ALLEGRO_THREAD *thread){
     printf("In thread #%d: Stopping\n", i);
     al_lock_mutex(Data->MutexIterations);
         Data->IterationThreads[i].Finished = true;
         if(Data->MainIterationThreadsIsWaiting){
             al_broadcast_cond(Data->CondMainIteration);printf("In thread #%d: Sending signal  ------->\n", i);
         }else{printf("In thread #%d: No signal needed  X\n", i);}
-        while(Data->IterationThreads[i].Finished){
+        while(Data->IterationThreads[i].Finished && !al_get_thread_should_stop(thread)){
             al_wait_cond(Data->CondIterations, Data->MutexIterations);
         }
     al_unlock_mutex(Data->MutexIterations);
@@ -153,7 +170,7 @@ void StopThread(int i, struct GameSharedData *Data){
 void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
 
-    StopThread(0, Data);
+    StopThread(0, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
@@ -164,9 +181,9 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
             Signal and stop
             */
 
-        StopThread(0, Data);
+        StopThread(0, Data, thread);
     }
-    terminate_i_thread(0, Data);
+    //terminate_i_thread(0, Data);
     printf("Closing Thread #0\n");
 
     return NULL;
@@ -176,21 +193,21 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
 void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
 
-    StopThread(1, Data);
+    StopThread(1, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
-        al_rest(0.02);
+        al_rest(0.002);
         printf("Thread #1 iterated\n");
 
         /**
             Signal and stop
             */
 
-        StopThread(1, Data);
+        StopThread(1, Data, thread);
     }
-    terminate_i_thread(1, Data);
+    //terminate_i_thread(1, Data);
     printf("Closing Thread #1\n");
 
     return NULL;
@@ -200,21 +217,21 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
 void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
 
-    StopThread(2, Data);
+    StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
-        al_rest(0.05);
+        al_rest(0.005);
         printf("Thread #2 iterated\n");
 
         /**
             Signal and stop
             */
 
-        StopThread(2, Data);
+        StopThread(2, Data, thread);
     }
-    terminate_i_thread(2, Data);
+    //terminate_i_thread(2, Data);
     printf("Closing Thread #2\n");
 
     return NULL;
