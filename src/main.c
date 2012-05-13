@@ -12,7 +12,7 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
     /**
         crap
         */
-    int sec = 0, i;
+    int sec = 0;
 
     #define Data ((struct GameSharedData*)arg)
     /**
@@ -24,14 +24,12 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
 
         if(Data->LastEvent.type == ALLEGRO_EVENT_TIMER){
             if(Data->GameState == gsGAME){
-                printf("lock T\t");
                 al_lock_mutex(Data->MutexMainIteration);
                     if(Data->IterationFinished){
                         Data->IterationFinished = false;
                         al_broadcast_cond(Data->CondMainIteration);
                     }
                 al_unlock_mutex(Data->MutexMainIteration);
-                printf("unlock T\t");
             }else{
                 al_lock_mutex(Data->MutexDrawCall);
                     Data->DrawCall = true;
@@ -86,7 +84,6 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
     /**
         Sending shut-down signal to the main thread
         */
-    printf("Lock: event-queue thread\n");
     al_lock_mutex(Data->MutexThreadDraw);
         Data->ThreadDrawWaiting = false;
         al_broadcast_cond(Data->CondDrawCall);printf("Event-queue thread: signal sent\n");
@@ -672,7 +669,7 @@ int main(){
     Data.MutexDrawCall = al_create_mutex();
     Data.CondDrawCall = al_create_cond();
     Data.MutexThreadDraw = al_create_mutex();
-
+    Data.Keyboard.MutexKeyboard = al_create_mutex();
     /**
         First draw
         */
@@ -687,7 +684,6 @@ int main(){
     al_start_thread(Data.ThreadEventQueue);
     al_start_timer(Data.DrawTimer);
     while(!Data.CloseNow){
-        printf("lock: Draw thread \n");
         al_lock_mutex(Data.MutexThreadDraw);
             Data.ThreadDrawWaiting = true;
             while(Data.ThreadDrawWaiting){
@@ -695,13 +691,10 @@ int main(){
             }
         ++Data.FPS;
         al_unlock_mutex(Data.MutexThreadDraw);
-        printf("unlock: Draw thread \n");
 
-        printf("lock: Draw\n");
         al_lock_mutex(Data.DrawMutex);
             Data.DrawFunction(&Data);
         al_unlock_mutex(Data.DrawMutex);
-        printf("unlock: Draw\n");
     }
     /**
         Clean-up

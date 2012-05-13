@@ -83,15 +83,12 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
         Data->MainIterationThreadsIsWaiting = false;
 
-        printf("In Game: locking  Iters_mutex\n");
         al_lock_mutex(Data->MutexIterations);
             for(i = 0; i < NumOfThreads; ++i){
                 Data->IterationThreads[i].Finished = false;
             }
-            printf("In Game: letting them goooo!\n");
             al_broadcast_cond(Data->CondIterations);
         al_unlock_mutex(Data->MutexIterations);
-        printf("In Game: unlocking  Iters_mutex\n");
 
         /**
             Main iteration thread main work
@@ -101,7 +98,6 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         /**
             Waiting until other threads finish
             */
-        printf("In Game: waiting for the lazy bastards, locking  Iters_mutex\n");
         al_lock_mutex(Data->MutexIterations);
             Data->MainIterationThreadsIsWaiting = true;
             while(true){
@@ -109,37 +105,31 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 for(i = 0; i < NumOfThreads; ++i){
                     if(!Data->IterationThreads[i].Finished){
                         f = false;
-                        printf("In game: %d not ready\n", i);
                         break;
                     }
                 }
                 if(f){
                     break;
-                }printf("In game: waiting %d\n", i);
+                }
                 al_wait_cond(Data->CondMainIteration, Data->MutexIterations);
             }
         al_unlock_mutex(Data->MutexIterations);
-        printf("In Game: unlocking  Iters_mutex\n");
 
         /**
             Main iteration thread after-work
             */
-        printf("Iterated\n");
 
         al_lock_mutex(Data->MutexDrawCall);
             Data->DrawCall = true;
         al_unlock_mutex(Data->MutexDrawCall);
 
         if(!al_get_thread_should_stop(thread)){
-            printf("lock mainM in game\n");
             al_lock_mutex(Data->MutexMainIteration);
                 Data->IterationFinished = true;
                 while(Data->IterationFinished){
-                    printf("In Game: waiting for Timer\n");
                     al_wait_cond(Data->CondMainIteration, Data->MutexMainIteration);
                 }
             al_unlock_mutex(Data->MutexMainIteration);
-            printf("unlock mainM in game\n");
         }
     }
     printf("Closing Thread: main-iteration\n");
@@ -154,17 +144,15 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     */
 
 void StopThread(int i, struct GameSharedData *Data, ALLEGRO_THREAD *thread){
-    printf("In thread #%d: Stopping\n", i);
     al_lock_mutex(Data->MutexIterations);
         Data->IterationThreads[i].Finished = true;
         if(Data->MainIterationThreadsIsWaiting){
-            al_broadcast_cond(Data->CondMainIteration);printf("In thread #%d: Sending signal  ------->\n", i);
-        }else{printf("In thread #%d: No signal needed  X\n", i);}
+            al_broadcast_cond(Data->CondMainIteration);
+        }
         while(Data->IterationThreads[i].Finished && !al_get_thread_should_stop(thread)){
             al_wait_cond(Data->CondIterations, Data->MutexIterations);
         }
     al_unlock_mutex(Data->MutexIterations);
-    printf("In thread #%d: Going again! :)\n", i);
 }
 
 void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
@@ -175,7 +163,6 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
         /**
             Work
             */
-        printf("Thread #0 iterated\n");
 
         /**
             Signal and stop
@@ -183,7 +170,6 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
 
         StopThread(0, Data, thread);
     }
-    //terminate_i_thread(0, Data);
     printf("Closing Thread #0\n");
 
     return NULL;
@@ -199,7 +185,6 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
             Work
             */
         al_rest(0.002);
-        printf("Thread #1 iterated\n");
 
         /**
             Signal and stop
@@ -207,7 +192,6 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
 
         StopThread(1, Data, thread);
     }
-    //terminate_i_thread(1, Data);
     printf("Closing Thread #1\n");
 
     return NULL;
@@ -223,7 +207,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             Work
             */
         al_rest(0.005);
-        printf("Thread #2 iterated\n");
 
         /**
             Signal and stop
@@ -231,7 +214,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
 
         StopThread(2, Data, thread);
     }
-    //terminate_i_thread(2, Data);
     printf("Closing Thread #2\n");
 
     return NULL;
@@ -245,24 +227,58 @@ void handle_event_game(struct GameSharedData *Data){
             Data->CloseLevel = true;
             Data->CloseNow = true;
             break;
-        default:
-            if(Data->LastEvent.type == Data->Keyboard.KeyUp){
-
-            }else if(Data->LastEvent.type == Data->Keyboard.KeyDown){
-
-            }else if(Data->LastEvent.type == Data->Keyboard.KeyLeft){
-
-            }else if(Data->LastEvent.type == Data->Keyboard.KeyRight){
-
+        case ALLEGRO_EVENT_KEY_DOWN:
+            if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_UP] = true;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_DOWN] = true;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_LEFT] = true;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_RIGHT] = true;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             }
+            break;
+        case ALLEGRO_EVENT_KEY_UP:
+             if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_UP] = false;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_DOWN] = false;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_LEFT] = false;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
+                al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    Data->Keyboard.Flags[ekKEY_RIGHT] = false;
+                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            }
+            break;
     }
 }
 
 void draw_game(struct GameSharedData *Data){
+    int i;
+
     al_clear_to_color(al_map_rgb(170, 0, 0));
     if(Data->Level.Background){
         al_draw_bitmap(Data->Level.Background, 0, 0, 0);
     }
+
+    for(i = 0; i < Data->Level.NumberOfMovableObjects; ++i){
+           DRAW(Data->Level.MovableObjects[i]);
+        }
 
     al_draw_text(Data->MenuBigFont,
                  al_map_rgb(255,255,255),
@@ -275,7 +291,14 @@ void draw_game(struct GameSharedData *Data){
 }
 
 void request_game(struct GameSharedData *Data){
+    int i;
     al_lock_mutex(Data->MutexChangeState);
+        /**
+            Game init
+            */
+        for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
+            Data->Keyboard.Flags[i] = false;
+        }
         Data->RequestChangeState = false;
         Data->GameState = gsGAME;
     al_unlock_mutex(Data->MutexChangeState);

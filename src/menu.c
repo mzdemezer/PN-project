@@ -156,7 +156,6 @@ void handle_event_menu(struct GameSharedData *Data){
             Data->CloseNow = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
-            printf("keycode down: %d\n", Data->LastEvent.keyboard.keycode);
             switch(Data->LastEvent.keyboard.keycode){
                 case ALLEGRO_KEY_LEFT:
                     if(Data->Menu.CurrentMenu[Data->Menu.Current].Type == metUPDOWN){
@@ -197,15 +196,6 @@ void handle_event_menu(struct GameSharedData *Data){
                     return_menu(Data);
                     break;
             }
-            break;
-        case ALLEGRO_EVENT_KEY_UP:
-            printf("keycode up: %d\n", Data->LastEvent.keyboard.keycode);
-            break;
-        case ALLEGRO_EVENT_MOUSE_AXES:
-            printf("mouse moved in menu\n");
-            break;
-        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-            printf("mouse up: %d\n", Data->LastEvent.mouse.button);
             break;
     }
 };

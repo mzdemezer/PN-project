@@ -39,10 +39,6 @@ void initialize_level(struct GameSharedData *Data){
             DRAW(Data->Level.FixedObjects[i]);
         }
 
-        //This loop will be moved to game section, when it will be executed over and over again
-        for(i = 0; i < Data->Level.NumberOfMovableObjects; ++i){
-           DRAW(Data->Level.MovableObjects[i]);
-        }
 
         al_set_target_bitmap(Data->Level.Background);
         al_draw_bitmap(al_get_backbuffer(Data->Display), 0, 0, 0);

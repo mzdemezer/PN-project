@@ -29,6 +29,8 @@
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
 
+#define NUMBER_OF_SIGNIFICANT_KEYS 4
+
 #define INITIAL_BOUNDRY_MOVABLE 300
 #define INITIAL_BOUNDRY_FIXED 1000
 
@@ -127,10 +129,6 @@ struct menu_structure{
     int Current;
 };
 
-/*enum DecodeKeys{LEFT, RIGHT, UP, DOWN, ENTER};
-struct keyboard_structure{
-    bool Keys[5];
-};*/
 
 enum fixed_object_type{
     fotRECTANGLE,
@@ -265,12 +263,20 @@ struct particleData{
     ALLEGRO_COLOR color;
 };
 
+enum enum_keys{
+    ekKEY_UP = 0,
+    ekKEY_DOWN,
+    ekKEY_LEFT,
+    ekKEY_RIGHT
+};
 
 struct keyboard_structure{
     int KeyUp,
         KeyDown,
         KeyLeft,
         KeyRight;
+    bool Flags[NUMBER_OF_SIGNIFICANT_KEYS];
+    ALLEGRO_MUTEX *MutexKeyboard;
 };
 
 struct level_structure{
