@@ -11,7 +11,7 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     // Actual loading
     load_level_from_file(Data);
 
-    initialize_level(Data);
+    special_call(initialize_level, argument);
 
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
@@ -24,8 +24,16 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     #undef Data
 };
 
-void initialize_level(struct GameSharedData *Data){
+void initialize_level(void *argument){
     int i;
+
+    #define Data ((struct GameSharedData*)argument)
+
+    if(strcmp(Data->Level.filename + 12, "0") == 0){
+        Data->Level.Background = NULL;
+    }else{
+        Data->Level.Background = al_load_bitmap(Data->Level.filename);
+    }
     al_lock_mutex(Data->DrawMutex);
         al_set_target_bitmap(al_get_backbuffer(Data->Display));
         al_clear_to_color(al_map_rgb(170, 0, 0));
@@ -39,12 +47,13 @@ void initialize_level(struct GameSharedData *Data){
             DRAW(Data->Level.FixedObjects[i]);
         }
 
-
         al_set_target_bitmap(Data->Level.Background);
         al_draw_bitmap(al_get_backbuffer(Data->Display), 0, 0, 0);
         al_set_target_bitmap(al_get_backbuffer(Data->Display));
 
     al_unlock_mutex(Data->DrawMutex);
+
+    #undef Data
 }
 
 void load_level_from_file(struct GameSharedData *Data){
@@ -68,17 +77,11 @@ void load_level_from_file(struct GameSharedData *Data){
     /**
         Loading level Background
         */
-    strcpy(buffer, "Data/Levels/");
-    read_line(buffer + 12, level);
 
-    if(strcmp(buffer + 12, "0") == 0){
-        Data->Level.Background = NULL;
-    }else{
-        Data->Level.Background = al_load_bitmap(buffer);
-    }
-    /**
-        Scaling Background
-        */
+    read_line(buffer, level);
+
+    strcpy(Data->Level.filename, "Data/Levels/");
+    strcpy(Data->Level.filename + 12, buffer);
 
     /**
         Loading Objects

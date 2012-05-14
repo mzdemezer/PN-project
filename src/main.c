@@ -7,7 +7,7 @@
 #include "game.h"
 #include "loading.h"
 
-void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
+void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
 
     /**
         crap
@@ -39,7 +39,14 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
              /**
                 crap
                 */
-            ++sec; if(sec == 60){printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS); sec=0; Data->FPS = 0;}
+            ++sec;
+            if(sec == 60){
+                al_lock_mutex(Data->MutexFPS);
+                    printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
+                    sec=0;
+                    Data->FPS = 0;
+                al_unlock_mutex(Data->MutexFPS);
+            }
         }
         switch(Data->GameState){
             case gsGAME: handle_event_game(Data); break;
@@ -91,6 +98,30 @@ void* thread_event_queue(ALLEGRO_THREAD *thread, void *arg){
     printf("Event queue thread closed\n");
     return NULL;
     #undef Data
+}
+
+/**
+    Call for  function_to_call  to be executed
+    in main thread and wait for the results
+    */
+
+void special_call(void (*function_to_call)(void*), struct GameSharedData *Data){
+    al_lock_mutex(Data->MutexSpecialMainCall);
+        al_lock_mutex(Data->MutexThreadDraw);
+            printf("Special call made\n");
+            Data->special_main_call_procedure = function_to_call;
+            Data->SpecialMainCall = true;
+
+            if(Data->ThreadDrawWaiting){
+                Data->ThreadDrawWaiting = false;
+                al_broadcast_cond(Data->CondDrawCall);
+            }
+        al_unlock_mutex(Data->MutexThreadDraw);
+
+        while(Data->SpecialMainCall){
+            al_wait_cond(Data->CondSpecialMainCall, Data->MutexSpecialMainCall);
+        }
+    al_unlock_mutex(Data->MutexSpecialMainCall);
 }
 
 int int_abs(int a){
@@ -546,8 +577,9 @@ int main(){
         */
 
     al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
-    //al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
-    //al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
 
     Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
     if (al_get_display_option(Data.Display, ALLEGRO_SAMPLE_BUFFERS)) {
@@ -615,9 +647,9 @@ int main(){
         Initializing threads
         */
     Data.ThreadEventQueue = NULL;
-    Data.ThreadEventQueue = al_create_thread(thread_event_queue, (void*)&Data);
-    if(!Data.ThreadMainIteration){
-        fprintf(stderr, "Failed to initialize DrawThread");
+    Data.ThreadEventQueue = al_create_thread(thread_event_queue_procedure, (void*)&Data);
+    if(!Data.ThreadEventQueue){
+        fprintf(stderr, "Failed to initialize thread_event_queue");
         al_destroy_display(Data.Display);
         al_destroy_event_queue(Data.MainEventQueue);
         al_destroy_timer(Data.DrawTimer);
@@ -645,6 +677,7 @@ int main(){
 
     Data.IterationFinished = true;
     Data.CloseLevel = false;
+    Data.SpecialMainCall = false;
 
     Data.Level.LevelNumber = 0;
     Data.Level.NumberOfMovableObjects = 0;
@@ -670,6 +703,9 @@ int main(){
     Data.CondDrawCall = al_create_cond();
     Data.MutexThreadDraw = al_create_mutex();
     Data.Keyboard.MutexKeyboard = al_create_mutex();
+    Data.MutexSpecialMainCall = al_create_mutex();
+    Data.CondSpecialMainCall = al_create_cond();
+    Data.MutexFPS = al_create_mutex();
     /**
         First draw
         */
@@ -684,18 +720,44 @@ int main(){
     al_start_thread(Data.ThreadEventQueue);
     al_start_timer(Data.DrawTimer);
     while(!Data.CloseNow){
+        al_lock_mutex(Data.MutexSpecialMainCall);
         al_lock_mutex(Data.MutexThreadDraw);
-            Data.ThreadDrawWaiting = true;
-            while(Data.ThreadDrawWaiting){
-                al_wait_cond(Data.CondDrawCall, Data.MutexThreadDraw);
+            if(Data.SpecialMainCall){
+                al_unlock_mutex(Data.MutexThreadDraw);
+                /**
+                    Receiving special call to do (generally draw)
+                    something in the main thread. During this
+                    operation the calling thread is synchronized
+                    with the main thread.
+                    */
+                    Data.special_main_call_procedure(&Data);
+                    Data.SpecialMainCall = false;
+                    al_broadcast_cond(Data.CondSpecialMainCall);
+                al_unlock_mutex(Data.MutexSpecialMainCall);
             }
-        ++Data.FPS;
-        al_unlock_mutex(Data.MutexThreadDraw);
+            else{
+                al_unlock_mutex(Data.MutexSpecialMainCall);
+                /**
+                    Normal boring drawing routines
+                    */
 
-        al_lock_mutex(Data.DrawMutex);
-            Data.DrawFunction(&Data);
-        al_unlock_mutex(Data.DrawMutex);
+                    Data.ThreadDrawWaiting = true;
+                    while(Data.ThreadDrawWaiting){
+                        al_wait_cond(Data.CondDrawCall, Data.MutexThreadDraw);
+                    }
+                al_unlock_mutex(Data.MutexThreadDraw);
+
+                al_lock_mutex(Data.DrawMutex);
+                    Data.DrawFunction((void*)&Data);
+                al_unlock_mutex(Data.DrawMutex);
+                al_lock_mutex(Data.MutexFPS);
+                    Data.FPS += 1;
+                al_unlock_mutex(Data.MutexFPS);
+            }
     }
+    /**
+        End draw thread
+        */
     /**
         Clean-up
         */

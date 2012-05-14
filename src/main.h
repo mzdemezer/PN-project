@@ -291,6 +291,7 @@ struct level_structure{
     struct playerData *Player;
 
     ALLEGRO_BITMAP *Background;
+    char filename[256];
 };
 
 /**
@@ -309,8 +310,9 @@ struct GameSharedData{
     enum game_state NewState;
     ALLEGRO_MUTEX *MutexChangeState;
 
-    ALLEGRO_MUTEX *DrawMutex;
+    ALLEGRO_MUTEX *MutexFPS;
     unsigned char FPS;
+    ALLEGRO_MUTEX *DrawMutex;
     ALLEGRO_TIMER *DrawTimer;
     void (*DrawFunction)(struct GameSharedData *);
 
@@ -356,6 +358,10 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexThreadDraw;
     bool ThreadDrawWaiting;
     bool DrawCall;
+    ALLEGRO_MUTEX *MutexSpecialMainCall;
+    ALLEGRO_COND *CondSpecialMainCall;
+    bool SpecialMainCall;
+    void (*special_main_call_procedure)(void*);
 
     bool CloseNow;
 
@@ -364,8 +370,9 @@ struct GameSharedData{
     bool MouseWorking;
 };
 
-
+void special_call(void (*function_to_call)(void*), struct GameSharedData*);
 void* main_iteration(ALLEGRO_THREAD *, void *);
+void* thread_event_queue_procedure(ALLEGRO_THREAD *, void *);
 void* load_level(ALLEGRO_THREAD *, void *);
 
 void add_movable_object(struct GameSharedData*, enum movable_object_type, void*);
