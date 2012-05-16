@@ -18,6 +18,9 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 
+#define MAIN_BUFFER_WIDTH 1000
+#define MAIN_BUFFER_HEIGHT 750
+
 /**
     Negatives values are for configuration menus
 */
@@ -47,7 +50,7 @@
 
 #define SQRT2 1.41421356
 
-#define eps 0.0000000001
+#define eps 0.000001
 
 enum game_state{
     gsMENU,
@@ -294,6 +297,12 @@ struct level_structure{
     char filename[256];
 };
 
+struct scale_structure{
+    float scale_x, scale_y,
+          scale_w, scale_h,
+          scale;
+};
+
 /**
     Auxilary threads
     */
@@ -329,6 +338,8 @@ struct GameSharedData{
     bool MainIterationThreadsIsWaiting;
     bool CloseLevel;
 
+    struct scale_structure scales;
+    ALLEGRO_BITMAP *main_buffer;
     ALLEGRO_DISPLAY *Display;
     ALLEGRO_DISPLAY_MODE DisplayData;
     ALLEGRO_DISPLAY_MODE InMenuDisplayData;
@@ -361,7 +372,7 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexSpecialMainCall;
     ALLEGRO_COND *CondSpecialMainCall;
     bool SpecialMainCall;
-    void (*special_main_call_procedure)(void*);
+    void (*special_main_call_procedure)(struct GameSharedData*);
 
     bool CloseNow;
 
@@ -370,7 +381,8 @@ struct GameSharedData{
     bool MouseWorking;
 };
 
-void special_call(void (*function_to_call)(void*), struct GameSharedData*);
+void special_call(void (*function_to_call)(struct GameSharedData *), struct GameSharedData*);
+void scale_display_buffers(struct GameSharedData *);
 void* main_iteration(ALLEGRO_THREAD *, void *);
 void* thread_event_queue_procedure(ALLEGRO_THREAD *, void *);
 void* load_level(ALLEGRO_THREAD *, void *);
@@ -401,6 +413,7 @@ void construct_particle(struct movable_object_structure *);
 //Math
 int int_abs(int);
 float float_abs(float);
+int int_min(int, int);
 int sign(float);
 float norm(float fi);
 
@@ -414,7 +427,7 @@ float rPlayer(void *ObjectData, float fi);
 
 int rzad(int);
 char int_to_char(int);
-char* int_to_str(int);
+void int_to_str(int, char*);
 
 
 #endif

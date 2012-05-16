@@ -24,10 +24,8 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     #undef Data
 };
 
-void initialize_level(void *argument){
+void initialize_level(struct GameSharedData *Data){
     int i;
-
-    #define Data ((struct GameSharedData*)argument)
 
     if(strcmp(Data->Level.filename + 12, "0") == 0){
         Data->Level.Background = NULL;
@@ -52,8 +50,6 @@ void initialize_level(void *argument){
         al_set_target_bitmap(al_get_backbuffer(Data->Display));
 
     al_unlock_mutex(Data->DrawMutex);
-
-    #undef Data
 }
 
 void load_level_from_file(struct GameSharedData *Data){
@@ -63,7 +59,7 @@ void load_level_from_file(struct GameSharedData *Data){
     struct ObjectWorkshop Factory;
 
     strcpy(buffer, "Data/Levels/level");
-    strcat(buffer, int_to_str(Data->Level.LevelNumber));
+    int_to_str(Data->Level.LevelNumber, buffer + 17);
     strcat(buffer, ".lev");
 
     level = al_fopen(buffer, "r");
@@ -367,12 +363,10 @@ void draw_loading(struct GameSharedData *Data){
 
     al_draw_text(Data->MenuBigFont,
                  al_map_rgb(255,255,255),
-                 Data->DisplayData.width / 2,
-                 Data->DisplayData.height / 2,
+                 MAIN_BUFFER_WIDTH / 2,
+                 MAIN_BUFFER_HEIGHT / 2,
                  ALLEGRO_ALIGN_CENTRE,
                  "LOADING");
-
-    al_flip_display();
 }
 
 void handle_event_loading(struct GameSharedData *Data){
@@ -389,10 +383,8 @@ void request_loading(struct GameSharedData *Data){
         Data->CloseNow = true;
     }
     else{
-        al_lock_mutex(Data->MutexChangeState);
-            Data->RequestChangeState = false;
-            Data->GameState = gsLOADING;
-        al_unlock_mutex(Data->MutexChangeState);
+        Data->RequestChangeState = false;
+        Data->GameState = gsLOADING;
         al_start_thread(Data->ThreadLoading);
     }
 }

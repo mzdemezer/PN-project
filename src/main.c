@@ -61,14 +61,16 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
             break;
         }
 
-        if(Data->RequestChangeState){
-            switch(Data->NewState){
-                case gsPAUSE: break;
-                case gsLOADING: request_loading(Data); break;
-                case gsGAME: request_game(Data); break;
-                case gsMENU: break;
+        al_lock_mutex(Data->MutexChangeState);
+            if(Data->RequestChangeState){
+                switch(Data->NewState){
+                    case gsPAUSE: break;
+                    case gsLOADING: request_loading(Data); break;
+                    case gsGAME: request_game(Data); break;
+                    case gsMENU: break;
+                }
             }
-        }
+        al_unlock_mutex(Data->MutexChangeState);
 
         al_lock_mutex(Data->MutexDrawCall);
             if(Data->DrawCall){
@@ -105,7 +107,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
     in main thread and wait for the results
     */
 
-void special_call(void (*function_to_call)(void*), struct GameSharedData *Data){
+void special_call(void (*function_to_call)(struct GameSharedData*), struct GameSharedData *Data){
     al_lock_mutex(Data->MutexSpecialMainCall);
         al_lock_mutex(Data->MutexThreadDraw);
             printf("Special call made\n");
@@ -132,6 +134,10 @@ float float_abs(float a){
     return a < 0 ? -a : a;
 }
 
+int int_min(int a, int b){
+    return a < b ? a : b;
+}
+
 void menu_elem_init(struct menu_elem*Item,
                     enum menu_elem_type NewType,
                     char *NewName,
@@ -155,21 +161,19 @@ char int_to_char(int digit){
     return (char)(digit | 0x30);
 }
 
-char* int_to_str(int a){
+void int_to_str(int a, char *target){
     bool sign = a < 0;
     int length = rzad(a) + (int)sign, i, digit;
-    char* result = (char*)malloc(sizeof(char) * (length + 1) );
-    result[length] = '\0';
+    target[length] = '\0';
     a = int_abs(a);
     for(i = length - 1; i >= (int)sign; --i){
         digit = a % 10;
         a /= 10;
-        result[i] = int_to_char(digit);
+        target[i] = int_to_char(digit);
     }
     if(sign){
-        result[0] = '-';
+        target[0] = '-';
     }
-    return result;
 }
 
 /**
@@ -422,6 +426,17 @@ void delete_fixed_object(enum fixed_object_type ObjectType, void* ObjectData){
     ;
 }
 
+void scale_display_buffers(struct GameSharedData *Data){
+    float sx = Data->DisplayData.width / (float)MAIN_BUFFER_WIDTH;
+    float sy = Data->DisplayData.height / (float)MAIN_BUFFER_HEIGHT;
+    Data->scales.scale = sx < sy ? sx : sy;
+
+    Data->scales.scale_w = MAIN_BUFFER_WIDTH * Data->scales.scale;
+    Data->scales.scale_h = MAIN_BUFFER_HEIGHT * Data->scales.scale;
+    Data->scales.scale_x = (Data->DisplayData.width - Data->scales.scale_w) / 2;
+    Data->scales.scale_y = (Data->DisplayData.height - Data->scales.scale_h) / 2;
+}
+
 extern void RunAllTests(void);
 
 int main(){
@@ -571,17 +586,19 @@ int main(){
     al_get_display_mode(Data.ChosenResolution, &Data.DisplayData);
     Data.InMenuDisplayData = Data.DisplayData;
     Data.ChosenInMenu = Data.ChosenResolution;
-
+    scale_display_buffers(&Data);
     /**
         Creating display
         */
 
-    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
+
+
+    al_set_new_display_flags(ALLEGRO_WINDOWED); //  ALLEGRO_FULLSCREEN
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
 
-    Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
+    Data.Display = al_create_display(MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT);
     if (al_get_display_option(Data.Display, ALLEGRO_SAMPLE_BUFFERS)) {
         printf("With multisampling, level %i\n", al_get_display_option(Data.Display, ALLEGRO_SAMPLES));
     }
@@ -594,11 +611,16 @@ int main(){
         return -1;
     }
 
+    Data.main_buffer = al_create_bitmap(MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT);
+
+    al_set_target_bitmap(Data.main_buffer);
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+    al_set_target_backbuffer(Data.Display);
 
     /**
         Setting font size accordingly to resolution
         */
-    scale_fonts(&Data);
+    init_fonts(&Data);
 
     /**
         Initializing keyboard
@@ -709,8 +731,10 @@ int main(){
     /**
         First draw
         */
+
     Data.DrawFunction = draw_menu;
     draw_menu(&Data);
+    al_flip_display();
     Data.FPS = 0;
 
     /**
@@ -748,7 +772,22 @@ int main(){
                 al_unlock_mutex(Data.MutexThreadDraw);
 
                 al_lock_mutex(Data.DrawMutex);
-                    Data.DrawFunction((void*)&Data);
+                    if(Data.scales.scale == 1){
+                        Data.DrawFunction(&Data);
+                    }else{
+                        al_set_target_bitmap(Data.main_buffer);
+
+                        Data.DrawFunction(&Data);
+
+                        al_set_target_backbuffer(Data.Display);
+                        al_clear_to_color(al_map_rgb(0, 0, 0));
+                        al_draw_scaled_bitmap(Data.main_buffer, 0, 0,
+                                              MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT,
+                                              Data.scales.scale_x, Data.scales.scale_y,
+                                              Data.scales.scale_w, Data.scales.scale_h, 0);
+
+                    }
+                    al_flip_display();
                 al_unlock_mutex(Data.DrawMutex);
                 al_lock_mutex(Data.MutexFPS);
                     Data.FPS += 1;

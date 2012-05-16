@@ -289,19 +289,16 @@ void draw_game(struct GameSharedData *Data){
            DRAW(Data->Level.MovableObjects[i]);
         }
 
-    al_draw_text(Data->MenuBigFont,
-                 al_map_rgb(255,255,255),
-                 Data->DisplayData.width / 2,
-                 Data->DisplayData.height / 2,
-                 ALLEGRO_ALIGN_CENTRE,
-                 "GAME");
+    draw_stat_bar(Data);
+}
 
-    al_flip_display();
+void draw_stat_bar(struct GameSharedData *Data){
+    al_draw_filled_rectangle(750, 0, 1000, 750, al_map_rgb(0,0,0));
 }
 
 void request_game(struct GameSharedData *Data){
     int i;
-    al_lock_mutex(Data->MutexChangeState);
+
         /**
             Game init
             */
@@ -310,7 +307,7 @@ void request_game(struct GameSharedData *Data){
         }
         Data->RequestChangeState = false;
         Data->GameState = gsGAME;
-    al_unlock_mutex(Data->MutexChangeState);
+
     al_start_thread(Data->ThreadMainIteration);
 }
 
