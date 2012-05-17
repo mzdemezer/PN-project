@@ -421,14 +421,21 @@ void read_color(char *buffer, ALLEGRO_FILE *level, ALLEGRO_COLOR *color, int col
 }
 
 void draw_loading(struct GameSharedData *Data){
+    ALLEGRO_TRANSFORM tempT;
+
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+
     al_clear_to_color(al_map_rgb(0,0,0));
 
     al_draw_text(Data->MenuBigFont,
                  al_map_rgb(255,255,255),
-                 SCREEN_BUFFER_WIDTH / 2,
-                 SCREEN_BUFFER_HEIGHT / 2,
+                 Data->DisplayData.width / 2,
+                 Data->DisplayData.height / 2,
                  ALLEGRO_ALIGN_CENTRE,
-                 "LOADING");
+                 "LOADING...");
+
+    al_use_transform(&Data->Transformation);
 }
 
 void handle_event_loading(struct GameSharedData *Data){

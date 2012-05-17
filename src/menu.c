@@ -49,7 +49,7 @@ void exit_activate(void *argument){
 
 void init_fonts(struct GameSharedData *Data){
     Data->MenuBigFont = NULL;
-    Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(SCREEN_BUFFER_HEIGHT / 10), 0);
+    Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->scales.scale_h / 10), 0);
 
 
     if (!Data->MenuBigFont){
@@ -132,7 +132,9 @@ void resolution_activate(void*argument){
                     Color = al_map_rgb(255, 255, 255);
                 }
                 stringify_resolution(&arg->Data->InMenuDisplayData, CurrentResolution);
-                al_draw_text(Font, Color, SCREEN_BUFFER_WIDTH * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
+                al_draw_text(Font, Color, arg->Data->scales.scale_w * 0.9 + arg->Data->scales.scale_x,
+                             (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11) + arg->Data->scales.scale_y,
+                             ALLEGRO_ALIGN_RIGHT, CurrentResolution);
     }
     #undef arg
 }
@@ -227,6 +229,9 @@ void draw_menu(struct GameSharedData* Data){
     float align_x;
     struct activation_argument arg;
     ALLEGRO_FONT *RegFont, *SelectFont;
+    ALLEGRO_TRANSFORM tempT;
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
 
     clear_menu();
 
@@ -235,37 +240,45 @@ void draw_menu(struct GameSharedData* Data){
         RegFont = Data->MenuRegularFont;
         SelectFont = Data->MenuSelectedFont;
         flags = ALLEGRO_ALIGN_CENTRE;
-        align_x = SCREEN_BUFFER_WIDTH/2;
+        align_x = Data->DisplayData.width/2;
     }
     else{//Configuration menu
         RegFont = Data->MenuConfigFont;
         SelectFont = Data->MenuConfigSelectedFont;
         flags = ALLEGRO_ALIGN_LEFT;
-        align_x = SCREEN_BUFFER_WIDTH/10;
+        align_x = Data->DisplayData.width/10 + Data->scales.scale_x;
     }
 
     NumberOfElems = int_abs(Data->Menu.CurrentMenu[0].Type);
-    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), SCREEN_BUFFER_WIDTH/2, SCREEN_BUFFER_HEIGHT/10, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
+    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), Data->DisplayData.width/2, Data->DisplayData.height/10 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
     for(i = 1; i < Data->Menu.Current; ++i){
-        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x,
+                     (i + 1.5) * (Data->MenuBigFont->height * 1.11) + Data->scales.scale_y,
+                     flags, Data->Menu.CurrentMenu[i].Name);
         if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
             arg.CallType = meatDRAW + i;
             arg.Data = Data;
             Data->Menu.CurrentMenu[i].Activate((void*)&arg);
         }
     }
-    al_draw_text(SelectFont, al_map_rgb(255,255,0), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+    al_draw_text(SelectFont, al_map_rgb(255,255,0), align_x,
+                 (i + 1.5) * (Data->MenuBigFont->height * 1.11) + Data->scales.scale_y,
+                 flags, Data->Menu.CurrentMenu[i].Name);
     if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
             arg.CallType = meatDRAW + i;
             arg.Data = Data;
             Data->Menu.CurrentMenu[i].Activate((void*)&arg);
         }
     for(++i; i <= NumberOfElems; ++i){
-        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
+        al_draw_text(RegFont, al_map_rgb(255,255,255), align_x,
+                     (i + 1.5) * (Data->MenuBigFont->height * 1.11) + Data->scales.scale_y,
+                     flags, Data->Menu.CurrentMenu[i].Name);
         if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
             arg.CallType = meatDRAW + i;
             arg.Data = Data;
             Data->Menu.CurrentMenu[i].Activate((void*)&arg);
         }
     }
+
+    al_use_transform(&Data->Transformation);
 }

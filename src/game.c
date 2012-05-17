@@ -286,7 +286,7 @@ void draw_game(struct GameSharedData *Data){
 void draw_stat_bar(struct GameSharedData *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x, Data->scales.trans_y,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT + Data->scales.trans_y,
-                             al_map_rgb(0,0,0));
+                             al_map_rgb(45,0,0));
 }
 
 void request_game(struct GameSharedData *Data){
