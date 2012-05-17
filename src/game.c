@@ -237,76 +237,69 @@ void handle_event_game(struct GameSharedData *Data){
             Data->CloseNow = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
+            al_lock_mutex(Data->Keyboard.MutexKeyboard);
             if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_UP] = true;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_UP] = true;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_DOWN] = true;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_DOWN] = true;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_LEFT] = true;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_LEFT] = true;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_RIGHT] = true;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_RIGHT] = true;
             }
+            al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             break;
         case ALLEGRO_EVENT_KEY_UP:
-             if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_UP] = false;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+            al_lock_mutex(Data->Keyboard.MutexKeyboard);
+            if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
+                Data->Keyboard.Flags[ekKEY_UP] = false;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_DOWN] = false;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_DOWN] = false;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_LEFT] = false;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_LEFT] = false;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
-                al_lock_mutex(Data->Keyboard.MutexKeyboard);
-                    Data->Keyboard.Flags[ekKEY_RIGHT] = false;
-                al_unlock_mutex(Data->Keyboard.MutexKeyboard);
+                Data->Keyboard.Flags[ekKEY_RIGHT] = false;
             }
+            al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             break;
     }
 }
 
 void draw_game(struct GameSharedData *Data){
     int i;
+    ALLEGRO_TRANSFORM tempT;
 
-    al_clear_to_color(al_map_rgb(170, 0, 0));
-    if(Data->Level.Background){
-        al_draw_bitmap(Data->Level.Background, 0, 0, 0);
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+    al_draw_bitmap(Data->Level.ScaledBackground, Data->scales.scale_x, Data->scales.scale_y, 0);
+    al_use_transform(&Data->Transformation);
+
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+       DRAW_MOVABLE(Data->Level.MovableObjects[i]);
     }
-
-    for(i = 0; i < Data->Level.NumberOfMovableObjects; ++i){
-           DRAW(Data->Level.MovableObjects[i]);
-        }
 
     draw_stat_bar(Data);
 }
 
 void draw_stat_bar(struct GameSharedData *Data){
-    al_draw_filled_rectangle(750, 0, 1000, 750, al_map_rgb(0,0,0));
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x, Data->scales.trans_y,
+                             SCREEN_BUFFER_WIDTH + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT + Data->scales.trans_y,
+                             al_map_rgb(0,0,0));
 }
 
 void request_game(struct GameSharedData *Data){
     int i;
 
-        /**
-            Game init
-            */
-        for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
-            Data->Keyboard.Flags[i] = false;
-        }
-        Data->RequestChangeState = false;
-        Data->GameState = gsGAME;
+    /**
+        Game init
+        */
+    for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
+        Data->Keyboard.Flags[i] = false;
+    }
+    Data->RequestChangeState = false;
+    Data->GameState = gsGAME;
 
     al_start_thread(Data->ThreadMainIteration);
 }

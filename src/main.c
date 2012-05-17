@@ -127,15 +127,27 @@ void special_call(void (*function_to_call)(struct GameSharedData*), struct GameS
 }
 
 int int_abs(int a){
-    return a < 0 ? -a : a;
+    if(a < 0){
+        return -a;
+    }else{
+        return a;
+    }
 }
 
 float float_abs(float a){
-    return a < 0 ? -a : a;
+    if(a < 0){
+        return -a;
+    }else{
+        return a;
+    }
 }
 
-int int_min(int a, int b){
-    return a < b ? a : b;
+float float_min(float a, float b){
+    if(a < b){
+        return a;
+    }else{
+        return b;
+    }
 }
 
 void menu_elem_init(struct menu_elem*Item,
@@ -300,15 +312,58 @@ void draw_rectangle(void *ObjectData){
     #undef Data
 }
 
-void draw_player(void *ObjectData){
+void draw_all_fixed_objects(struct GameSharedData *Data){
+    int i;
+    for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
+        DRAW_FIXED(Data->Level.FixedObjects[i]);
+    }
+}
+
+void draw_player(void *ObjectData, float dx, float dy){
     #define Data ((struct playerData*)ObjectData)
-    al_draw_filled_circle(Data->center.x, Data->center.y, 40, al_map_rgb(255, 255, 255));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 255, 255));
     #undef Data
 }
 
-void draw_particle(void *ObjectData){
+void draw_particle(void *ObjectData, float dx, float dy){
     #define Data ((struct particleData*)ObjectData)
-    al_draw_filled_circle(Data->center.x, Data->center.y, Data->r0, al_map_rgb(255, 0, 255));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r0, al_map_rgb(255, 0, 255));
+    #undef Data
+}
+
+void draw_door(void *ObjectData, float dx, float dy){
+    #define Data ((struct doorData*)ObjectData)
+    struct point dv1 = Data->v1,
+                 dv2 = Data->v2,
+                 dv3 = Data->v3,
+                 dv4 = Data->v4;
+    dv1.x += dx;
+    dv1.y += dy;
+    dv2.x += dx;
+    dv2.y += dy;
+    dv3.x += dx;
+    dv3.y += dy;
+    dv4.x += dx;
+    dv4.y += dy;
+    draw_tetragon(&dv1, &dv2, &dv3, &dv4, Data->color);
+    #undef Data
+}
+
+void draw_switch(void *ObjectData, float dx, float dy){
+    #define Data ((struct switchData*)ObjectData)
+    struct point dv1 = Data->v1,
+                 dv2 = Data->v2,
+                 dv3 = Data->v3,
+                 dv4 = Data->v4;
+    dv1.x += dx;
+    dv1.y += dy;
+    dv2.x += dx;
+    dv2.y += dy;
+    dv3.x += dx;
+    dv3.y += dy;
+    dv4.x += dx;
+    dv4.y += dy;
+    draw_tetragon(&dv1, &dv2, &dv3, &dv4, Data->color);
     #undef Data
 }
 
@@ -384,6 +439,18 @@ void construct_rectangle(struct fixed_object_structure *Object){
     #undef Data
 }
 
+void construct_door(struct movable_object_structure *Object){
+    construct_rectangle((struct fixed_object_structure*)Object);
+
+    Object->draw = draw_door;
+}
+
+void construct_switch(struct movable_object_structure *Object){
+    construct_rectangle((struct fixed_object_structure*)Object);
+
+    Object->draw = draw_switch;
+}
+
 void construct_player(struct movable_object_structure *Object){
     Object->draw = draw_player;
     Object->r = rPlayer;
@@ -399,42 +466,139 @@ void construct_particle(struct movable_object_structure *Object){
     */
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.NumberOfMovableObjects == Data->Level.BoundryMovable){
-        Data->Level.BoundryMovable *= 2;
-        Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.BoundryMovable);
+    if(Data->Level.number_of_movable_objects == Data->Level.boundry_movable){
+        Data->Level.boundry_movable *= 2;
+        Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.boundry_movable);
     }
-    Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].Type = NewObjectType;
-    Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects].ObjectData = NewObjectData;
-    Data->Level.NumberOfMovableObjects += 1;
+    Data->Level.MovableObjects[Data->Level.number_of_movable_objects].Type = NewObjectType;
+    Data->Level.MovableObjects[Data->Level.number_of_movable_objects].ObjectData = NewObjectData;
+    Data->Level.number_of_movable_objects += 1;
 }
 
 void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.NumberOfFixedObjects == Data->Level.BoundryFixed){
-        Data->Level.BoundryFixed *= 2;
-        Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.BoundryFixed);
+    if(Data->Level.number_of_fixed_objects == Data->Level.boundry_fixed){
+        Data->Level.boundry_fixed *= 2;
+        Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.boundry_fixed);
     }
-    Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].Type = NewObjectType;
-    Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects].ObjectData = NewObjectData;
-    Data->Level.NumberOfFixedObjects += 1;
+    Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].Type = NewObjectType;
+    Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].ObjectData = NewObjectData;
+    Data->Level.number_of_fixed_objects += 1;
+}
+
+void delete_fixed_object(struct fixed_object_structure *Object){
+    switch(Object->Type){
+        case fotSQUARE:
+            free((struct squareData*)Object->ObjectData);
+            break;
+        case fotRECTANGLE:
+            free((struct rectangleData*)Object->ObjectData);
+            break;
+        case fotCIRCLE:
+            free((struct circleData*)Object->ObjectData);
+            break;
+        case fotENTRANCE:
+            free((struct entranceData*)Object->ObjectData);
+            break;
+        case fotEXIT:
+            free((struct exitData*)Object->ObjectData);
+            break;
+    }
 }
 
 void clear_fixed_object_list(struct GameSharedData *Data){
-    ;
+    int i;
+    for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
+        delete_fixed_object(&Data->Level.FixedObjects[i]);
+    }
+    Data->Level.number_of_fixed_objects = 0;
 }
 
-void delete_fixed_object(enum fixed_object_type ObjectType, void* ObjectData){
-    ;
+void delete_movable_object(struct movable_object_structure *Object){
+    switch(Object->Type){
+        case motPLAYER:
+            free((struct playerData*)Object->ObjectData);
+            break;
+        case motPARTICLE:
+            free((struct particleData*)Object->ObjectData);
+            break;
+        case motDOOR:
+            free((struct doorData*)Object->ObjectData);
+            break;
+        case motSWITCH:
+            free((struct switchData*)Object->ObjectData);
+            break;
+    }
 }
 
-void scale_display_buffers(struct GameSharedData *Data){
-    float sx = Data->DisplayData.width / (float)MAIN_BUFFER_WIDTH;
-    float sy = Data->DisplayData.height / (float)MAIN_BUFFER_HEIGHT;
-    Data->scales.scale = sx < sy ? sx : sy;
+void clear_movable_object_list(struct GameSharedData *Data){
+    int i;
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+        delete_movable_object(&Data->Level.MovableObjects[i]);
+    }
+    Data->Level.number_of_movable_objects = 0;
+}
 
-    Data->scales.scale_w = MAIN_BUFFER_WIDTH * Data->scales.scale;
-    Data->scales.scale_h = MAIN_BUFFER_HEIGHT * Data->scales.scale;
+void calculate_transformation(struct GameSharedData *Data){
+    al_identity_transform(&Data->Transformation);
+    al_scale_transform(&Data->Transformation, Data->scales.scale, Data->scales.scale);
+    al_use_transform(&Data->Transformation);
+}
+
+void calculate_scales(struct GameSharedData *Data){
+    Data->scales.scale = float_min(Data->DisplayData.width / (float)SCREEN_BUFFER_WIDTH, Data->DisplayData.height / (float)SCREEN_BUFFER_HEIGHT);
+
+    Data->scales.scale_w = SCREEN_BUFFER_WIDTH * Data->scales.scale;//?
+    Data->scales.scale_h = SCREEN_BUFFER_HEIGHT * Data->scales.scale;//?
     Data->scales.scale_x = (Data->DisplayData.width - Data->scales.scale_w) / 2;
     Data->scales.scale_y = (Data->DisplayData.height - Data->scales.scale_h) / 2;
+    Data->scales.trans_x = Data->scales.scale_x / Data->scales.scale;
+    Data->scales.trans_y = Data->scales.scale_y / Data->scales.scale;
+}
+
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac){
+    return al_map_rgba_f(c1.r + frac * (c2.r - c1.r),
+                         c1.g + frac * (c2.g - c1.g),
+                         c1.b + frac * (c2.b - c1.b),
+                         c1.a + frac * (c2.a - c1.a));
+}
+
+void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
+	if ((al_get_bitmap_width(source) == width) && (al_get_bitmap_height(source) == height)) {
+		al_draw_bitmap(source, 0, 0, 0);
+		return;
+	}
+	int x, y;
+	al_lock_bitmap(al_get_target_bitmap(), ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+	al_lock_bitmap(source, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_READONLY);
+
+	/* linear filtering code written by SiegeLord */
+
+    float pixy, pixy_f,
+          pixx, pixx_f;
+    ALLEGRO_COLOR a, b, c, d,
+                  ab, cd, result;
+
+	for (y = 0; y < height; y++) {
+		pixy = ((float)y / height) * ((float)al_get_bitmap_height(source) - 1);
+		pixy_f = floor(pixy);
+		for (x = 0; x < width; x++) {
+			pixx = ((float)x / width) * ((float)al_get_bitmap_width(source) - 1);
+			pixx_f = floor(pixx);
+
+			a = al_get_pixel(source, pixx_f, pixy_f);
+			b = al_get_pixel(source, pixx_f + 1, pixy_f);
+			c = al_get_pixel(source, pixx_f, pixy_f + 1);
+			d = al_get_pixel(source, pixx_f + 1, pixy_f + 1);
+
+			ab = interpolate(a, b, pixx - pixx_f);
+			cd = interpolate(c, d, pixx - pixx_f);
+			result = interpolate(ab, cd, pixy - pixy_f);
+
+			al_put_pixel(x, y, result);
+		}
+	}
+	al_unlock_bitmap(al_get_target_bitmap());
+	al_unlock_bitmap(source);
 }
 
 extern void RunAllTests(void);
@@ -586,19 +750,18 @@ int main(){
     al_get_display_mode(Data.ChosenResolution, &Data.DisplayData);
     Data.InMenuDisplayData = Data.DisplayData;
     Data.ChosenInMenu = Data.ChosenResolution;
-    scale_display_buffers(&Data);
+    calculate_scales(&Data);
+
     /**
         Creating display
         */
 
-
-
-    al_set_new_display_flags(ALLEGRO_WINDOWED); //  ALLEGRO_FULLSCREEN
+    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
 
-    Data.Display = al_create_display(MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT);
+    Data.Display = al_create_display(Data.DisplayData.width, Data.DisplayData.height);
     if (al_get_display_option(Data.Display, ALLEGRO_SAMPLE_BUFFERS)) {
         printf("With multisampling, level %i\n", al_get_display_option(Data.Display, ALLEGRO_SAMPLES));
     }
@@ -610,13 +773,7 @@ int main(){
         fprintf(stderr, "Problems when creating the display");
         return -1;
     }
-
-    Data.main_buffer = al_create_bitmap(MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT);
-
-    al_set_target_bitmap(Data.main_buffer);
-    al_clear_to_color(al_map_rgb(0, 0, 0));
-    al_set_target_backbuffer(Data.Display);
-
+    calculate_transformation(&Data);
     /**
         Setting font size accordingly to resolution
         */
@@ -702,12 +859,14 @@ int main(){
     Data.SpecialMainCall = false;
 
     Data.Level.LevelNumber = 0;
-    Data.Level.NumberOfMovableObjects = 0;
-    Data.Level.NumberOfFixedObjects = 0;
-    Data.Level.BoundryMovable = INITIAL_BOUNDRY_MOVABLE;
-    Data.Level.BoundryFixed = INITIAL_BOUNDRY_FIXED;
-    Data.Level.MovableObjects = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure) * Data.Level.BoundryMovable);
-    Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.BoundryFixed);
+    Data.Level.number_of_movable_objects = 0;
+    Data.Level.number_of_fixed_objects = 0;
+    Data.Level.boundry_movable = INITIAL_BOUNDRY_MOVABLE;
+    Data.Level.boundry_fixed = INITIAL_BOUNDRY_FIXED;
+    Data.Level.MovableObjects = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure) * Data.Level.boundry_movable);
+    Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.boundry_fixed);
+    Data.Level.Background = NULL;
+    Data.Level.ScaledBackground = NULL;
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
     Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;
@@ -772,21 +931,8 @@ int main(){
                 al_unlock_mutex(Data.MutexThreadDraw);
 
                 al_lock_mutex(Data.DrawMutex);
-                    if(Data.scales.scale == 1){
-                        Data.DrawFunction(&Data);
-                    }else{
-                        al_set_target_bitmap(Data.main_buffer);
-
-                        Data.DrawFunction(&Data);
-
-                        al_set_target_backbuffer(Data.Display);
-                        al_clear_to_color(al_map_rgb(0, 0, 0));
-                        al_draw_scaled_bitmap(Data.main_buffer, 0, 0,
-                                              MAIN_BUFFER_WIDTH, MAIN_BUFFER_HEIGHT,
-                                              Data.scales.scale_x, Data.scales.scale_y,
-                                              Data.scales.scale_w, Data.scales.scale_h, 0);
-
-                    }
+                    al_clear_to_color(al_map_rgb(0, 0, 0));
+                    Data.DrawFunction(&Data);
                     al_flip_display();
                 al_unlock_mutex(Data.DrawMutex);
                 al_lock_mutex(Data.MutexFPS);
@@ -807,6 +953,11 @@ int main(){
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);
+
+    clear_movable_object_list(&Data);
+    free(Data.Level.MovableObjects);
+    clear_fixed_object_list(&Data);
+    free(Data.Level.FixedObjects);
 
 #endif
 

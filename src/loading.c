@@ -24,31 +24,93 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     #undef Data
 };
 
+/**
+    Load background, scale it, draw static objects
+
+    Draws two versions for scaled and unscaled background.
+    If user changes resolution during the game,
+    then background ----scale---> scaledbackground
+    guarantees always quite good quality.
+    If however, display is smaller than default
+    background size when loading the level, then only
+    one scaled version is drawn and the other one
+    is drawn without antialiasing.
+    So after changing to bigger resolution there will be a bug,
+    for no anti-aliasing will be visible in the background.
+
+    Don't mess with the resolution too much! -.=
+    */
+
 void initialize_level(struct GameSharedData *Data){
-    int i;
+    ALLEGRO_BITMAP *tempBitmap;
+    ALLEGRO_TRANSFORM tempT;
 
+    /**
+        Preparing bitmaps and loading the file
+        */
+    al_destroy_bitmap(Data->Level.Background);
+    Data->Level.Background = al_create_bitmap(SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT);
+    al_destroy_bitmap(Data->Level.ScaledBackground);
+    Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_w, Data->scales.scale_h);
     if(strcmp(Data->Level.filename + 12, "0") == 0){
-        Data->Level.Background = NULL;
+        tempBitmap = NULL;
     }else{
-        Data->Level.Background = al_load_bitmap(Data->Level.filename);
+        tempBitmap = al_load_bitmap(Data->Level.filename);
     }
+
+    /**
+        Scaling and drawing
+        */
     al_lock_mutex(Data->DrawMutex);
-        al_set_target_bitmap(al_get_backbuffer(Data->Display));
-        al_clear_to_color(al_map_rgb(170, 0, 0));
-        if(Data->Level.Background){
-            al_draw_bitmap(Data->Level.Background, 0, 0, 0);
+        al_identity_transform(&tempT);
+        al_use_transform(&tempT);
+
+        if(tempBitmap){
+            al_set_target_bitmap(Data->Level.Background);
+            scale_bitmap(tempBitmap, SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT);
+
+            al_set_target_bitmap(Data->Level.ScaledBackground);
+            scale_bitmap(tempBitmap, Data->scales.scale_w, Data->scales.scale_h);
+
+            al_destroy_bitmap(tempBitmap);
         }else{
-            Data->Level.Background = al_create_bitmap(800, 800);
+            al_set_target_bitmap(Data->Level.Background);
+            al_clear_to_color(DEFAULT_BACKGROUND_COLOR);
+
+            al_set_target_bitmap(Data->Level.ScaledBackground);
+            al_clear_to_color(DEFAULT_BACKGROUND_COLOR);
         }
 
-        for(i = 0; i < Data->Level.NumberOfFixedObjects; ++i){
-            DRAW(Data->Level.FixedObjects[i]);
+
+        tempBitmap = al_get_backbuffer(Data->Display);
+
+
+        al_set_target_bitmap(tempBitmap);
+        al_draw_bitmap(Data->Level.ScaledBackground, 0, 0, 0);
+
+        al_use_transform(&Data->Transformation);
+        draw_all_fixed_objects(Data);
+        al_use_transform(&tempT);
+
+        al_set_target_bitmap(Data->Level.ScaledBackground);
+        al_draw_bitmap_region(tempBitmap, 0, 0, Data->scales.scale_w, Data->scales.scale_h, 0, 0, 0);
+
+
+        if((SCREEN_BUFFER_WIDTH <= Data->scales.scale_w) && (SCREEN_BUFFER_HEIGHT <= Data->scales.scale_h)){
+            al_set_target_bitmap(tempBitmap);
+            al_draw_bitmap(Data->Level.Background, 0, 0, 0);
+
+            draw_all_fixed_objects(Data);
+
+            al_set_target_bitmap(Data->Level.Background);
+            al_draw_bitmap_region(tempBitmap, 0, 0, SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT, 0, 0, 0);
+        }else{
+            al_set_target_bitmap(Data->Level.Background);
+            draw_all_fixed_objects(Data);
         }
 
-        al_set_target_bitmap(Data->Level.Background);
-        al_draw_bitmap(al_get_backbuffer(Data->Display), 0, 0, 0);
-        al_set_target_bitmap(al_get_backbuffer(Data->Display));
-
+        al_set_target_bitmap(tempBitmap);
+        al_use_transform(&Data->Transformation);
     al_unlock_mutex(Data->DrawMutex);
 }
 
@@ -99,7 +161,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Firing player constructor, that happens not to be present in the code at the moment
             */
-        construct_player(&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);
+        construct_player(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -123,7 +185,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Firing temporarily non-existant rectangle constructor
             */
-        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
     /**
@@ -144,7 +206,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Firing circle constructor... oh, it's not here! I wonder why...
             */
-        construct_circle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
+        construct_circle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
     /**
@@ -166,7 +228,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             They say this is a perfect place to run something they call "Square constructor"
             */
-        construct_square(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);
+        construct_square(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
     /**
@@ -189,7 +251,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Enter the Matrix with my constructor that does not exist
             */
-        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);//for the meantime
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);//for the meantime
     }
 
     /**
@@ -213,7 +275,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Calling saws and hammers for constructing an exit
             */
-        construct_rectangle(&Data->Level.FixedObjects[Data->Level.NumberOfFixedObjects - 1]);//destroy this after righting the function!
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);//destroy this after righting the function!
     }
 
     /**
@@ -272,7 +334,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             This is the right place, yes Luke
             */
-        construct_rectangle((struct fixed_object_structure*)&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);//for the meantime also
+        construct_switch(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -300,7 +362,7 @@ void load_level_from_file(struct GameSharedData *Data){
          /**
             The door should be now built
             */
-        construct_rectangle((struct fixed_object_structure*)&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);//the last one to be DESTROYED!
+        construct_door(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -321,7 +383,7 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             I heard news, that here will be particle constructor
             */
-        construct_particle(&Data->Level.MovableObjects[Data->Level.NumberOfMovableObjects - 1]);
+        construct_particle(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     al_fclose(level);
@@ -363,8 +425,8 @@ void draw_loading(struct GameSharedData *Data){
 
     al_draw_text(Data->MenuBigFont,
                  al_map_rgb(255,255,255),
-                 MAIN_BUFFER_WIDTH / 2,
-                 MAIN_BUFFER_HEIGHT / 2,
+                 SCREEN_BUFFER_WIDTH / 2,
+                 SCREEN_BUFFER_HEIGHT / 2,
                  ALLEGRO_ALIGN_CENTRE,
                  "LOADING");
 }

@@ -18,8 +18,8 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 
-#define MAIN_BUFFER_WIDTH 1000
-#define MAIN_BUFFER_HEIGHT 750
+#define SCREEN_BUFFER_WIDTH 1000
+#define SCREEN_BUFFER_HEIGHT 750
 
 /**
     Negatives values are for configuration menus
@@ -38,6 +38,7 @@
 #define INITIAL_BOUNDRY_FIXED 1000
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
+#define DEFAULT_BACKGROUND_COLOR al_map_rgb(80, 0, 0)
 
 #define dwaPI 6.28318531
 #define PI74 5.49778714
@@ -149,9 +150,9 @@ enum movable_object_type{
 };
 
 /**
-    This structure enables objectivization
+    These structures enable objectivization
     by casting on different objects in
-    relation to Type. It anables also
+    relation to Type. They also enable
     creating lists of objects that are
     logically connected with each other
     */
@@ -166,7 +167,7 @@ struct fixed_object_structure{
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
-    void (*draw)(void*);
+    void (*draw)(void*, float dx, float dy);
     float (*r)(void*, float);
 };
 
@@ -284,22 +285,24 @@ struct keyboard_structure{
 
 struct level_structure{
     int LevelNumber,
-        NumberOfMovableObjects,
-        NumberOfFixedObjects,
-        BoundryMovable,
-        BoundryFixed;
+        number_of_movable_objects,
+        number_of_fixed_objects,
+        boundry_movable,
+        boundry_fixed;
     struct fixed_object_structure *FixedObjects;
     struct movable_object_structure *MovableObjects;
 
     struct playerData *Player;
 
     ALLEGRO_BITMAP *Background;
+    ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
 };
 
 struct scale_structure{
     float scale_x, scale_y,
           scale_w, scale_h,
+          trans_x, trans_y,
           scale;
 };
 
@@ -339,7 +342,7 @@ struct GameSharedData{
     bool CloseLevel;
 
     struct scale_structure scales;
-    ALLEGRO_BITMAP *main_buffer;
+    ALLEGRO_TRANSFORM Transformation;
     ALLEGRO_DISPLAY *Display;
     ALLEGRO_DISPLAY_MODE DisplayData;
     ALLEGRO_DISPLAY_MODE InMenuDisplayData;
@@ -382,7 +385,9 @@ struct GameSharedData{
 };
 
 void special_call(void (*function_to_call)(struct GameSharedData *), struct GameSharedData*);
-void scale_display_buffers(struct GameSharedData *);
+void calculate_scales(struct GameSharedData *);
+void calculate_transformation(struct GameSharedData *);
+
 void* main_iteration(ALLEGRO_THREAD *, void *);
 void* thread_event_queue_procedure(ALLEGRO_THREAD *, void *);
 void* load_level(ALLEGRO_THREAD *, void *);
@@ -390,16 +395,24 @@ void* load_level(ALLEGRO_THREAD *, void *);
 void add_movable_object(struct GameSharedData*, enum movable_object_type, void*);
 void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
 
+
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
+void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
 //Draw
 
-#define DRAW(OBJECT) OBJECT.draw(OBJECT.ObjectData)
+#define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)
+#define DRAW_MOVABLE(OBJECT) OBJECT.draw(OBJECT.ObjectData, Data->scales.trans_x, Data->scales.trans_y)
 
 void draw_tetragon(struct point *v1, struct point *v2, struct point *v3, struct point *v4, ALLEGRO_COLOR);
 void draw_square(void *ObjectData);
 void draw_circle(void *ObjectData);
 void draw_rectangle(void *ObjectData);
+void draw_all_fixed_objects(struct GameSharedData*);
 
-void draw_player(void *ObjectData);
+void draw_player(void *ObjectData, float dx, float dy);
+void draw_particle(void *ObjectData, float dx, float dy);
+void draw_door(void *ObjectData, float dx, float dy);
+void draw_switch(void *ObjectData, float dx, float dy);
 
 //Constructors
 
@@ -409,11 +422,13 @@ void construct_rectangle(struct fixed_object_structure *);
 
 void construct_player(struct movable_object_structure *);
 void construct_particle(struct movable_object_structure *);
+void construct_door(struct movable_object_structure *);
+void construct_switch(struct movable_object_structure *);
 
 //Math
 int int_abs(int);
 float float_abs(float);
-int int_min(int, int);
+float float_min(float, float);
 int sign(float);
 float norm(float fi);
 

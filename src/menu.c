@@ -49,7 +49,7 @@ void exit_activate(void *argument){
 
 void init_fonts(struct GameSharedData *Data){
     Data->MenuBigFont = NULL;
-    Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(MAIN_BUFFER_HEIGHT / 10), 0);
+    Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(SCREEN_BUFFER_HEIGHT / 10), 0);
 
 
     if (!Data->MenuBigFont){
@@ -73,20 +73,15 @@ void stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData, char *target){
 void change_resolution(struct GameSharedData *Data){
     Data->ChosenResolution = Data->ChosenInMenu;
     Data->DisplayData = Data->InMenuDisplayData;
-    scale_display_buffers(Data);
+    calculate_scales(Data);
     al_unregister_event_source(Data->MainEventQueue, al_get_display_event_source(Data->Display));
     if(!al_resize_display(Data->Display, Data->DisplayData.width, Data->DisplayData.height)){
         fprintf(stderr, "Error occured while trying to resize!\n");
         Data->CloseNow = true;
     }else{
         al_register_event_source(Data->MainEventQueue, al_get_display_event_source(Data->Display));
-
-        al_destroy_bitmap(Data->main_buffer);
-        Data->main_buffer = al_create_bitmap(1000, 750);
-        al_set_target_bitmap(Data->main_buffer);
-        al_clear_to_color(al_map_rgb(0, 0, 0));
-        al_set_target_backbuffer(Data->Display);
-
+        //scale background
+        calculate_transformation(Data);
         init_fonts(Data);
         printf("Resolution changed: %d x %d\n", al_get_display_width(Data->Display), al_get_display_height(Data->Display));
     }
@@ -137,7 +132,7 @@ void resolution_activate(void*argument){
                     Color = al_map_rgb(255, 255, 255);
                 }
                 stringify_resolution(&arg->Data->InMenuDisplayData, CurrentResolution);
-                al_draw_text(Font, Color, MAIN_BUFFER_WIDTH * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
+                al_draw_text(Font, Color, SCREEN_BUFFER_WIDTH * 0.8 , (arg->CallType - meatDRAW + 1.5) * (arg->Data->MenuBigFont->height * 1.11), ALLEGRO_ALIGN_RIGHT, CurrentResolution);
     }
     #undef arg
 }
@@ -240,17 +235,17 @@ void draw_menu(struct GameSharedData* Data){
         RegFont = Data->MenuRegularFont;
         SelectFont = Data->MenuSelectedFont;
         flags = ALLEGRO_ALIGN_CENTRE;
-        align_x = MAIN_BUFFER_WIDTH/2;
+        align_x = SCREEN_BUFFER_WIDTH/2;
     }
     else{//Configuration menu
         RegFont = Data->MenuConfigFont;
         SelectFont = Data->MenuConfigSelectedFont;
         flags = ALLEGRO_ALIGN_LEFT;
-        align_x = MAIN_BUFFER_WIDTH/10;
+        align_x = SCREEN_BUFFER_WIDTH/10;
     }
 
     NumberOfElems = int_abs(Data->Menu.CurrentMenu[0].Type);
-    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), MAIN_BUFFER_WIDTH/2, MAIN_BUFFER_HEIGHT/10, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
+    al_draw_text(Data->MenuBigFont, al_map_rgb(255,255,255), SCREEN_BUFFER_WIDTH/2, SCREEN_BUFFER_HEIGHT/10, ALLEGRO_ALIGN_CENTRE, Data->Menu.CurrentMenu[0].Name);
     for(i = 1; i < Data->Menu.Current; ++i){
         al_draw_text(RegFont, al_map_rgb(255,255,255), align_x, (i + 1.5) * (Data->MenuBigFont->height * 1.11), flags, Data->Menu.CurrentMenu[i].Name);
         if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
