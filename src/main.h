@@ -45,7 +45,7 @@
     */
 
 #define COULOMB 1
-#define GRAV 2000
+#define GRAV 20
 
 /**
     Maths
@@ -202,7 +202,7 @@ struct point{
 #define MAX_DECELERATE -20
 #define THROTTLE 1
 #define dANG 0.06981 //4 degrees
-#define PLAYER_MASS 10
+#define PLAYER_MASS 600
 struct playerData{
     struct point center;
     float ang;
