@@ -23,7 +23,7 @@
 
 /**
     Negatives values are for configuration menus
-*/
+    */
 
 #define MAIN_MENU_SIZE 4
 #define OPTIONS_MENU_SIZE 4
@@ -39,6 +39,17 @@
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
 #define DEFAULT_BACKGROUND_COLOR al_map_rgb(80, 0, 0)
+
+/**
+    Physics
+    */
+
+#define COULOMB 1
+#define GRAV 2000
+
+/**
+    Maths
+    */
 
 #define dwaPI 6.28318531
 #define PI74 5.49778714
@@ -189,15 +200,16 @@ struct point{
 
 #define MAX_ACCELERATE 40
 #define MAX_DECELERATE -20
-#define THROTTLE 0.05
+#define THROTTLE 1
 #define dANG 0.06981 //4 degrees
-#define PLAYER_MASS 1
+#define PLAYER_MASS 10
 struct playerData{
     struct point center;
     float ang;
     int engine_state;
     float mass,
-          vx, vy;
+          vx, vy,
+          charge;
 };
 
 struct rectangleData{
@@ -297,6 +309,12 @@ struct keyboard_structure{
     ALLEGRO_MUTEX *MutexKeyboard;
 };
 
+#define ACC_2nd_DIM 4
+struct acceleration_arrays{
+    float ax[ACC_2nd_DIM],
+          ay[ACC_2nd_DIM];
+};
+
 struct level_structure{
     int LevelNumber,
         number_of_movable_objects,
@@ -312,6 +330,7 @@ struct level_structure{
     ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
     float last_time, dt;
+    struct acceleration_arrays *Acc;
 };
 
 struct scale_structure{

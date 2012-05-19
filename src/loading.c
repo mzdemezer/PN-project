@@ -2,6 +2,7 @@
 #include "loading.h"
 #include "game.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void* load_level(ALLEGRO_THREAD *thread, void *argument){
@@ -12,6 +13,8 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     load_level_from_file(Data);
 
     special_call(initialize_level, argument);
+
+    Data->Level.Acc = (struct acceleration_arrays*)malloc(sizeof(struct acceleration_arrays) * Data->Level.number_of_movable_objects);
 
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);

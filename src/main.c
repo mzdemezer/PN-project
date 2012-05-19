@@ -321,8 +321,8 @@ void draw_all_fixed_objects(struct GameSharedData *Data){
 
 void draw_player(void *ObjectData, float dx, float dy){
     #define Data ((struct playerData*)ObjectData)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 180, 128));
-    al_draw_filled_circle(Data->center.x + dx + 20 * cos(Data->ang), Data->center.y + dy + 20 * sin(Data->ang), 8, al_map_rgb(255, 80, 80));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 255, 255));
+    al_draw_filled_circle(Data->center.x + dx + 20 * cos(Data->ang), Data->center.y + dy + 20 * sin(Data->ang), 8, al_map_rgb(0, 0, 0));
     #undef Data
 }
 
@@ -468,6 +468,7 @@ void construct_player(struct movable_object_structure *Object){
     Data->vy = 0;
     Data->engine_state = 0;
     Data->mass = PLAYER_MASS;
+    Data->charge = 0;
     #undef Data
 }
 
@@ -891,6 +892,7 @@ int main(){
     Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.boundry_fixed);
     Data.Level.Background = NULL;
     Data.Level.ScaledBackground = NULL;
+    Data.Level.Acc = NULL;
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
     Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;
@@ -978,6 +980,9 @@ int main(){
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);
 
+    if(Data.Level.Acc){
+        free(Data.Level.Acc);
+    }
     clear_movable_object_list(&Data);
     free(Data.Level.MovableObjects);
     clear_fixed_object_list(&Data);

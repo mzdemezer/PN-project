@@ -47,7 +47,9 @@ printf("Small threads closed, waiting for Main-iter-thread\n");
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define dt Data->Level.dt
-    int i;
+    #define Acc Data->Level.Acc
+
+    int i, j;
     bool f;
 
     float op;
@@ -80,6 +82,16 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
 
     Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
 
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+        for(j = 0; j < ACC_2nd_DIM; ++j){
+            Acc[i].ax[j] = 0;
+            Acc[i].ay[j] = 0;
+        }
+    }
+    bool parity = false,
+         imparity = true;
+    float half_dt;
+
     printf("In game: after main-iter-init, starting to operate\n");
 
     while(!al_get_thread_should_stop(thread)){
@@ -90,8 +102,9 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         dt = Data->Level.last_time;
         Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
         dt = Data->Level.last_time - dt;
+        half_dt = dt / 2;
 
-        op = Data->Level.Player->engine_state * THROTTLE;
+        op = Data->Level.Player->engine_state * THROTTLE * dt;
         Data->Level.Player->vx += op * cos(Data->Level.Player->ang);
         Data->Level.Player->vy += op * sin(Data->Level.Player->ang);
 
@@ -185,12 +198,44 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
                     #define ObData ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))
+                    op = ObData->mass;
+                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+                    }
+                    Acc[i].ax[(int)parity] /= op;
+
+                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+                    }
+                    Acc[i].ay[(int)parity] /= op;
+
+                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+
                     ObData->center.x += ObData->vx * dt;
                     ObData->center.y += ObData->vy * dt;
                     #undef ObData
                     break;
                 case motPARTICLE:
                     #define ObData ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))
+                    op = ObData->mass;
+                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+                    }
+                    Acc[i].ax[(int)parity] /= op;
+
+                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+                    }
+                    Acc[i].ay[(int)parity] /= op;
+
+                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+
                     ObData->center.x += ObData->vx * dt;
                     ObData->center.y += ObData->vy * dt;
                     #undef ObData
@@ -209,6 +254,9 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Data->DrawCall = true;
         al_unlock_mutex(Data->MutexDrawCall);
 
+        parity = !parity;
+        imparity = !imparity;
+
         if(!al_get_thread_should_stop(thread)){
             al_lock_mutex(Data->MutexMainIteration);
                 Data->IterationFinished = true;
@@ -221,6 +269,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     printf("Closing Thread: main-iteration\n");
 
     return NULL;
+    #undef Acc
     #undef dt
     #undef Data
 }
@@ -242,14 +291,63 @@ void StopThread(int i, struct GameSharedData *Data, ALLEGRO_THREAD *thread){
     al_unlock_mutex(Data->MutexIterations);
 }
 
+/**
+    Gravity
+    */
+bool get_grav_data(struct movable_object_structure *Obj, double *mass, double *x, double *y){
+    switch(Obj->Type){
+        case motPLAYER:
+            #define ObData ((struct playerData*)Obj->ObjectData)
+            *mass = ObData->mass;
+            *x = ObData->center.x;
+            *y = ObData->center.y;
+            #undef ObData
+            return true;
+        case motPARTICLE:
+            #define ObData ((struct particleData*)Obj->ObjectData)
+            *mass = ObData->mass;
+            *x = ObData->center.x;
+            *y = ObData->center.y;
+            #undef ObData
+            return true;
+        default:
+            return false;
+    }
+}
+
 void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
+    #define Acc Data->Level.Acc
+    int i, j;
+    double m1, m2, x1, y1, x2, y2, ang;
 
     StopThread(0, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            Acc[i].ax[2] = 0;
+            Acc[i].ay[2] = 0;
+        }
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1, &x1, &y1)){
+                for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
+                    if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2, &x2, &y2)){
+                        x2 -= x1;
+                        y2 -= y1;
+                        m2 *= m1 * (GRAV / (x2 * x2 + y2 * y2));//add linear for collision
+                        ang = VectorAngle(x2, y2);
+                        x2 = cos(ang);
+                        ang = sin(ang);
+                        Acc[i].ax[2] += m2 * x2;
+                        Acc[i].ay[2] += m2 * ang;
+                        Acc[j].ax[2] += -m2 * x2;
+                        Acc[j].ay[2] += -m2 * ang;
+                    }
+                }
+            }
+        }
 
         /**
             Signal and stop
@@ -260,11 +358,13 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     printf("Closing Thread #0\n");
 
     return NULL;
+    #undef Acc
     #undef Data
 }
 
 void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
+    #define Acc Data->Level.Acc
 
     StopThread(1, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -282,6 +382,7 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     printf("Closing Thread #1\n");
 
     return NULL;
+    #undef Acc
     #undef Data
 }
 
