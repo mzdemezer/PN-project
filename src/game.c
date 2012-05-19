@@ -2,6 +2,7 @@
 #include "game.h"
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 /**
     This procedure forces termination of all iteration threads
@@ -45,8 +46,11 @@ printf("Small threads closed, waiting for Main-iter-thread\n");
 
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
+    #define dt Data->Level.dt
     int i;
     bool f;
+
+    float op;
 
     /**
         Initialization
@@ -74,9 +78,24 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         }
     al_unlock_mutex(Data->MutexIterations);
 
+    Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
+
     printf("In game: after main-iter-init, starting to operate\n");
 
     while(!al_get_thread_should_stop(thread)){
+        /**
+            Init
+            */
+
+        dt = Data->Level.last_time;
+        Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
+        dt = Data->Level.last_time - dt;
+
+        op = Data->Level.Player->engine_state * THROTTLE;
+        Data->Level.Player->vx += op * cos(Data->Level.Player->ang);
+        Data->Level.Player->vy += op * sin(Data->Level.Player->ang);
+
+
 
         /**
             Launching other iterations
@@ -93,18 +112,51 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         /**
             Main iteration thread main work
             */
+
+        /**
+            1. Handle keyboard input
+            */
+        al_lock_mutex(Data->Keyboard.MutexKeyboard);
         if(Data->Keyboard.Flags[ekKEY_DOWN]){
-            Data->Level.Player->center.y += 2;
+            if(Data->Keyboard.Flags[ekKEY_UP]){
+                Data->Level.Player->engine_state /= 2;
+            }
+            else{
+                if(Data->Level.Player->engine_state > 0){
+                    Data->Level.Player->engine_state /= 2;
+                }else{
+                    if(Data->Level.Player->engine_state > MAX_DECELERATE){
+                        Data->Level.Player->engine_state -= 1;
+                    }
+                }
+            }
         }
-        if(Data->Keyboard.Flags[ekKEY_UP]){
-            Data->Level.Player->center.y -= 2;
+        else if(Data->Keyboard.Flags[ekKEY_UP]){
+            if(Data->Level.Player->engine_state < 0){
+                Data->Level.Player->engine_state /= 2;
+            }else{
+                if(Data->Level.Player->engine_state < MAX_ACCELERATE){
+                    Data->Level.Player->engine_state += 1;
+                }
+            }
+        }else{
+            if(Data->Level.Player->engine_state){
+                Data->Level.Player->engine_state /= 2;
+            }
         }
+
+
+
         if(Data->Keyboard.Flags[ekKEY_RIGHT]){
-            Data->Level.Player->center.x += 2;
+            if(!Data->Keyboard.Flags[ekKEY_LEFT]){
+                Data->Level.Player->ang += dANG;
+            }
         }
-        if(Data->Keyboard.Flags[ekKEY_LEFT]){
-            Data->Level.Player->center.x -= 2;
+        else if(Data->Keyboard.Flags[ekKEY_LEFT]){
+            Data->Level.Player->ang -= dANG;
         }
+
+        al_unlock_mutex(Data->Keyboard.MutexKeyboard);
         /**
             Waiting until other threads finish
             */
@@ -129,6 +181,30 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Main iteration thread after-work
             */
 
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            switch(Data->Level.MovableObjects[i].Type){
+                case motPLAYER:
+                    #define ObData ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))
+                    ObData->center.x += ObData->vx * dt;
+                    ObData->center.y += ObData->vy * dt;
+                    #undef ObData
+                    break;
+                case motPARTICLE:
+                    #define ObData ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))
+                    ObData->center.x += ObData->vx * dt;
+                    ObData->center.y += ObData->vy * dt;
+                    #undef ObData
+                    break;
+                case motSWITCH:
+                    break;
+                case motDOOR:
+                    break;
+            }
+        }
+
+        /**
+            Ready to draw
+            */
         al_lock_mutex(Data->MutexDrawCall);
             Data->DrawCall = true;
         al_unlock_mutex(Data->MutexDrawCall);
@@ -145,6 +221,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     printf("Closing Thread: main-iteration\n");
 
     return NULL;
+    #undef dt
     #undef Data
 }
 
@@ -194,7 +271,7 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
         /**
             Work
             */
-        al_rest(0.002);
+
 
         /**
             Signal and stop
@@ -216,7 +293,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         /**
             Work
             */
-        al_rest(0.005);
 
         /**
             Signal and stop

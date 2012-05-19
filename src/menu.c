@@ -47,7 +47,7 @@ void exit_activate(void *argument){
     #undef arg
 };
 
-void init_fonts(struct GameSharedData *Data){
+void scale_fonts(struct GameSharedData *Data){
     Data->MenuBigFont = NULL;
     Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->scales.scale_h / 10), 0);
 
@@ -70,6 +70,16 @@ void stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData, char *target){
     target[len] = 'x';
 }
 
+void rescale_bitmaps(struct GameSharedData *Data){
+    if(Data->Level.ScaledBackground){
+        al_destroy_bitmap(Data->Level.ScaledBackground);
+        Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_w, Data->scales.scale_h);
+        al_set_target_bitmap(Data->Level.ScaledBackground);
+        scale_bitmap(Data->Level.Background, Data->scales.scale_w, Data->scales.scale_h);
+        al_set_target_backbuffer(Data->Display);
+    }
+}
+
 void change_resolution(struct GameSharedData *Data){
     Data->ChosenResolution = Data->ChosenInMenu;
     Data->DisplayData = Data->InMenuDisplayData;
@@ -80,9 +90,9 @@ void change_resolution(struct GameSharedData *Data){
         Data->CloseNow = true;
     }else{
         al_register_event_source(Data->MainEventQueue, al_get_display_event_source(Data->Display));
-        //scale background
         calculate_transformation(Data);
-        init_fonts(Data);
+        rescale_bitmaps(Data);
+        scale_fonts(Data);
         printf("Resolution changed: %d x %d\n", al_get_display_width(Data->Display), al_get_display_height(Data->Display));
     }
 }

@@ -187,9 +187,17 @@ struct point{
     float x, y;
 };
 
+#define MAX_ACCELERATE 40
+#define MAX_DECELERATE -20
+#define THROTTLE 0.05
+#define dANG 0.06981 //4 degrees
+#define PLAYER_MASS 1
 struct playerData{
     struct point center;
     float ang;
+    int engine_state;
+    float mass,
+          vx, vy;
 };
 
 struct rectangleData{
@@ -245,6 +253,8 @@ struct switchData{
     float mass;
     enum switch_type swType;
     struct connectedData connected;
+
+    float vx, vy;
 };
 
 enum door_type{
@@ -259,12 +269,16 @@ struct doorData{
     int pos;
     float openingTime, mass;
     enum door_type doorType;
+
+    float vx, vy;
 };
 
 struct particleData{
     struct point center;
     float r0, mass, charge;
     ALLEGRO_COLOR color;
+
+    float vx, vy;
 };
 
 enum enum_keys{
@@ -297,6 +311,7 @@ struct level_structure{
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
+    float last_time, dt;
 };
 
 struct scale_structure{

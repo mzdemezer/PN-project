@@ -321,7 +321,8 @@ void draw_all_fixed_objects(struct GameSharedData *Data){
 
 void draw_player(void *ObjectData, float dx, float dy){
     #define Data ((struct playerData*)ObjectData)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 255, 255));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 180, 128));
+    al_draw_filled_circle(Data->center.x + dx + 20 * cos(Data->ang), Data->center.y + dy + 20 * sin(Data->ang), 8, al_map_rgb(255, 80, 80));
     #undef Data
 }
 
@@ -380,7 +381,7 @@ void construct_square(struct fixed_object_structure *Object){
     #define Data ((struct squareData*)Object->ObjectData)
     Object->draw = draw_square;
     Object->r = rSquare;
-    Data->r0 = Data->bok * SQRT2;
+    Data->r0 = Data->bok * SQRT2 / 2;
     float fi = PI4 + Data->ang;
     Data->v1.x = Data->center.x + Data->r0 * cos(fi);
     Data->v1.y = Data->center.y + Data->r0 * sin(fi);
@@ -440,25 +441,43 @@ void construct_rectangle(struct fixed_object_structure *Object){
 }
 
 void construct_door(struct movable_object_structure *Object){
+    #define Data ((struct doorData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
 
     Object->draw = draw_door;
+    Data->vx = 0;
+    Data->vy = 0;
+    #undef Data
 }
 
 void construct_switch(struct movable_object_structure *Object){
+    #define Data ((struct switchData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
 
     Object->draw = draw_switch;
+    Data->vx = 0;
+    Data->vy = 0;
+    #undef Data
 }
 
 void construct_player(struct movable_object_structure *Object){
+    #define Data ((struct playerData*)(Object->ObjectData))
     Object->draw = draw_player;
     Object->r = rPlayer;
+    Data->vx = 0;
+    Data->vy = 0;
+    Data->engine_state = 0;
+    Data->mass = PLAYER_MASS;
+    #undef Data
 }
 
 void construct_particle(struct movable_object_structure *Object){
+    #define Data ((struct particleData*)(Object->ObjectData))
     Object->draw = draw_particle;
     Object->r = rCircle;
+    Data->vx = 0;
+    Data->vy = 0;
+    #undef Data
 }
 
 /**
@@ -563,7 +582,9 @@ ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac){
 }
 
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
-	if ((al_get_bitmap_width(source) == width) && (al_get_bitmap_height(source) == height)) {
+    float source_x = al_get_bitmap_width(source),
+          source_y = al_get_bitmap_height(source);
+	if (((int)source_x == width) && ((int)source_y == height)) {
 		al_draw_bitmap(source, 0, 0, 0);
 		return;
 	}
@@ -578,11 +599,14 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
     ALLEGRO_COLOR a, b, c, d,
                   ab, cd, result;
 
+    source_x = (source_x - 1) / width;
+    source_y = (source_y - 1) / height;
+
 	for (y = 0; y < height; y++) {
-		pixy = ((float)y / height) * ((float)al_get_bitmap_height(source) - 1);
+		pixy = (float)y * source_y;
 		pixy_f = floor(pixy);
 		for (x = 0; x < width; x++) {
-			pixx = ((float)x / width) * ((float)al_get_bitmap_width(source) - 1);
+			pixx = (float)x * source_x;
 			pixx_f = floor(pixx);
 
 			a = al_get_pixel(source, pixx_f, pixy_f);
@@ -777,7 +801,7 @@ int main(){
     /**
         Setting font size accordingly to resolution
         */
-    init_fonts(&Data);
+    scale_fonts(&Data);
 
     /**
         Initializing keyboard
@@ -798,7 +822,7 @@ int main(){
     else{
         Data.MouseWorking = true;
     }
-
+    al_hide_mouse_cursor(Data.Display);
     /**
         Initializing event_queue
         */

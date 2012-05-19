@@ -7,7 +7,8 @@ void handle_event_menu(struct GameSharedData*);
 void new_game_activate(void*);
 void exit_activate(void*);
 
-void init_fonts(struct GameSharedData*);
+void scale_fonts(struct GameSharedData*);
+void rescale_bitmaps(struct GameSharedData *);
 void change_resolution(struct GameSharedData *);
 void resolution_activate(void*);
 void stringify_resolution(const ALLEGRO_DISPLAY_MODE *, char*);
