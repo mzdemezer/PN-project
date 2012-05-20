@@ -362,16 +362,69 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     #undef Data
 }
 
+
+/**
+    Electrostatics
+    */
+
+bool get_elec_data(struct movable_object_structure *Obj, double *charge, double *x, double *y){
+    switch(Obj->Type){
+        case motPLAYER:
+            #define ObData ((struct playerData*)Obj->ObjectData)
+            *charge = ObData->charge;
+            *x = ObData->center.x;
+            *y = ObData->center.y;
+            #undef ObData
+            return true;
+        case motPARTICLE:
+            #define ObData ((struct particleData*)Obj->ObjectData)
+            *charge = ObData->charge;
+            *x = ObData->center.x;
+            *y = ObData->center.y;
+            #undef ObData
+            return true;
+        default:
+            return false;
+    }
+}
+
 void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
+    int i, j;
+    double q1, q2, x1, y1, x2, y2, ang;
+
 
     StopThread(1, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
-
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            Acc[i].ax[3] = 0;
+            Acc[i].ay[3] = 0;
+        }
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            if(get_elec_data(&(Data->Level.MovableObjects[i]), &q1, &x1, &y1)){
+                for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
+                    if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2, &x2, &y2)){
+                        q2 *= q1;
+                        if(q2){
+                            x2 -= x1;
+                            y2 -= y1;
+                            q2 *= (COULOMB / (x2 * x2 + y2 * y2));//add linear for collision
+                            ang = VectorAngle(x2, y2);
+                            x2 = cos(ang);
+                            ang = sin(ang);
+                            Acc[i].ax[3] += -q2 * x2;
+                            Acc[i].ay[3] += -q2 * ang;
+                            Acc[j].ax[3] += q2 * x2;
+                            Acc[j].ay[3] += q2 * ang;
+                        }
+                    }
+                }
+            }
+        }
 
         /**
             Signal and stop

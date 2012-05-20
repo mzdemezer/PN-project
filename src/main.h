@@ -44,7 +44,7 @@
     Physics
     */
 
-#define COULOMB 1
+#define COULOMB 0.001
 #define GRAV 20
 
 /**
