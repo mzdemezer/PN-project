@@ -44,8 +44,14 @@
     Physics
     */
 
-#define COULOMB 0.001
-#define GRAV 20
+#define COULOMB 0.01
+#define GRAV 200
+
+#define DEFAULT_FLUID_DENSITY 0.001
+#define MACH_SPEED 300
+#define SPHERE_DRAG_COEFFICENT 0.45
+
+#define WALL_COLLISION_COEFFICIENT 0.8
 
 /**
     Maths
@@ -200,16 +206,18 @@ struct point{
 
 #define MAX_ACCELERATE 40
 #define MAX_DECELERATE -20
-#define THROTTLE 1
+#define THROTTLE 3
 #define dANG 0.06981 //4 degrees
 #define PLAYER_MASS 600
+#define PLAYER_RADIUS 30
 struct playerData{
     struct point center;
     float ang;
     int engine_state;
     float mass,
           vx, vy,
-          charge;
+          charge,
+          r;
 };
 
 struct rectangleData{
@@ -291,6 +299,7 @@ struct particleData{
     ALLEGRO_COLOR color;
 
     float vx, vy;
+    float surface_field;
 };
 
 enum enum_keys{
@@ -309,7 +318,7 @@ struct keyboard_structure{
     ALLEGRO_MUTEX *MutexKeyboard;
 };
 
-#define ACC_2nd_DIM 4
+#define ACC_2nd_DIM 5
 struct acceleration_arrays{
     float ax[ACC_2nd_DIM],
           ay[ACC_2nd_DIM];
@@ -331,6 +340,7 @@ struct level_structure{
     char filename[256];
     float last_time, dt;
     struct acceleration_arrays *Acc;
+    float dens, wind_vx, wind_vy;
 };
 
 struct scale_structure{
@@ -369,7 +379,7 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexMainIteration;
     ALLEGRO_MUTEX *MutexIterations;
     ALLEGRO_COND *CondIterations;
-    #define NumOfThreads 3
+    #define NumOfThreads 4
     struct iteration_thread_structure IterationThreads[NumOfThreads];
     bool IterationFinished;
     bool MainIterationThreadsIsWaiting;
@@ -462,6 +472,7 @@ void construct_switch(struct movable_object_structure *);
 //Math
 int int_abs(int);
 float float_abs(float);
+double double_abs(double);
 float float_min(float, float);
 int sign(float);
 float norm(float fi);

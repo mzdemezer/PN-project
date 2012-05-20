@@ -142,6 +142,14 @@ float float_abs(float a){
     }
 }
 
+double double_abs(double a){
+    if(a < 0){
+        return -a;
+    }else{
+        return a;
+    }
+}
+
 float float_min(float a, float b){
     if(a < b){
         return a;
@@ -321,8 +329,10 @@ void draw_all_fixed_objects(struct GameSharedData *Data){
 
 void draw_player(void *ObjectData, float dx, float dy){
     #define Data ((struct playerData*)ObjectData)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, 40, al_map_rgb(255, 255, 255));
-    al_draw_filled_circle(Data->center.x + dx + 20 * cos(Data->ang), Data->center.y + dy + 20 * sin(Data->ang), 8, al_map_rgb(0, 0, 0));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
+    al_draw_filled_circle(Data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(Data->ang),
+                          Data->center.y + dy + PLAYER_RADIUS * 0.5 * sin(Data->ang),
+                          PLAYER_RADIUS * 0.2, al_map_rgb(0, 0, 0));
     #undef Data
 }
 
@@ -469,6 +479,7 @@ void construct_player(struct movable_object_structure *Object){
     Data->engine_state = 0;
     Data->mass = PLAYER_MASS;
     Data->charge = 0;
+    Data->r = PLAYER_RADIUS;
     #undef Data
 }
 
@@ -478,6 +489,7 @@ void construct_particle(struct movable_object_structure *Object){
     Object->r = rCircle;
     Data->vx = 0;
     Data->vy = 0;
+    Data->surface_field = Data->r0 * Data->r0 * PI;
     #undef Data
 }
 
@@ -599,14 +611,15 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
           pixx, pixx_f;
     ALLEGRO_COLOR a, b, c, d,
                   ab, cd, result;
-
+    width -= 1;
+    height -= 1;
     source_x = (source_x - 1) / width;
     source_y = (source_y - 1) / height;
 
-	for (y = 0; y < height; y++) {
+	for (y = 0; y <= height; ++y) {
 		pixy = (float)y * source_y;
 		pixy_f = floor(pixy);
-		for (x = 0; x < width; x++) {
+		for (x = 0; x <= width; ++x) {
 			pixx = (float)x * source_x;
 			pixx_f = floor(pixx);
 
@@ -871,6 +884,7 @@ int main(){
     Data.IterationThreads[0].Job = iteration_0;
     Data.IterationThreads[1].Job = iteration_1;
     Data.IterationThreads[2].Job = iteration_2;
+    Data.IterationThreads[3].Job = iteration_3;
 
     for(i = 0; i < NumOfThreads; ++i){
         Data.IterationThreads[i].Thread = al_create_thread(Data.IterationThreads[i].Job, (void*)&Data);

@@ -73,9 +73,9 @@ void stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData, char *target){
 void rescale_bitmaps(struct GameSharedData *Data){
     if(Data->Level.ScaledBackground){
         al_destroy_bitmap(Data->Level.ScaledBackground);
-        Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_w, Data->scales.scale_h);
+        Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_h, Data->scales.scale_h);
         al_set_target_bitmap(Data->Level.ScaledBackground);
-        scale_bitmap(Data->Level.Background, Data->scales.scale_w, Data->scales.scale_h);
+        scale_bitmap(Data->Level.Background, Data->scales.scale_h, Data->scales.scale_h);
         al_set_target_backbuffer(Data->Display);
     }
 }

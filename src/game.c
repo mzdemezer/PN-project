@@ -216,6 +216,32 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
 
                     ObData->center.x += ObData->vx * dt;
                     ObData->center.y += ObData->vy * dt;
+
+                    /**
+                        Simple bounce
+                        */
+                    if(ObData->center.x - ObData->r <= 0){
+                        ObData->center.x = ObData->r + ObData->r - ObData->center.x;
+                        if(ObData->vx < 0){
+                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }else if(ObData->center.x + ObData->r >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r + ObData->r);
+                        if(ObData->vx > 0){
+                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }
+                    if(ObData->center.y - ObData->r <= 0){
+                        ObData->center.y = ObData->r + ObData->r - ObData->center.y;
+                        if(ObData->vy < 0){
+                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }else if(ObData->center.y + ObData->r >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r + ObData->r);
+                        if(ObData->vy > 0){
+                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }
                     #undef ObData
                     break;
                 case motPARTICLE:
@@ -233,11 +259,37 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     }
                     Acc[i].ay[(int)parity] /= op;
 
-                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
-                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+                    ObData->vx += Acc[i].ax[(int)imparity] * dt; // + Acc[i].ax[(int)imparity]
+                    ObData->vy += Acc[i].ay[(int)imparity] * dt; // + Acc[i].ay[(int)imparity]
 
                     ObData->center.x += ObData->vx * dt;
                     ObData->center.y += ObData->vy * dt;
+
+                    /**
+                        Simple bounce
+                        */
+                    if(ObData->center.x - ObData->r0 <= 0){
+                        ObData->center.x = ObData->r0 + ObData->r0 - ObData->center.x;
+                        if(ObData->vx < 0){
+                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }else if(ObData->center.x + ObData->r0 >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r0 + ObData->r0);
+                        if(ObData->vx > 0){
+                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }
+                    if(ObData->center.y - ObData->r0 <= 0){
+                        ObData->center.y = ObData->r0 + ObData->r0 - ObData->center.y;
+                        if(ObData->vy < 0){
+                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }else if(ObData->center.y + ObData->r0 >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r0 + ObData->r0);
+                        if(ObData->vy > 0){
+                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                        }
+                    }
                     #undef ObData
                     break;
                 case motSWITCH:
@@ -439,15 +491,67 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #undef Data
 }
 
+/**
+    Fluid resistance
+    basically bullshit, but it seems to work pretty well
+    */
+
+bool get_drag_data(struct movable_object_structure *Obj, double *vx, double *vy, double *Cx, double *S){
+    switch(Obj->Type){
+        case motPLAYER:
+            #define ObData ((struct playerData*)Obj->ObjectData)
+            *vx = ObData->vx;
+            *vy = ObData->vy;
+            *Cx = SPHERE_DRAG_COEFFICENT;
+            *S = ObData->r * ObData->r * PI;
+            #undef ObData
+            return true;
+        case motPARTICLE:
+            #define ObData ((struct particleData*)Obj->ObjectData)
+            *vx = ObData->vx;
+            *vy = ObData->vy;
+            *Cx = SPHERE_DRAG_COEFFICENT;
+            *S = ObData->surface_field;
+            #undef ObData
+            return true;
+        default:
+            return false;
+    }
+}
+
+double coefficient_multiplier(double v){
+    v = double_abs(v) / MACH_SPEED;
+    if(v < 1){
+        return exp(v * 1.3862943611198906);
+    }else if(v < 1.5){
+        v -= 1;
+        return -4 * v * v + 4.0;
+    }else{
+        return 0.538859 * exp(-v * 1.098612 + 3.295837) + 0.2;
+    }
+}
+
 void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
+    #define Acc Data->Level.Acc
+
+    int i;
+    double vx, vy, Cx, S;
 
     StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
-
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
+                vx -= Data->Level.wind_vx;
+                vy -= Data->Level.wind_vy;
+                Cx = S * Cx * Data->Level.dens;
+                Acc[i].ax[4] = -vx * Cx * coefficient_multiplier(vx);
+                Acc[i].ay[4] = -vy * Cx * coefficient_multiplier(vy);
+            }
+        }
         /**
             Signal and stop
             */
@@ -457,6 +561,33 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     printf("Closing Thread #2\n");
 
     return NULL;
+    #undef Acc
+    #undef Data
+}
+
+/**
+    Collision initialization
+    */
+void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
+    #define Data ((struct GameSharedData*)argument)
+    #define Acc Data->Level.Acc
+
+    StopThread(3, Data, thread);
+    while(!al_get_thread_should_stop(thread)){
+        /**
+            Work
+            */
+
+        /**
+            Signal and stop
+            */
+
+        StopThread(3, Data, thread);
+    }
+    printf("Closing Thread #3\n");
+
+    return NULL;
+    #undef Acc
     #undef Data
 }
 

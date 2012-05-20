@@ -15,6 +15,9 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     special_call(initialize_level, argument);
 
     Data->Level.Acc = (struct acceleration_arrays*)malloc(sizeof(struct acceleration_arrays) * Data->Level.number_of_movable_objects);
+    Data->Level.dens = DEFAULT_FLUID_DENSITY;
+    Data->Level.wind_vx = 0;
+    Data->Level.wind_vy = 0;
 
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
@@ -52,9 +55,9 @@ void initialize_level(struct GameSharedData *Data){
         Preparing bitmaps and loading the file
         */
     al_destroy_bitmap(Data->Level.Background);
-    Data->Level.Background = al_create_bitmap(SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT);
+    Data->Level.Background = al_create_bitmap(SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT);
     al_destroy_bitmap(Data->Level.ScaledBackground);
-    Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_w, Data->scales.scale_h);
+    Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_h, Data->scales.scale_h);
     if(strcmp(Data->Level.filename + 12, "0") == 0){
         tempBitmap = NULL;
     }else{
@@ -70,10 +73,10 @@ void initialize_level(struct GameSharedData *Data){
 
         if(tempBitmap){
             al_set_target_bitmap(Data->Level.Background);
-            scale_bitmap(tempBitmap, SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT);
+            scale_bitmap(tempBitmap, SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT);
 
             al_set_target_bitmap(Data->Level.ScaledBackground);
-            scale_bitmap(tempBitmap, Data->scales.scale_w, Data->scales.scale_h);
+            scale_bitmap(tempBitmap, Data->scales.scale_h, Data->scales.scale_h);
 
             al_destroy_bitmap(tempBitmap);
         }else{
@@ -96,17 +99,17 @@ void initialize_level(struct GameSharedData *Data){
         al_use_transform(&tempT);
 
         al_set_target_bitmap(Data->Level.ScaledBackground);
-        al_draw_bitmap_region(tempBitmap, 0, 0, Data->scales.scale_w, Data->scales.scale_h, 0, 0, 0);
+        al_draw_bitmap_region(tempBitmap, 0, 0, Data->scales.scale_h, Data->scales.scale_h, 0, 0, 0);
 
 
-        if((SCREEN_BUFFER_WIDTH <= Data->scales.scale_w) && (SCREEN_BUFFER_HEIGHT <= Data->scales.scale_h)){
+        if(SCREEN_BUFFER_HEIGHT <= Data->scales.scale_h){
             al_set_target_bitmap(tempBitmap);
             al_draw_bitmap(Data->Level.Background, 0, 0, 0);
 
             draw_all_fixed_objects(Data);
 
             al_set_target_bitmap(Data->Level.Background);
-            al_draw_bitmap_region(tempBitmap, 0, 0, SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT, 0, 0, 0);
+            al_draw_bitmap_region(tempBitmap, 0, 0, SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT, 0, 0, 0);
         }else{
             al_set_target_bitmap(Data->Level.Background);
             draw_all_fixed_objects(Data);
