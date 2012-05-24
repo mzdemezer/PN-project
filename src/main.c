@@ -474,6 +474,71 @@ void rotate_right(RB_tree *tree, RB_node *node){
 }
 
 /**
+    Heap
+    */
+
+void construct_heap(struct collision_heap* heap, int size){
+    heap->allocated = size;
+    heap->length = 0;
+    heap->heap = (struct collision_data*)malloc(sizeof(struct collision_data) * (size + 1));
+}
+
+void heapify(struct collision_heap* heap, short int i){
+    short int l = heap_left(i),
+              r = heap_right(i),
+              largest;
+    if(l <= heap->length && heap->heap[l].time < heap->heap[i].time){
+        largest = l;
+    }else{
+        largest = i;
+    }
+    if(r <= heap->length && heap->heap[r].time < heap->heap[largest].time){
+        largest = r;
+    }
+    if(largest != i){
+        struct collision_data temp;
+        temp = heap->heap[i];
+        heap->heap[i] = heap->heap[largest];
+        heap->heap[largest] = temp;
+        heapify(heap, largest);
+    }
+}
+
+void build_heap(struct collision_heap* heap){
+    int i;
+    for(i = heap->length >> 1; i >= 1; --i){
+        heapify(heap, i);
+    }
+}
+
+struct collision_data pop_min(struct collision_heap* heap){
+    struct collision_data min;
+    if(heap->length < 1){//error
+        min.time = 10;
+        return min;
+    }
+    min = heap->heap[1];
+    heap->heap[1] = heap->heap[heap->length];
+    heap->length -= 1;
+    heapify(heap, 1);
+    return min;
+}
+
+void heap_insert(struct collision_heap* heap, struct collision_data *collision){
+    heap->length += 1;
+    if(heap->length > heap->allocated){
+        heap->allocated <<= 1;
+        heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
+    }
+    int i = heap->length;
+    while(i > 1 && heap->heap[heap_parent(i)].time > collision->time){
+        heap->heap[i] = heap->heap[heap_parent(i)];
+        i = heap_parent(i);
+    }
+    heap->heap[i] = *collision;
+}
+
+/**
     Zones
     */
 
@@ -768,25 +833,34 @@ void construct_rectangle(struct fixed_object_structure *Object){
 void construct_door(struct movable_object_structure *Object){
     #define Data ((struct doorData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
+    //zones
+    Object->next_collision.time = 10;//just something bigger than 1
 
     Object->draw = draw_door;
     Data->vx = 0;
     Data->vy = 0;
+
     #undef Data
 }
 
 void construct_switch(struct movable_object_structure *Object){
     #define Data ((struct switchData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
+    //zones
+    Object->next_collision.time = 10;
 
     Object->draw = draw_switch;
     Data->vx = 0;
     Data->vy = 0;
+
     #undef Data
 }
 
 void construct_player(struct movable_object_structure *Object){
     #define Data ((struct playerData*)(Object->ObjectData))
+    //zones
+    Object->next_collision.time = 10;
+
     Object->draw = draw_player;
     Object->r = rPlayer;
     Data->vx = 0;
@@ -795,11 +869,14 @@ void construct_player(struct movable_object_structure *Object){
     Data->mass = PLAYER_MASS;
     Data->charge = 0;
     Data->r = PLAYER_RADIUS;
+
     #undef Data
 }
 
 void construct_particle(struct movable_object_structure *Object){
     #define Data ((struct particleData*)(Object->ObjectData))
+    //zones
+    Object->next_collision.time = 10;
     Object->draw = draw_particle;
     Object->r = rCircle;
     Data->vx = 0;
@@ -1222,6 +1299,8 @@ int main(){
     Data.Level.Background = NULL;
     Data.Level.ScaledBackground = NULL;
     Data.Level.Acc = NULL;
+
+    construct_heap(&Data.Level.collision_queue, INITIAL_OBJECT_COLLISION_QUEUE_SIZE);
 
     RB_node *nil = (RB_node*)malloc(sizeof(RB_node));
     nil->color = BLACK;

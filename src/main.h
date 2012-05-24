@@ -6,7 +6,7 @@
 #define _INCLUDE_MAIN_H
 
 
-#define TESTS
+//#define TESTS
 
 #ifdef TESTS
 #include "Tests/CuTest.h"
@@ -182,12 +182,24 @@ struct fixed_object_structure{
     short int zones[4];
 };
 
+struct collision_data{
+    float time;
+    short int who, with;
+    bool with_movable;
+};
+
+struct collision_heap{
+    int allocated, length;
+    struct collision_data *heap;
+};
+
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
     void (*draw)(void*, float dx, float dy);
     float (*r)(void*, float);
     short int zones[4];
+    struct collision_data next_collision;
 };
 
 struct ObjectWorkshop{
@@ -347,6 +359,7 @@ struct acceleration_arrays{
 
 #define ZONE_FACTOR 50
 #define ZONE_SIZE SCREEN_BUFFER_HEIGHT / ZONE_FACTOR
+#define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 
 struct level_structure{
     int LevelNumber,
@@ -360,6 +373,7 @@ struct level_structure{
     struct playerData *Player;
 
     struct zone zones[ZONE_FACTOR][ZONE_FACTOR];
+    struct collision_heap collision_queue;
 
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
@@ -490,6 +504,15 @@ bool is_left(RB_node *node);
 void rotate_left(RB_tree *tree, RB_node *node);
 void rotate_right(RB_tree *tree, RB_node *node);
 
+//Heaps
+void construct_heap(struct collision_heap* heap, int size);
+#define heap_left(i) (i << 1)
+#define heap_right(i) ((i << 1 ) | 1)
+#define heap_parent(i) (i >> 1)
+void heapify(struct collision_heap* heap, short int i);
+void build_heap(struct collision_heap* heap);
+struct collision_data pop_min(struct collision_heap* heap);
+void heap_insert(struct collision_heap* heap, struct collision_data *collision);
 
 //Zones
 void get_zone(float x, float y, short int *zone);
