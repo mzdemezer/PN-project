@@ -6,7 +6,7 @@
 #define _INCLUDE_MAIN_H
 
 
-//#define TESTS
+#define TESTS
 
 #ifdef TESTS
 #include "Tests/CuTest.h"
@@ -179,6 +179,7 @@ struct fixed_object_structure{
     void* ObjectData;
     void (*draw)(void*);
     float (*r)(void*, float);
+    short int zones[4];
 };
 
 struct movable_object_structure{
@@ -186,6 +187,7 @@ struct movable_object_structure{
     void* ObjectData;
     void (*draw)(void*, float dx, float dy);
     float (*r)(void*, float);
+    short int zones[4];
 };
 
 struct ObjectWorkshop{
@@ -318,11 +320,33 @@ struct keyboard_structure{
     ALLEGRO_MUTEX *MutexKeyboard;
 };
 
-#define ACC_2nd_DIM 5
+#define RED true
+#define BLACK false
+typedef struct RB_node{
+    short int key;
+    bool color;
+    struct RB_node *left, *right, *parent;
+}RB_node;
+
+typedef struct RB_tree{
+    RB_node *root, *nil;
+}RB_tree;
+
+struct zone{
+    RB_tree movable;
+    short int number_of_fixed;
+    short int *fixed;
+};
+
+#define NumOfThreads 4
+#define ACC_2nd_DIM NumOfThreads + 1
 struct acceleration_arrays{
     float ax[ACC_2nd_DIM],
           ay[ACC_2nd_DIM];
 };
+
+#define ZONE_FACTOR 50
+#define ZONE_SIZE SCREEN_BUFFER_HEIGHT / ZONE_FACTOR
 
 struct level_structure{
     int LevelNumber,
@@ -334,6 +358,8 @@ struct level_structure{
     struct movable_object_structure *MovableObjects;
 
     struct playerData *Player;
+
+    struct zone zones[ZONE_FACTOR][ZONE_FACTOR];
 
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
@@ -379,7 +405,6 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexMainIteration;
     ALLEGRO_MUTEX *MutexIterations;
     ALLEGRO_COND *CondIterations;
-    #define NumOfThreads 4
     struct iteration_thread_structure IterationThreads[NumOfThreads];
     bool IterationFinished;
     bool MainIterationThreadsIsWaiting;
@@ -428,6 +453,14 @@ struct GameSharedData{
     bool MouseWorking;
 };
 
+struct line{
+    float A, B, C;
+};
+
+/**
+    Functions
+    */
+
 void special_call(void (*function_to_call)(struct GameSharedData *), struct GameSharedData*);
 void calculate_scales(struct GameSharedData *);
 void calculate_transformation(struct GameSharedData *);
@@ -442,6 +475,31 @@ void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
 
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
+
+//Red-Black Tree
+RB_node* get_node(RB_tree *tree, short int key);
+RB_node* get_minimum(RB_node *node, RB_node *nil);
+RB_node* get_successor(RB_node *node, RB_node *nil);
+void insert_node(RB_tree *tree, short int key);
+void delete_node(RB_tree *tree, short int key);
+void RB_delete_fixup(RB_tree *tree, RB_node *node);
+void in_order(RB_node *root, RB_node *nil);
+void clear_nodes(RB_node *node, RB_node *nil);
+void clear_tree(RB_tree *tree);
+bool is_left(RB_node *node);
+void rotate_left(RB_tree *tree, RB_node *node);
+void rotate_right(RB_tree *tree, RB_node *node);
+
+
+//Zones
+void get_zone(float x, float y, short int *zone);
+void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
+
+//Colisions
+void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
+void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
+void common_point(const struct line* L1, const struct line* L2, float *x, float *y);
+
 //Draw
 
 #define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)
@@ -488,6 +546,5 @@ float rPlayer(void *ObjectData, float fi);
 int rzad(int);
 char int_to_char(int);
 void int_to_str(int, char*);
-
 
 #endif

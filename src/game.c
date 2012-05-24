@@ -259,8 +259,8 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     }
                     Acc[i].ay[(int)parity] /= op;
 
-                    ObData->vx += Acc[i].ax[(int)imparity] * dt; // + Acc[i].ax[(int)imparity]
-                    ObData->vy += Acc[i].ay[(int)imparity] * dt; // + Acc[i].ay[(int)imparity]
+                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     ObData->center.x += ObData->vx * dt;
                     ObData->center.y += ObData->vy * dt;

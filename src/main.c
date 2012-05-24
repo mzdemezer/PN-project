@@ -197,6 +197,321 @@ void int_to_str(int a, char *target){
 }
 
 /**
+    Red-Black Tree
+    */
+RB_node* get_node(RB_tree *tree, short int key){
+    RB_node *node = tree->root;
+    while((node != tree->nil) && (node->key != key)){
+        if(key < node->key){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+    return node;
+}
+
+/**
+    No anti-NULL protection
+    BEWARE
+    */
+RB_node* get_minimum(RB_node *node, RB_node *nil){
+    while(node->left != nil){
+        node = node->left;
+    }
+    return node;
+}
+
+RB_node* get_successor(RB_node *node, RB_node *nil){
+    if(node->right != nil){
+        return get_minimum(node->right, nil);
+    }else{
+        RB_node *succ = node->parent;
+        while(succ != nil && node == succ->right){
+            node = succ;
+            succ = succ->parent;
+        }
+        return succ;
+    }
+}
+
+void insert_node(RB_tree *tree, short int key){
+    RB_node *node = tree->root,
+            *last = tree->nil;
+    while(node != tree->nil){
+        last = node;
+        if(key < node->key){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+
+    node = (RB_node*)malloc(sizeof(RB_node));
+    node->left = tree->nil;
+    node->right = tree->nil;
+    node->parent = last;
+    node->key = key;
+
+    if(last == tree->nil){
+        tree->root = node;
+        node->color = BLACK;
+    }else{
+        if(key < last->key){
+            last->left = node;
+        }else{
+            last->right = node;
+        }
+
+        node->color = RED;
+        while(node != tree->root && node->parent->color == RED){
+            if(is_left(node->parent)){
+                last = node->parent->parent->right;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
+                }else{
+                    if(node == node->parent->right){//2nd CASE --> 3rd
+                        node = node->parent;
+                        rotate_left(tree, node);
+                    }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    rotate_right(tree, node->parent->parent);
+                }
+            }else{
+                last = node->parent->parent->left;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
+                }else{
+                    if(node == node->parent->left){//2nd CASE --> 3rd
+                        node = node->parent;
+                        rotate_right(tree, node);
+                    }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    rotate_left(tree, node->parent->parent);
+                }
+            }
+        }
+        tree->root->color = BLACK;
+    }
+}
+
+void delete_node(RB_tree *tree, short int key){
+    RB_node *node = get_node(tree, key);
+    if(node != tree->nil){
+        RB_node *y, *x;
+        if(node->left == tree->nil || node->right == tree->nil){
+            y = node;
+        }else{
+            y = get_successor(node, tree->nil);
+        }
+        if(y->left != tree->nil){
+            x = y->left;
+        }else{
+            x = y->right;
+        }
+
+        x->parent = y->parent;
+
+        if(y->parent == tree->nil){
+            tree->root = x;
+        }else if(is_left(y)){
+            y->parent->left = x;
+        }else{
+            y->parent->right = x;
+        }
+        if(y != node){
+            node->key = y->key;
+        }
+
+        if(y->color == BLACK){
+            RB_delete_fixup(tree, x);
+        }
+
+        free(y);
+    }
+}
+
+void RB_delete_fixup(RB_tree *tree, RB_node *node){
+    RB_node *sibl;
+    while(node != tree->root && node->color == BLACK){
+        if(is_left(node)){
+            sibl = node->parent->right;
+            if(sibl->color == RED){//1st CASE
+                sibl->color = BLACK;
+                sibl->parent->color = RED;
+                rotate_left(tree, node->parent);
+                sibl = node->parent->right;
+            }
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+                sibl->color = RED;
+                node = node->parent;
+            }else{
+                if(sibl->right->color == BLACK){//3th CASE --> 4th
+                    sibl->left->color = BLACK;
+                    sibl->color = RED;
+                    rotate_right(tree, sibl);
+                    sibl = node->parent->right;
+                }
+                sibl->color = node->parent->color;//4th CASE
+                node->parent->color = BLACK;
+                sibl->right->color = BLACK;
+                rotate_left(tree, node->parent);
+                node = tree->root;
+            }
+        }else{
+            sibl = node->parent->left;
+            if(sibl->color == RED){//1st CASE
+                sibl->color = BLACK;
+                sibl->parent->color = RED;
+                rotate_right(tree, node->parent);
+                sibl = node->parent->left;
+            }
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+                sibl->color = RED;
+                node = node->parent;
+            }else{
+                if(sibl->left->color == BLACK){//3th CASE --> 4th
+                    sibl->right->color = BLACK;
+                    sibl->color = RED;
+                    rotate_left(tree, sibl);
+                    sibl = node->parent->left;
+                }
+                sibl->color = node->parent->color;//4th CASE
+                node->parent->color = BLACK;
+                sibl->left->color = BLACK;
+                rotate_right(tree, node->parent);
+                node = tree->root;
+            }
+        }
+    }
+    node->color = BLACK;
+}
+
+void in_order(RB_node *root, RB_node *nil){
+    if(root != nil){
+        in_order(root->left, nil);
+
+        printf("%hd\n", root->key);
+
+        in_order(root->right, nil);
+    }
+}
+
+void clear_nodes(RB_node *node, RB_node *nil){
+    if(node != nil){
+        clear_nodes(node->left, nil);
+        clear_nodes(node->right, nil);
+        free(node);
+    }
+}
+
+void clear_tree(RB_tree *tree){
+    if(tree->root != tree->nil){
+        clear_nodes(tree->root, tree->nil);
+        tree->root = tree->nil;
+    }
+}
+
+/**
+    This does NOT test if node is NULL or
+    if its parent is NULL !!!!!!!
+    */
+inline bool is_left(RB_node *node){
+    return node == node->parent->left;
+}
+
+/**
+    Passing NULL to rotation will crush
+    */
+void rotate_left(RB_tree *tree, RB_node *node){
+    RB_node *temp = node->right;
+    if(node->right != tree->nil){
+        node->right = temp->left;
+        temp->left = node;
+        node->right->parent = node;
+
+        if(node->parent == tree->nil){
+            tree->root = temp;
+        }else{
+            if(is_left(node)){
+                node->parent->left = temp;
+            }else{
+                node->parent->right = temp;
+            }
+        }
+        temp->parent = node->parent;
+        node->parent = temp;
+    }
+}
+
+void rotate_right(RB_tree *tree, RB_node *node){
+    RB_node *temp = node->left;
+    if(node->left != tree->nil){
+        node->left = temp->right;
+        temp->right = node;
+        node->left->parent = node;
+
+        if(node->parent == tree->nil){
+            tree->root = temp;
+        }else{
+            if(is_left(node)){
+                node->parent->left = temp;
+            }else{
+                node->parent->right = temp;
+            }
+        }
+        temp->parent = node->parent;
+        node->parent = temp;
+    }
+}
+
+/**
+    Zones
+    */
+
+void get_zone(float x, float y, short int *zone){
+    zone[0] = (short int)((int)x / ZONE_SIZE);
+    zone[1] = (short int)((int)y / ZONE_SIZE);
+}
+
+void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone){
+    dx = float_abs(dx) + r0;
+    dy = float_abs(dy) + r0;
+    get_zone(x - dx, y - dy, zone);
+    get_zone(x + dx, y + dy, zone + 2);
+}
+
+
+/**
+    Collisions
+    */
+
+void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
+    L->A = y1 - y2;
+    L->B = x2 - x1;
+    L->C = x1 * (y2 - y1) + y1 * (x1 - x2);
+}
+
+void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *L){
+    L->A = -vy;
+    L->B = vx;
+    L->C = x * vy - y * vx;
+}
+
+void common_point(const struct line* L1, const struct line* L2, float *x, float *y){
+    *y = (L1->C * L2->A - L1->A * L2->C) / (L2->B * L1->A - L1->B * L2->A);
+    *x = -(L1->C + L1->B * *y) / L1->A;
+}
+
+/**
     Maths
     */
 
@@ -649,7 +964,7 @@ int main(){
     RunAllTests();
 
 #else
-    int i;
+    int i, j;
 
     if(!al_init()){
         fprintf(stderr, "Problems when initilizing Allegro");
@@ -907,6 +1222,20 @@ int main(){
     Data.Level.Background = NULL;
     Data.Level.ScaledBackground = NULL;
     Data.Level.Acc = NULL;
+
+    RB_node *nil = (RB_node*)malloc(sizeof(RB_node));
+    nil->color = BLACK;
+    nil->left = NULL;
+    nil->right = NULL;
+    nil->key = -10;
+    for(i = 0; i < ZONE_FACTOR; ++i){
+        for(j = 0; j < ZONE_FACTOR; ++j){
+            Data.Level.zones[i][j].movable.nil = nil;
+            Data.Level.zones[i][j].movable.root = nil;
+            Data.Level.zones[i][j].number_of_fixed = 0;
+            Data.Level.zones[i][j].fixed = NULL;
+        }
+    }
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
     Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;
