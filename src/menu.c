@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <allegro5/allegro.h>
 #include "main.h"
 #include "menu.h"
 #include "loading.h"

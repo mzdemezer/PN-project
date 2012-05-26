@@ -44,7 +44,7 @@
     Physics
     */
 
-#define COULOMB 0.01
+#define COULOMB 0.1
 #define GRAV 200
 
 #define DEFAULT_FLUID_DENSITY 0.001
@@ -193,13 +193,38 @@ struct collision_heap{
     struct collision_data *heap;
 };
 
+#define RED true
+#define BLACK false
+typedef struct RB_node{
+    short int key;
+    bool color;
+    struct RB_node *left, *right, *parent;
+}RB_node;
+
+typedef struct RB_tree{
+    RB_node *root, *nil;
+}RB_tree;
+
+typedef struct coll_node{
+    struct collision_data key;
+    bool color;
+    struct coll_node *left, *right, *parent;
+}coll_node;
+
+typedef struct coll_tree{
+    coll_node *root, *nil;
+}coll_tree;
+
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
     void (*draw)(void*, float dx, float dy);
     float (*r)(void*, float);
+    float dx, dy;
     short int zones[4];
-    struct collision_data next_collision;
+    struct collision_data *next_collision,
+                           coll_with_fixed;
+    coll_tree colls_with_mov;
 };
 
 struct ObjectWorkshop{
@@ -212,11 +237,18 @@ struct ObjectWorkshop{
     struct switchData *NewSwitch;
     struct doorData *NewDoor;
     struct particleData *NewParticle;
+    short int new_zones[4];
 };
 
 struct point{
     float x, y;
 };
+
+/**
+    Order of first few fields in objects is
+    deliberetly the same. This order simplifies
+    getting access to them.
+    */
 
 #define MAX_ACCELERATE 40
 #define MAX_DECELERATE -20
@@ -226,43 +258,47 @@ struct point{
 #define PLAYER_RADIUS 30
 struct playerData{
     struct point center;
+    float r, vx, vy;
     float ang;
     int engine_state;
     float mass,
-          vx, vy,
           charge,
-          r;
+          r0;
 };
 
 struct rectangleData{
-    struct point center, v1, v2, v3, v4;
-    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    struct point center;
+    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 };
 
 struct circleData{
     struct point center;
-    float r0, ang;
+    float r, ang;
     ALLEGRO_COLOR color;
 };
 
 float squareEquation(float f0, float fi);
 
 struct squareData{
-    struct point center, v1, v2, v3, v4;
-    float bok, ang, r0;
+    struct point center;
+    float r, bok, ang;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 };
 
 struct entranceData{
-    struct point center, v1, v2, v3, v4;
-    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    struct point center;
+    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 };
 
 struct exitData{
-    struct point center, v1, v2, v3, v4;
-    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    struct point center;
+    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 };
 
@@ -279,8 +315,9 @@ struct connectedData{
 };
 
 struct switchData{
-    struct point center, v1, v2, v3, v4;
-    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    struct point center;
+    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 
     int pos;
@@ -296,8 +333,9 @@ enum door_type{
 };
 
 struct doorData{
-    struct point center, v1, v2, v3, v4;
-    float a, b, ang, r0, fi0, fi02, wsp1, wsp2;
+    struct point center;
+    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    struct point v1, v2, v3, v4;
     ALLEGRO_COLOR color;
 
     int pos;
@@ -309,7 +347,7 @@ struct doorData{
 
 struct particleData{
     struct point center;
-    float r0, mass, charge;
+    float r, mass, charge;
     ALLEGRO_COLOR color;
 
     float vx, vy;
@@ -332,33 +370,24 @@ struct keyboard_structure{
     ALLEGRO_MUTEX *MutexKeyboard;
 };
 
-#define RED true
-#define BLACK false
-typedef struct RB_node{
-    short int key;
-    bool color;
-    struct RB_node *left, *right, *parent;
-}RB_node;
-
-typedef struct RB_tree{
-    RB_node *root, *nil;
-}RB_tree;
-
 struct zone{
     RB_tree movable;
-    short int number_of_fixed;
+    short int number_of_fixed, allocated;
     short int *fixed;
 };
 
 #define NumOfThreads 4
 #define ACC_2nd_DIM NumOfThreads + 1
-struct acceleration_arrays{
-    float ax[ACC_2nd_DIM],
+struct move_arrays{
+    float x, y,
+          vx, vy,
+          ax[ACC_2nd_DIM],
           ay[ACC_2nd_DIM];
 };
 
 #define ZONE_FACTOR 50
 #define ZONE_SIZE SCREEN_BUFFER_HEIGHT / ZONE_FACTOR
+#define INITIAL_FIXED_PER_ZONE 64
 #define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 
 struct level_structure{
@@ -379,7 +408,7 @@ struct level_structure{
     ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
     float last_time, dt;
-    struct acceleration_arrays *Acc;
+    struct move_arrays *Acc;
     float dens, wind_vx, wind_vy;
 };
 
@@ -490,21 +519,39 @@ void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
 
-//Red-Black Tree
+//Red-Black Tree for zones
 RB_node* get_node(RB_tree *tree, short int key);
 RB_node* get_minimum(RB_node *node, RB_node *nil);
 RB_node* get_successor(RB_node *node, RB_node *nil);
 void insert_node(RB_tree *tree, short int key);
 void delete_node(RB_tree *tree, short int key);
 void RB_delete_fixup(RB_tree *tree, RB_node *node);
-void in_order(RB_node *root, RB_node *nil);
 void clear_nodes(RB_node *node, RB_node *nil);
 void clear_tree(RB_tree *tree);
-bool is_left(RB_node *node);
+inline bool is_left(RB_node *node);
 void rotate_left(RB_tree *tree, RB_node *node);
 void rotate_right(RB_tree *tree, RB_node *node);
 
-//Heaps
+void in_order(RB_node *root, RB_node *nil);
+void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil);
+void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil);
+
+//Red-Black Tree for collisions
+inline bool coll_comp(struct collision_data *a, struct collision_data *b);
+inline bool coll_rev_comp(struct collision_data *a, struct collision_data *b);
+coll_node* coll_get_node(coll_tree *tree, struct collision_data *key);
+coll_node* coll_get_minimum(coll_node *node, coll_node *nil);
+coll_node* coll_get_successor(coll_node *node, coll_node *nil);
+void coll_insert_node(coll_tree *tree, struct collision_data *key);
+bool coll_delete_node(coll_tree *tree, struct collision_data *key);
+void coll_delete_fixup(coll_tree *tree, coll_node *node);
+void coll_clear_nodes(coll_node *node, coll_node *nil);
+void coll_clear_tree(coll_tree *tree);
+inline bool coll_is_left(coll_node *node);
+void coll_rotate_left(coll_tree *tree, coll_node *node);
+void coll_rotate_right(coll_tree *tree, coll_node *node);
+
+//Heap for collision
 void construct_heap(struct collision_heap* heap, int size);
 #define heap_left(i) (i << 1)
 #define heap_right(i) ((i << 1 ) | 1)
@@ -517,8 +564,19 @@ void heap_insert(struct collision_heap* heap, struct collision_data *collision);
 //Zones
 void get_zone(float x, float y, short int *zone);
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
+void add_fixed_to_zone(struct zone* zone, short int key);
+void initialize_zones_with_fixed(struct GameSharedData *Data, short int *zones, short int index);
+void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
+void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
 
 //Colisions
+void move_objects(struct GameSharedData *Data, float t);
+struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what);
+struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
+void collision_min_for_object(struct movable_object_structure *who, struct collision_data *coll);
+void find_next_collision(struct GameSharedData *Data, short int index);
+
+
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
 void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);

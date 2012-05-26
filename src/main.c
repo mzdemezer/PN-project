@@ -126,7 +126,7 @@ void special_call(void (*function_to_call)(struct GameSharedData*), struct GameS
     al_unlock_mutex(Data->MutexSpecialMainCall);
 }
 
-int int_abs(int a){
+inline int int_abs(int a){
     if(a < 0){
         return -a;
     }else{
@@ -134,7 +134,7 @@ int int_abs(int a){
     }
 }
 
-float float_abs(float a){
+inline float float_abs(float a){
     if(a < 0){
         return -a;
     }else{
@@ -142,7 +142,7 @@ float float_abs(float a){
     }
 }
 
-double double_abs(double a){
+inline double double_abs(double a){
     if(a < 0){
         return -a;
     }else{
@@ -150,8 +150,24 @@ double double_abs(double a){
     }
 }
 
-float float_min(float a, float b){
+inline float float_min(float a, float b){
     if(a < b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
+inline short int short_min(short int a, short int b){
+    if(a < b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
+inline short int short_max(short int a, short int b){
+    if(a > b){
         return a;
     }else{
         return b;
@@ -197,7 +213,72 @@ void int_to_str(int a, char *target){
 }
 
 /**
-    Red-Black Tree
+    Heap
+    */
+
+void construct_heap(struct collision_heap* heap, int size){
+    heap->allocated = size;
+    heap->length = 0;
+    heap->heap = (struct collision_data*)malloc(sizeof(struct collision_data) * (size + 1));
+}
+
+void heapify(struct collision_heap* heap, short int i){
+    short int l = heap_left(i),
+              r = heap_right(i),
+              largest;
+    if(l <= heap->length && heap->heap[l].time < heap->heap[i].time){
+        largest = l;
+    }else{
+        largest = i;
+    }
+    if(r <= heap->length && heap->heap[r].time < heap->heap[largest].time){
+        largest = r;
+    }
+    if(largest != i){
+        struct collision_data temp;
+        temp = heap->heap[i];
+        heap->heap[i] = heap->heap[largest];
+        heap->heap[largest] = temp;
+        heapify(heap, largest);
+    }
+}
+
+void build_heap(struct collision_heap* heap){
+    int i;
+    for(i = heap->length >> 1; i >= 1; --i){
+        heapify(heap, i);
+    }
+}
+
+struct collision_data pop_min(struct collision_heap* heap){
+    struct collision_data min;
+    if(heap->length < 1){//error
+        min.time = 10;
+        return min;
+    }
+    min = heap->heap[1];
+    heap->heap[1] = heap->heap[heap->length];
+    heap->length -= 1;
+    heapify(heap, 1);
+    return min;
+}
+
+void heap_insert(struct collision_heap* heap, struct collision_data *collision){
+    heap->length += 1;
+    if(heap->length > heap->allocated){
+        heap->allocated <<= 1;
+        heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
+    }
+    int i = heap->length;
+    while(i > 1 && heap->heap[heap_parent(i)].time > collision->time){
+        heap->heap[i] = heap->heap[heap_parent(i)];
+        i = heap_parent(i);
+    }
+    heap->heap[i] = *collision;
+}
+
+/**
+    Red-Black Tree for zones
     */
 RB_node* get_node(RB_tree *tree, short int key){
     RB_node *node = tree->root;
@@ -395,16 +476,6 @@ void RB_delete_fixup(RB_tree *tree, RB_node *node){
     node->color = BLACK;
 }
 
-void in_order(RB_node *root, RB_node *nil){
-    if(root != nil){
-        in_order(root->left, nil);
-
-        printf("%hd\n", root->key);
-
-        in_order(root->right, nil);
-    }
-}
-
 void clear_nodes(RB_node *node, RB_node *nil){
     if(node != nil){
         clear_nodes(node->left, nil);
@@ -473,69 +544,341 @@ void rotate_right(RB_tree *tree, RB_node *node){
     }
 }
 
+void in_order(RB_node *root, RB_node *nil){
+    if(root != nil){
+        in_order(root->left, nil);
+
+        printf("%hd\n", root->key);
+
+        in_order(root->right, nil);
+    }
+}
+
 /**
-    Heap
+    A DFS that does something like that
+    i  <--  some_value
+    for(j = i + 1; j < length; ++j){
+        DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF
+        DO_MORE_STUFF
+    }
+
+    For collisions requires setting
+    Obj.next_collision.who = this_object_index
     */
 
-void construct_heap(struct collision_heap* heap, int size){
-    heap->allocated = size;
-    heap->length = 0;
-    heap->heap = (struct collision_data*)malloc(sizeof(struct collision_data) * (size + 1));
+void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil){//jeszcze parametr ommit - dla indeksu z którym się zderzył
+    while(node != nil &&
+          node->key < Obj->next_collision->who){
+        node = node->right;
+    }
+    if(node != nil){
+        if(Obj->next_collision->who != node->key){
+            for_each_higher_check_collision(Data, movable_done, Obj, node->left, nil);
+            if(!movable_done[node->key]){
+                movable_done[node->key] = true;
+                //Check collision here
+                printf("%hd\n", node->key);
+            }
+        }
+        in_order_check_collision(Data, movable_done, Obj, node->right, nil);
+    }
 }
 
-void heapify(struct collision_heap* heap, short int i){
-    short int l = heap_left(i),
-              r = heap_right(i),
-              largest;
-    if(l <= heap->length && heap->heap[l].time < heap->heap[i].time){
-        largest = l;
+void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil){
+    if(node != nil){
+        in_order_check_collision(Data, movable_done, Obj, node->left, nil);
+
+        if(!movable_done[node->key]){
+            movable_done[node->key] = true;
+            //Check collision here
+            printf("%hd\n", node->key);
+        }
+
+        in_order_check_collision(Data, movable_done, Obj, node->right, nil);
+    }
+}
+
+/**
+    Red-Black Tree for collisions
+    */
+inline bool coll_comp(struct collision_data *a, struct collision_data *b){
+    return a->time == b->time &&
+           a->with_movable == b->with_movable &&
+           a->who == b->who &&
+           a->with == b->with;
+}
+
+/**
+    To check if collisions in DIFFERENT trees are equal
+    */
+inline bool coll_rev_comp(struct collision_data *a, struct collision_data *b){
+    return a->time == b->time &&
+           a->with_movable == b->with_movable &&
+           a->who == b->with &&
+           a->with == b->who;
+}
+
+coll_node* coll_get_node(coll_tree *tree, struct collision_data *key){
+    coll_node *node = tree->root;
+    while((node != tree->nil) && coll_comp(key, &node->key)){
+        if(key->time < node->key.time){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+    return node;
+}
+
+coll_node* coll_get_minimum(coll_node *node, coll_node *nil){
+    while(node->left != nil){
+        node = node->left;
+    }
+    return node;
+}
+
+coll_node* coll_get_successor(coll_node *node, coll_node *nil){
+    if(node->right != nil){
+        return coll_get_minimum(node->right, nil);
     }else{
-        largest = i;
-    }
-    if(r <= heap->length && heap->heap[r].time < heap->heap[largest].time){
-        largest = r;
-    }
-    if(largest != i){
-        struct collision_data temp;
-        temp = heap->heap[i];
-        heap->heap[i] = heap->heap[largest];
-        heap->heap[largest] = temp;
-        heapify(heap, largest);
+        coll_node *succ = node->parent;
+        while(succ != nil && node == succ->right){
+            node = succ;
+            succ = succ->parent;
+        }
+        return succ;
     }
 }
 
-void build_heap(struct collision_heap* heap){
-    int i;
-    for(i = heap->length >> 1; i >= 1; --i){
-        heapify(heap, i);
+void coll_insert_node(coll_tree *tree, struct collision_data *key){
+    coll_node *node = tree->root,
+            *last = tree->nil;
+    while(node != tree->nil){
+        last = node;
+        if(key->time < node->key.time){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+
+    node = (coll_node*)malloc(sizeof(coll_node));
+    node->left = tree->nil;
+    node->right = tree->nil;
+    node->parent = last;
+    node->key = *key;
+
+    if(last == tree->nil){
+        tree->root = node;
+        node->color = BLACK;
+    }else{
+        if(key->time < last->key.time){
+            last->left = node;
+        }else{
+            last->right = node;
+        }
+
+        node->color = RED;
+        while(node != tree->root && node->parent->color == RED){
+            if(coll_is_left(node->parent)){
+                last = node->parent->parent->right;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
+                }else{
+                    if(node == node->parent->right){//2nd CASE --> 3rd
+                        node = node->parent;
+                        coll_rotate_left(tree, node);
+                    }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    coll_rotate_right(tree, node->parent->parent);
+                }
+            }else{
+                last = node->parent->parent->left;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
+                }else{
+                    if(node == node->parent->left){//2nd CASE --> 3rd
+                        node = node->parent;
+                        coll_rotate_right(tree, node);
+                    }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    coll_rotate_left(tree, node->parent->parent);
+                }
+            }
+        }
+        tree->root->color = BLACK;
     }
 }
 
-struct collision_data pop_min(struct collision_heap* heap){
-    struct collision_data min;
-    if(heap->length < 1){//error
-        min.time = 10;
-        return min;
+bool coll_delete_node(coll_tree *tree, struct collision_data *key){
+    coll_node *node = coll_get_node(tree, key);
+    if(node == tree->nil){
+        return false;
+    }else{
+        coll_node *y, *x;
+        if(node->left == tree->nil || node->right == tree->nil){
+            y = node;
+        }else{
+            y = coll_get_successor(node, tree->nil);
+        }
+        if(y->left != tree->nil){
+            x = y->left;
+        }else{
+            x = y->right;
+        }
+
+        x->parent = y->parent;
+
+        if(y->parent == tree->nil){
+            tree->root = x;
+        }else if(coll_is_left(y)){
+            y->parent->left = x;
+        }else{
+            y->parent->right = x;
+        }
+        if(y != node){
+            node->key = y->key;
+        }
+
+        if(y->color == BLACK){
+            coll_delete_fixup(tree, x);
+        }
+
+        free(y);
+        return true;
     }
-    min = heap->heap[1];
-    heap->heap[1] = heap->heap[heap->length];
-    heap->length -= 1;
-    heapify(heap, 1);
-    return min;
 }
 
-void heap_insert(struct collision_heap* heap, struct collision_data *collision){
-    heap->length += 1;
-    if(heap->length > heap->allocated){
-        heap->allocated <<= 1;
-        heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
+void coll_delete_fixup(coll_tree *tree, coll_node *node){
+    coll_node *sibl;
+    while(node != tree->root && node->color == BLACK){
+        if(coll_is_left(node)){
+            sibl = node->parent->right;
+            if(sibl->color == RED){//1st CASE
+                sibl->color = BLACK;
+                sibl->parent->color = RED;
+                coll_rotate_left(tree, node->parent);
+                sibl = node->parent->right;
+            }
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+                sibl->color = RED;
+                node = node->parent;
+            }else{
+                if(sibl->right->color == BLACK){//3th CASE --> 4th
+                    sibl->left->color = BLACK;
+                    sibl->color = RED;
+                    coll_rotate_right(tree, sibl);
+                    sibl = node->parent->right;
+                }
+                sibl->color = node->parent->color;//4th CASE
+                node->parent->color = BLACK;
+                sibl->right->color = BLACK;
+                coll_rotate_left(tree, node->parent);
+                node = tree->root;
+            }
+        }else{
+            sibl = node->parent->left;
+            if(sibl->color == RED){//1st CASE
+                sibl->color = BLACK;
+                sibl->parent->color = RED;
+                coll_rotate_right(tree, node->parent);
+                sibl = node->parent->left;
+            }
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+                sibl->color = RED;
+                node = node->parent;
+            }else{
+                if(sibl->left->color == BLACK){//3th CASE --> 4th
+                    sibl->right->color = BLACK;
+                    sibl->color = RED;
+                    coll_rotate_left(tree, sibl);
+                    sibl = node->parent->left;
+                }
+                sibl->color = node->parent->color;//4th CASE
+                node->parent->color = BLACK;
+                sibl->left->color = BLACK;
+                coll_rotate_right(tree, node->parent);
+                node = tree->root;
+            }
+        }
     }
-    int i = heap->length;
-    while(i > 1 && heap->heap[heap_parent(i)].time > collision->time){
-        heap->heap[i] = heap->heap[heap_parent(i)];
-        i = heap_parent(i);
+    node->color = BLACK;
+}
+
+void coll_clear_nodes(coll_node *node, coll_node *nil){
+    if(node != nil){
+        coll_clear_nodes(node->left, nil);
+        coll_clear_nodes(node->right, nil);
+        free(node);
     }
-    heap->heap[i] = *collision;
+}
+
+void coll_clear_tree(coll_tree *tree){
+    if(tree->root != tree->nil){
+        coll_clear_nodes(tree->root, tree->nil);
+        tree->root = tree->nil;
+    }
+}
+
+/**
+    This does NOT test if node is NULL or
+    if its parent is NULL !!!!!!!
+    */
+inline bool coll_is_left(coll_node *node){
+    return node == node->parent->left;
+}
+
+/**
+    Passing NULL to rotation will crush
+    */
+void coll_rotate_left(coll_tree *tree, coll_node *node){
+    coll_node *temp = node->right;
+    if(node->right != tree->nil){
+        node->right = temp->left;
+        temp->left = node;
+        node->right->parent = node;
+
+        if(node->parent == tree->nil){
+            tree->root = temp;
+        }else{
+            if(coll_is_left(node)){
+                node->parent->left = temp;
+            }else{
+                node->parent->right = temp;
+            }
+        }
+        temp->parent = node->parent;
+        node->parent = temp;
+    }
+}
+
+void coll_rotate_right(coll_tree *tree, coll_node *node){
+    coll_node *temp = node->left;
+    if(node->left != tree->nil){
+        node->left = temp->right;
+        temp->right = node;
+        node->left->parent = node;
+
+        if(node->parent == tree->nil){
+            tree->root = temp;
+        }else{
+            if(coll_is_left(node)){
+                node->parent->left = temp;
+            }else{
+                node->parent->right = temp;
+            }
+        }
+        temp->parent = node->parent;
+        node->parent = temp;
+    }
 }
 
 /**
@@ -554,10 +897,198 @@ void get_zone_for_object(float x, float y, float dx, float dy, float r0, short i
     get_zone(x + dx, y + dy, zone + 2);
 }
 
+void add_fixed_to_zone(struct zone* zone, short int key){
+    if(zone->number_of_fixed == zone->allocated){
+        zone->allocated <<= 1;
+        zone->fixed = (short int*)realloc(zone->fixed, sizeof(short int) * zone->allocated);
+    }
+    zone->fixed[zone->number_of_fixed] = key;
+    zone->number_of_fixed += 1;
+}
 
+void initialize_zones_with_fixed(struct GameSharedData *Data, short int *zones, short int index){
+    int i, j;
+    for(i = zones[0]; i <= zones[2]; ++i){
+        for(j = zones[1]; j <= zones[3]; ++j){
+            add_fixed_to_zone(&Data->Level.zones[i][j], index);
+        }
+    }
+}
+
+void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index){
+    int i, j;
+    for(i = zones[0]; i <= zones[2]; ++i){
+        for(j = zones[1]; j <= zones[3]; ++j){
+            insert_node(&Data->Level.zones[i][j].movable, index);
+        }
+    }
+}
+
+/**
+    Sets zones for new  dx  and  dy  values
+    Requires setting new dx and dy before calling
+    It only looks bad, but it seems quite optimal
+    actually :P
+    */
+void change_zones_for_movable(struct GameSharedData *Data, short int index, float t){
+    short int oldz[4], xleft, xright;
+    int i, j;
+    struct movable_object_structure *Obj = &Data->Level.MovableObjects[index];
+    for(i = 0; i < 4; ++i){
+        oldz[i] = Obj->zones[i];
+    }
+    get_zone_for_object(((struct point*)(Obj->ObjectData))->x,
+                        ((struct point*)(Obj->ObjectData))->y,
+                        Obj->dx * t, Obj->dy * t, ((struct circleData*)Obj->ObjectData)->r,
+                        Obj->zones);
+    #define newz(x) (Obj->zones[x])
+    #define Zonez(x, y) (Data->Level.zones[x][y])
+    if(newz(2) >= oldz[0] &&
+       newz(0) <= oldz[2] &&
+       newz(3) >= oldz[1] &&
+       newz(1) <= oldz[3]){//There are some common zones
+
+        if(newz(0) > oldz[0]){
+            for(i = oldz[0]; i < newz(0); ++i){
+                for(j = oldz[1]; j <= oldz[3]; ++j){
+                    delete_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }else{
+            for(i = newz(0); i < oldz[0]; ++i){
+                for(j = newz(1); j <= newz(3); ++j){
+                    insert_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }
+
+        if(oldz[2] > newz(2)){
+            for(i = newz(2) + 1; i <= oldz[2]; ++i){
+                for(j = oldz[1]; j <= oldz[3]; ++j){
+                    delete_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }else{
+            for(i = oldz[2] + 1; i <= newz(2); ++i){
+                for(j = newz(1); j <= newz(3); ++j){
+                    insert_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }
+
+        xleft = short_max(newz(0), oldz[0]);
+        xright = short_min(newz(2), oldz[2]);
+
+        if(newz(1) < oldz[1]){
+            for(i = xleft; i <= xright; ++i){
+                for(j = newz(1); j < oldz[1]; ++j){
+                    insert_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }else{
+            for(i = xleft; i <= xright; ++i){
+                for(j = oldz[1]; j < newz(1); ++j){
+                    delete_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }
+
+        if(newz(3) > oldz[3]){
+            for(i = xleft; i <= xright; ++i){
+                for(j = oldz[3] + 1; j <= newz(3); ++j){
+                    insert_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }else{
+            for(i = xleft; i <= xright; ++i){
+                for(j = newz(3) + 1; j <= oldz[3]; ++j){
+                    delete_node(&Zonez(i, j).movable, index);
+                }
+            }
+        }
+    }else{
+        for(i = oldz[0]; i <= oldz[2]; ++i){
+            for(j = oldz[1]; j <= oldz[3]; ++j){
+                delete_node(&Zonez(i, j).movable, index);
+            }
+        }
+
+        for(i = newz(0); i <= newz(2); ++i){
+            for(j = newz(1); j <= newz(3); ++j){
+                insert_node(&Zonez(i, j).movable, index);
+            }
+        }
+    }
+    #undef Zonez
+    #undef newz
+}
 /**
     Collisions
     */
+
+void move_objects(struct GameSharedData *Data, float t){
+    int i;
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+        ((struct point*)Data->Level.MovableObjects[i].ObjectData)->x += Data->Level.MovableObjects[i].dx * t;
+        ((struct point*)Data->Level.MovableObjects[i].ObjectData)->y += Data->Level.MovableObjects[i].dy * t;
+    }
+}
+
+struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what){
+    struct collision_data new_coll;
+
+    //BIG SWITCH
+
+    return new_coll;
+}
+
+struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom){
+    struct collision_data new_coll;
+
+    //EVEN BIGGER SWITCH
+
+    return new_coll;
+}
+
+void collision_min_for_object(struct movable_object_structure *who, struct collision_data *coll){
+    if(coll->time >= 0 && coll->time <= 1){
+        if(coll->time < who->next_collision->time){
+            who->next_collision = *coll;
+        }
+    }
+}
+
+/**
+    Requires setting the-who field
+    */
+
+void find_next_collision(struct GameSharedData *Data, short int index){
+    struct collision_data new_coll;
+    bool fixed_done[Data->Level.number_of_fixed_objects],
+         movable_done[Data->Level.number_of_movable_objects];
+    int i, j, k;
+    for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
+        fixed_done[i] = false;
+    }
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+        movable_done[i] = false;
+    }
+
+    for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
+        for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
+            for(k = 0; k < Data->Level.zones[i][j].number_of_fixed; ++k){
+                if(!fixed_done[Data->Level.zones[i][j].fixed[k]]){
+                    fixed_done[Data->Level.zones[i][j].fixed[k]] = true;
+                    new_coll = get_collision_with_fixed(&Data->Level.MovableObjects[index],
+                                                        &Data->Level.FixedObjects[Data->Level.zones[i][j].fixed[k]]);
+                    collision_min_for_object(&Data->Level.MovableObjects[index], &new_coll);
+                }
+            }
+            for_each_higher_check_collision(Data, movable_done, &Data->Level.MovableObjects[index], Data->Level.zones[i][j].movable.root, Data->Level.zones[i][j].movable.nil);
+        }
+    }
+}
+
 
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
     L->A = y1 - y2;
@@ -655,12 +1186,12 @@ float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, f
 
 float rSquare(void *ObjectData, float fi){
     #define Data ((struct squareData*)ObjectData)
-    return squareEquation(Data->r0, fi - Data->ang);
+    return squareEquation(Data->r, fi - Data->ang);
     #undef Data
 }
 
 float rCircle(void *ObjectData, float fi){
-    return ((struct circleData*)ObjectData)->r0;
+    return ((struct circleData*)ObjectData)->r;
 }
 
 float rPlayer(void *ObjectData, float fi){
@@ -669,7 +1200,7 @@ float rPlayer(void *ObjectData, float fi){
 
 float rRectangle(void *ObjectData, float fi){
     #define Data ((struct rectangleData*)ObjectData)
-    return rectangleEquation(Data->r0, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
+    return rectangleEquation(Data->r, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
     #undef Data
 }
 
@@ -690,7 +1221,7 @@ void draw_square(void *ObjectData){
 
 void draw_circle(void *ObjectData){
     #define Data ((struct circleData*)ObjectData)
-    al_draw_filled_circle(Data->center.x, Data->center.y, Data->r0, Data->color);
+    al_draw_filled_circle(Data->center.x, Data->center.y, Data->r, Data->color);
     #undef Data
 }
 
@@ -718,7 +1249,7 @@ void draw_player(void *ObjectData, float dx, float dy){
 
 void draw_particle(void *ObjectData, float dx, float dy){
     #define Data ((struct particleData*)ObjectData)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r0, al_map_rgb(255, 0, 255));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r, al_map_rgb(255, 0, 255));
     #undef Data
 }
 
@@ -763,27 +1294,29 @@ void draw_switch(void *ObjectData, float dx, float dy){
     */
 
 void construct_circle(struct fixed_object_structure *Object){
+    #define Data ((struct circleData*)ObjectData)
     Object->draw = draw_circle;
     Object->r = rCircle;
+    #undef Data
 }
 
 void construct_square(struct fixed_object_structure *Object){
     #define Data ((struct squareData*)Object->ObjectData)
     Object->draw = draw_square;
     Object->r = rSquare;
-    Data->r0 = Data->bok * SQRT2 / 2;
+    Data->r = Data->bok * SQRT2 / 2;
     float fi = PI4 + Data->ang;
-    Data->v1.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v1.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v1.x = Data->center.x + Data->r * cos(fi);
+    Data->v1.y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v2.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v2.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v2.x = Data->center.x + Data->r * cos(fi);
+    Data->v2.y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v3.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v3.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v3.x = Data->center.x + Data->r * cos(fi);
+    Data->v3.y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v4.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v4.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v4.x = Data->center.x + Data->r * cos(fi);
+    Data->v4.y = Data->center.y + Data->r * sin(fi);
     #undef Data
 }
 
@@ -813,32 +1346,33 @@ void construct_rectangle(struct fixed_object_structure *Object){
     Data->wsp1 = tan(PIpol + Data->fi02);
     Data->wsp2 = tan(Data->fi02);
 
-    Data->r0 = Data->b / (sin(Data->fi02) * 2);
+    Data->r = Data->b / (sin(Data->fi02) * 2);
 
     fi = PIpol - Data->ang + Data->fi02;
-    Data->v1.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v1.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v1.x = Data->center.x + Data->r * cos(fi);
+    Data->v1.y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v3.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v3.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v3.x = Data->center.x + Data->r * cos(fi);
+    Data->v3.y = Data->center.y + Data->r * sin(fi);
     fi = PIpol - Data->ang - Data->fi02;
-    Data->v2.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v2.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v2.x = Data->center.x + Data->r * cos(fi);
+    Data->v2.y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v4.x = Data->center.x + Data->r0 * cos(fi);
-    Data->v4.y = Data->center.y + Data->r0 * sin(fi);
+    Data->v4.x = Data->center.x + Data->r * cos(fi);
+    Data->v4.y = Data->center.y + Data->r * sin(fi);
     #undef Data
 }
 
 void construct_door(struct movable_object_structure *Object){
     #define Data ((struct doorData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    //zones
-    Object->next_collision.time = 10;//just something bigger than 1
+    Object->next_collision->time = 10;//just something bigger than 1
 
     Object->draw = draw_door;
     Data->vx = 0;
     Data->vy = 0;
+    Object->dx = 0;
+    Object->dy = 0;
 
     #undef Data
 }
@@ -846,42 +1380,46 @@ void construct_door(struct movable_object_structure *Object){
 void construct_switch(struct movable_object_structure *Object){
     #define Data ((struct switchData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    //zones
-    Object->next_collision.time = 10;
+    Object->next_collision->time = 10;
 
     Object->draw = draw_switch;
     Data->vx = 0;
     Data->vy = 0;
+    Object->dx = 0;
+    Object->dy = 0;
 
     #undef Data
 }
 
 void construct_player(struct movable_object_structure *Object){
     #define Data ((struct playerData*)(Object->ObjectData))
-    //zones
-    Object->next_collision.time = 10;
+    Object->next_collision->time = 10;
 
     Object->draw = draw_player;
     Object->r = rPlayer;
     Data->vx = 0;
     Data->vy = 0;
+    Object->dx = 0;
+    Object->dy = 0;
     Data->engine_state = 0;
     Data->mass = PLAYER_MASS;
     Data->charge = 0;
     Data->r = PLAYER_RADIUS;
+    Data->r0 = PLAYER_RADIUS;
 
     #undef Data
 }
 
 void construct_particle(struct movable_object_structure *Object){
     #define Data ((struct particleData*)(Object->ObjectData))
-    //zones
-    Object->next_collision.time = 10;
+    Object->next_collision->time = 10;
     Object->draw = draw_particle;
     Object->r = rCircle;
     Data->vx = 0;
     Data->vy = 0;
-    Data->surface_field = Data->r0 * Data->r0 * PI;
+    Object->dx = 0;
+    Object->dy = 0;
+    Data->surface_field = Data->r * Data->r * PI;
     #undef Data
 }
 
@@ -1312,7 +1850,8 @@ int main(){
             Data.Level.zones[i][j].movable.nil = nil;
             Data.Level.zones[i][j].movable.root = nil;
             Data.Level.zones[i][j].number_of_fixed = 0;
-            Data.Level.zones[i][j].fixed = NULL;
+            Data.Level.zones[i][j].allocated = INITIAL_FIXED_PER_ZONE;
+            Data.Level.zones[i][j].fixed = (short int*)malloc(sizeof(short int) * INITIAL_FIXED_PER_ZONE);
         }
     }
 

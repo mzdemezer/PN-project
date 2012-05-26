@@ -244,6 +244,21 @@ void testRBtree_delete(CuTest *tc){
     free(tree.nil);
 }
 
+void testRBtree_delete_is_root_nil(CuTest *tc){
+    RB_tree tree;
+    tree.nil = (RB_node*)malloc(sizeof(RB_node));
+    tree.nil->color = BLACK;
+    tree.nil->key = -10;
+
+    tree.root = tree.nil;
+    insert_node(&tree, 5);
+    delete_node(&tree, 5);
+    CuAssertTrue(tc, tree.root == tree.nil);
+
+    clear_tree(&tree);
+    free(tree.nil);
+}
+
 void testRBtree_height(CuTest *tc){
     RB_tree tree;
     tree.nil = (RB_node*)malloc(sizeof(RB_node));
@@ -603,6 +618,7 @@ CuSuite* mainGetSuite(void){
 
     SUITE_ADD_TEST(suite, testRBtree_in_order);
     SUITE_ADD_TEST(suite, testRBtree_delete);
+    SUITE_ADD_TEST(suite, testRBtree_delete_is_root_nil);
     SUITE_ADD_TEST(suite, testRBtree_height);
 
     SUITE_ADD_TEST(suite, test_heap_left01);

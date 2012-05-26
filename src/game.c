@@ -1,5 +1,6 @@
 #include "main.h"
 #include "game.h"
+#include <allegro5/allegro.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -108,6 +109,26 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         Data->Level.Player->vx += op * cos(Data->Level.Player->ang);
         Data->Level.Player->vy += op * sin(Data->Level.Player->ang);
 
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            Acc[i].x = ((struct circleData*)(Data->Level.MovableObjects[i].ObjectData))->center.x;
+            Acc[i].y = ((struct circleData*)(Data->Level.MovableObjects[i].ObjectData))->center.y;
+            switch(Data->Level.MovableObjects[i].Type){
+                case motPLAYER:
+                    Acc[i].vx = ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))->vx;
+                    Acc[i].vy = ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
+                    Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
+                    Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    break;
+                case motPARTICLE:
+                    Acc[i].vx = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vx;
+                    Acc[i].vy = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
+                    Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
+                    Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    break;
+                default:
+                    ;
+            }
+        }
 
 
         /**
@@ -214,9 +235,6 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
                     ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
-                    ObData->center.x += ObData->vx * dt;
-                    ObData->center.y += ObData->vy * dt;
-
                     /**
                         Simple bounce
                         */
@@ -262,30 +280,27 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
                     ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
-                    ObData->center.x += ObData->vx * dt;
-                    ObData->center.y += ObData->vy * dt;
-
                     /**
                         Simple bounce
                         */
-                    if(ObData->center.x - ObData->r0 <= 0){
-                        ObData->center.x = ObData->r0 + ObData->r0 - ObData->center.x;
+                    if(ObData->center.x - ObData->r <= 0){
+                        ObData->center.x = ObData->r + ObData->r - ObData->center.x;
                         if(ObData->vx < 0){
                            ObData->vx *= -WALL_COLLISION_COEFFICIENT;
                         }
-                    }else if(ObData->center.x + ObData->r0 >= SCREEN_BUFFER_HEIGHT){
-                        ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r0 + ObData->r0);
+                    }else if(ObData->center.x + ObData->r >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r + ObData->r);
                         if(ObData->vx > 0){
                            ObData->vx *= -WALL_COLLISION_COEFFICIENT;
                         }
                     }
-                    if(ObData->center.y - ObData->r0 <= 0){
-                        ObData->center.y = ObData->r0 + ObData->r0 - ObData->center.y;
+                    if(ObData->center.y - ObData->r <= 0){
+                        ObData->center.y = ObData->r + ObData->r - ObData->center.y;
                         if(ObData->vy < 0){
                            ObData->vy *= -WALL_COLLISION_COEFFICIENT;
                         }
-                    }else if(ObData->center.y + ObData->r0 >= SCREEN_BUFFER_HEIGHT){
-                        ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r0 + ObData->r0);
+                    }else if(ObData->center.y + ObData->r >= SCREEN_BUFFER_HEIGHT){
+                        ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r + ObData->r);
                         if(ObData->vy > 0){
                            ObData->vy *= -WALL_COLLISION_COEFFICIENT;
                         }
@@ -346,20 +361,16 @@ void StopThread(int i, struct GameSharedData *Data, ALLEGRO_THREAD *thread){
 /**
     Gravity
     */
-bool get_grav_data(struct movable_object_structure *Obj, double *mass, double *x, double *y){
+bool get_grav_data(struct movable_object_structure *Obj, double *mass){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
             *mass = ObData->mass;
-            *x = ObData->center.x;
-            *y = ObData->center.y;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
             *mass = ObData->mass;
-            *x = ObData->center.x;
-            *y = ObData->center.y;
             #undef ObData
             return true;
         default:
@@ -371,7 +382,7 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
     int i, j;
-    double m1, m2, x1, y1, x2, y2, ang;
+    double m1, m2, dx, dy;
 
     StopThread(0, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -383,19 +394,19 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
             Acc[i].ay[2] = 0;
         }
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1, &x1, &y1)){
+            if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1)){
                 for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
-                    if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2, &x2, &y2)){
-                        x2 -= x1;
-                        y2 -= y1;
-                        m2 *= m1 * (GRAV / (x2 * x2 + y2 * y2));//add linear for collision
-                        ang = VectorAngle(x2, y2);
-                        x2 = cos(ang);
-                        ang = sin(ang);
-                        Acc[i].ax[2] += m2 * x2;
-                        Acc[i].ay[2] += m2 * ang;
-                        Acc[j].ax[2] += -m2 * x2;
-                        Acc[j].ay[2] += -m2 * ang;
+                    if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2)){
+                        dx = (double)Acc[j].x - (double)Acc[i].x;
+                        dy = (double)Acc[j].y - (double)Acc[i].y;
+                        m2 *= m1 * (GRAV / (dx * dx + dy * dy));//add linear for collision
+                        dy = VectorAngle(dx, dy);
+                        dx = cos(dy);
+                        dy = sin(dy);
+                        Acc[i].ax[2] += m2 * dx;
+                        Acc[i].ay[2] += m2 * dy;
+                        Acc[j].ax[2] += -m2 * dx;
+                        Acc[j].ay[2] += -m2 * dy;
                     }
                 }
             }
@@ -419,20 +430,16 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     Electrostatics
     */
 
-bool get_elec_data(struct movable_object_structure *Obj, double *charge, double *x, double *y){
+bool get_elec_data(struct movable_object_structure *Obj, double *charge){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
             *charge = ObData->charge;
-            *x = ObData->center.x;
-            *y = ObData->center.y;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
             *charge = ObData->charge;
-            *x = ObData->center.x;
-            *y = ObData->center.y;
             #undef ObData
             return true;
         default:
@@ -444,7 +451,7 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
     int i, j;
-    double q1, q2, x1, y1, x2, y2, ang;
+    double q1, q2, dx, dy;
 
 
     StopThread(1, Data, thread);
@@ -457,21 +464,21 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
             Acc[i].ay[3] = 0;
         }
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_elec_data(&(Data->Level.MovableObjects[i]), &q1, &x1, &y1)){
+            if(get_elec_data(&(Data->Level.MovableObjects[i]), &q1)){
                 for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
-                    if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2, &x2, &y2)){
+                    if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2)){
                         q2 *= q1;
                         if(q2){
-                            x2 -= x1;
-                            y2 -= y1;
-                            q2 *= (COULOMB / (x2 * x2 + y2 * y2));//add linear for collision
-                            ang = VectorAngle(x2, y2);
-                            x2 = cos(ang);
-                            ang = sin(ang);
-                            Acc[i].ax[3] += -q2 * x2;
-                            Acc[i].ay[3] += -q2 * ang;
-                            Acc[j].ax[3] += q2 * x2;
-                            Acc[j].ay[3] += q2 * ang;
+                            dx = (double)Acc[j].x - (double)Acc[i].x;
+                            dy = (double)Acc[j].y - (double)Acc[i].y;
+                            q2 *= (COULOMB / (dx * dx + dy * dy));//add linear for collision
+                            dy = VectorAngle(dx, dy);
+                            dx = cos(dy);
+                            dy = sin(dy);
+                            Acc[i].ax[3] += -q2 * dx;
+                            Acc[i].ay[3] += -q2 * dy;
+                            Acc[j].ax[3] += q2 * dx;
+                            Acc[j].ay[3] += q2 * dy;
                         }
                     }
                 }
@@ -496,20 +503,16 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     basically bullshit, but it seems to work pretty well
     */
 
-bool get_drag_data(struct movable_object_structure *Obj, double *vx, double *vy, double *Cx, double *S){
+bool get_drag_data(struct movable_object_structure *Obj, double *Cx, double *S){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
-            *vx = ObData->vx;
-            *vy = ObData->vy;
             *Cx = SPHERE_DRAG_COEFFICENT;
             *S = ObData->r * ObData->r * PI;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
-            *vx = ObData->vx;
-            *vy = ObData->vy;
             *Cx = SPHERE_DRAG_COEFFICENT;
             *S = ObData->surface_field;
             #undef ObData
@@ -544,9 +547,9 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             Work
             */
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
-                vx -= Data->Level.wind_vx;
-                vy -= Data->Level.wind_vy;
+            if(get_drag_data(&(Data->Level.MovableObjects[i]), &Cx, &S)){
+                vx = (double)Acc[i].vx - Data->Level.wind_vx;
+                vy = (double)Acc[i].vy - Data->Level.wind_vy;
                 Cx = S * Cx * Data->Level.dens;
                 Acc[i].ax[4] = -vx * Cx * coefficient_multiplier(vx);
                 Acc[i].ay[4] = -vy * Cx * coefficient_multiplier(vy);
@@ -566,18 +569,67 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
 }
 
 /**
-    Collision initialization
+    Collision thread
     */
 void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
+
+    float time;
+    int i;
+    struct collision_data coll;
+    coll_tree dirty_tree;
+    dirty_tree.nil = (coll_node*)malloc(sizeof(coll_node));
+    dirty_tree.nil->color = BLACK;
+    dirty_tree.nil->key.time = 10;
+    dirty_tree.nil->key.who = -10;
+    dirty_tree.nil->key.with = -20;
+    dirty_tree.nil->key.with_movable = false;
+    dirty_tree.root = dirty_tree.nil;
 
     StopThread(3, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
+        time = 0;
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            ;
+        }
 
+        while(Data->Level.collision_queue.length > 0){
+            coll = pop_min(&Data->Level.collision_queue);
+            if(dirty_tree.root != dirty_tree.nil){
+                //check if dirty      I think some order who/with issues may occur TOrethink
+                //for each: who is the one, with is the other one
+                //if a coll was put down due to getting something
+                //sooner, then it must be here
+
+                if(coll_delete_node(dirty_tree, &coll)){
+                    continue;
+                }
+            }
+            move_objects(Data, coll.time - time);
+            time = coll.time;
+            //Collide  avec:
+            //new dx,dy
+            change_zones_for_movable(Data, coll.who, 1 - time);
+            //for each in Data->Level.MovableObjects[coll.who].colls_with_mov
+            //if with_movable then in that tree remove  keys that have with == coll.who
+
+            //clear collision tree
+            coll_clear_tree(Data->Level.MovableObjects[coll.who].colls_with_mov);
+            if(coll.with_movable){
+                //if with_movable, the same for him
+                change_zones_for_movable(Data, coll.with, 1 - time);
+            }
+
+            //New collisions excluding   coll.with in who and vice versa
+        }
+
+        if(time < 1){
+            move_objects(Data, 1 - time);
+        }
         /**
             Signal and stop
             */

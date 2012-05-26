@@ -1,6 +1,7 @@
 #include "main.h"
 #include "loading.h"
 #include "game.h"
+#include <allegro5/allegro.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +15,7 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
 
     special_call(initialize_level, argument);
 
-    Data->Level.Acc = (struct acceleration_arrays*)malloc(sizeof(struct acceleration_arrays) * Data->Level.number_of_movable_objects);
+    Data->Level.Acc = (struct move_arrays*)malloc(sizeof(struct move_arrays) * Data->Level.number_of_movable_objects);
     Data->Level.dens = DEFAULT_FLUID_DENSITY;
     Data->Level.wind_vx = 0;
     Data->Level.wind_vy = 0;
@@ -206,12 +207,12 @@ void load_level_from_file(struct GameSharedData *Data){
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %d",   &Factory.NewCircle->center.x,
                                         &Factory.NewCircle->center.y,
-                                        &Factory.NewCircle->r0,
+                                        &Factory.NewCircle->r,
                                         &op0);
         read_color(buffer, level, &Factory.NewCircle->color, op0, "Invalid level input: circle#%d color\n", i);
-        /**
-            Firing circle constructor... oh, it's not here! I wonder why...
-            */
+        get_zone_for_object(Factory.NewCircle->center.x, Factory.NewCircle->center.y, 0, 0, Factory.NewCircle->r, Factory.new_zones);
+
+
         construct_circle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
@@ -383,7 +384,7 @@ void load_level_from_file(struct GameSharedData *Data){
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f",    &Factory.NewParticle->center.x,
                                             &Factory.NewParticle->center.y,
-                                            &Factory.NewParticle->r0,
+                                            &Factory.NewParticle->r,
                                             &Factory.NewParticle->mass,
                                             &Factory.NewParticle->charge);
         /**
