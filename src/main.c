@@ -1053,7 +1053,7 @@ struct collision_data get_collision_with_movable(struct movable_object_structure
 void collision_min_for_object(struct movable_object_structure *who, struct collision_data *coll){
     if(coll->time >= 0 && coll->time <= 1){
         if(coll->time < who->next_collision->time){
-            who->next_collision = *coll;
+            who->next_collision = coll;
         }
     }
 }
@@ -1366,7 +1366,7 @@ void construct_rectangle(struct fixed_object_structure *Object){
 void construct_door(struct movable_object_structure *Object){
     #define Data ((struct doorData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    Object->next_collision->time = 10;//just something bigger than 1
+    //Object->next_collision->time = 10;//just something bigger than 1
 
     Object->draw = draw_door;
     Data->vx = 0;
@@ -1380,7 +1380,7 @@ void construct_door(struct movable_object_structure *Object){
 void construct_switch(struct movable_object_structure *Object){
     #define Data ((struct switchData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    Object->next_collision->time = 10;
+    //Object->next_collision->time = 10;
 
     Object->draw = draw_switch;
     Data->vx = 0;
@@ -1393,7 +1393,7 @@ void construct_switch(struct movable_object_structure *Object){
 
 void construct_player(struct movable_object_structure *Object){
     #define Data ((struct playerData*)(Object->ObjectData))
-    Object->next_collision->time = 10;
+    //Object->next_collision->time = 10;
 
     Object->draw = draw_player;
     Object->r = rPlayer;
@@ -1412,7 +1412,7 @@ void construct_player(struct movable_object_structure *Object){
 
 void construct_particle(struct movable_object_structure *Object){
     #define Data ((struct particleData*)(Object->ObjectData))
-    Object->next_collision->time = 10;
+    //Object->next_collision->time = 10;
     Object->draw = draw_particle;
     Object->r = rCircle;
     Data->vx = 0;

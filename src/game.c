@@ -605,7 +605,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 //if a coll was put down due to getting something
                 //sooner, then it must be here
 
-                if(coll_delete_node(dirty_tree, &coll)){
+                if(coll_delete_node(&dirty_tree, &coll)){
                     continue;
                 }
             }
@@ -618,7 +618,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             //if with_movable then in that tree remove  keys that have with == coll.who
 
             //clear collision tree
-            coll_clear_tree(Data->Level.MovableObjects[coll.who].colls_with_mov);
+            coll_clear_tree(&Data->Level.MovableObjects[coll.who].colls_with_mov);
             if(coll.with_movable){
                 //if with_movable, the same for him
                 change_zones_for_movable(Data, coll.with, 1 - time);
