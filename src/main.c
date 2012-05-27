@@ -265,10 +265,6 @@ struct collision_data pop_min(struct collision_heap* heap){
 
 void heap_insert(struct collision_heap* heap, struct collision_data *collision){
     heap->length += 1;
-    printf("inserted: %.3f, %hd - %hd, %d\n", collision->time,
-                                              collision->who,
-                                              collision->with,
-                                              (int)collision->with_movable);
     if(heap->length > heap->allocated){
         heap->allocated <<= 1;
         heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
@@ -579,6 +575,7 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
     if(coll.time >= 0 && coll.time <= 1){
         if(coll.time < Data->Level.MovableObjects[who].coll_with_fixed.time &&
            coll.time < Data->Level.MovableObjects[with].coll_with_fixed.time){//otherwise it's pointless to store such information
+            coll.with_movable = true;
             coll.who = who;
             coll.with = with;
             coll_insert_node(&Data->Level.MovableObjects[who].colls_with_mov, &coll);
@@ -1006,7 +1003,10 @@ void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *n
             //find new min
             collision_min_for_object(Data, temp);
             //push on queue //how to push so that one collision gets on queue only once?
-            heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[node->key.who].next_collision);
+            if(Data->Level.MovableObjects[node->key.who].next_collision->time >= 0 &&
+               Data->Level.MovableObjects[node->key.who].next_collision->time <= 1){
+                heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[node->key.who].next_collision);
+            }
         }
         free(node);
     }
@@ -1394,7 +1394,8 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               float dx, float dy, float m1, float m2, float restitution){
-    *v1x -= *v2x;
+    printf("Before: [%.3f, %.3f] [%.3f, %.3f]  E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
+    *v1x -= *v2x;printf("%f %f %f %f %f\n", dx, dy, m1, m2, restitution);
     *v1y -= *v2y;
     dy = VectorAngle(dx, dy);
     dx = cos(dy);
@@ -1408,6 +1409,7 @@ void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x
     v_perp = (((1 + restitution) * m1) / mc) * v_into;
     *v2x += v_perp * dx;
     *v2x += v_perp * dy;
+    printf("After: [%.3f, %.3f] [%.3f, %.3f] E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
 }
 
 void player_get_dx_dy(struct movable_object_structure *Obj, float dt){
@@ -1427,13 +1429,13 @@ void particle_get_dx_dy(struct movable_object_structure *Obj, float dt){
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt){
     if(with_movable){
         switch(Data->Level.MovableObjects[who].Type){
-            case motPLAYER:
-                #define WHO_PLAYER ((struct playerData*)(&Data->Level.MovableObjects[who].ObjectData))
-                switch(Data->Level.MovableObjects[who].Type){
-                    case motPLAYER:
-                        #define WITH_PLAYER ((struct playerData*)(&Data->Level.MovableObjects[with].ObjectData))
-                        get_velocities_after_two_balls_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                 &WITH_PLAYER->vx, &WITH_PLAYER->vy,
+            case motPLAYER:printf("player\n");
+                #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
+                switch(Data->Level.MovableObjects[with].Type){
+                    case motPLAYER:printf("with player\n");
+                        #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                        get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
+                                                                 &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PLAYER->center.x,
                                                                  WITH_PLAYER->center.y - WHO_PLAYER->center.y,
                                                                  WHO_PLAYER->mass, WITH_PLAYER->mass,
@@ -1442,10 +1444,10 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
                         #undef WITH_PLAYER
                         break;
-                    case motPARTICLE:
-                        #define WITH_PARTICLE ((struct particleData*)(&Data->Level.MovableObjects[with].ObjectData))
-                        get_velocities_after_two_balls_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                 &WITH_PARTICLE->vx, &WITH_PARTICLE->vy,
+                    case motPARTICLE:printf("with particle\n");
+                        #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                        get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
+                                                                 &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
                                                                  WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
                                                                  WHO_PLAYER->mass, WITH_PARTICLE->mass,
@@ -1459,13 +1461,13 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                 }
                 #undef WHO_PLAYER
                 break;
-            case motPARTICLE:
-                #define WHO_PARTICLE ((struct particleData*)(&Data->Level.MovableObjects[with].ObjectData))
-                switch(Data->Level.MovableObjects[who].Type){
-                    case motPLAYER:
-                        #define WITH_PLAYER ((struct playerData*)(&Data->Level.MovableObjects[with].ObjectData))
-                        get_velocities_after_two_balls_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
-                                                                 &WITH_PLAYER->vx, &WITH_PLAYER->vy,
+            case motPARTICLE:printf("particle\n");
+                #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
+                switch(Data->Level.MovableObjects[with].Type){
+                    case motPLAYER:printf("with player\n");
+                        #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                        get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
+                                                                 &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
                                                                  WITH_PLAYER->center.y - WHO_PARTICLE->center.y,
                                                                  WHO_PARTICLE->mass, WITH_PLAYER->mass,
@@ -1474,10 +1476,10 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
                         #undef WITH_PLAYER
                         break;
-                    case motPARTICLE:
-                        #define WITH_PARTICLE ((struct particleData*)(&Data->Level.MovableObjects[with].ObjectData))
-                        get_velocities_after_two_balls_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
-                                                                 &WITH_PARTICLE->vx, &WITH_PARTICLE->vy,
+                    case motPARTICLE:printf("with particle\n");
+                        #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                        get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
+                                                                 &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PARTICLE->center.x,
                                                                  WITH_PARTICLE->center.y - WHO_PARTICLE->center.y,
                                                                  WHO_PARTICLE->mass, WITH_PARTICLE->mass,

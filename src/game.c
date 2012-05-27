@@ -371,16 +371,18 @@ void StopThread(int i, struct GameSharedData *Data, ALLEGRO_THREAD *thread){
 /**
     Gravity
     */
-bool get_grav_data(struct movable_object_structure *Obj, double *mass){
+bool get_grav_data(struct movable_object_structure *Obj, double *mass, double *r){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
             *mass = ObData->mass;
+            *r = ObData->r;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
             *mass = ObData->mass;
+            *r = ObData->r;
             #undef ObData
             return true;
         default:
@@ -392,7 +394,7 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
     int i, j;
-    double m1, m2, dx, dy;
+    double m1, m2, dx, dy, r1, r2, d, r;
 
     StopThread(0, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -404,12 +406,19 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
             Acc[i].ay[2] = 0;
         }
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1)){
+            if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1, &r1)){
                 for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
-                    if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2)){
+                    if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2, &r2)){
                         dx = (double)Acc[j].x - (double)Acc[i].x;
                         dy = (double)Acc[j].y - (double)Acc[i].y;
-                        m2 *= m1 * (GRAV / (dx * dx + dy * dy));//add linear for collision
+                        d = dx * dx + dy * dy;
+                        r = r1 + r2;
+                        r *= r;
+                        if(r > d){
+                            m2 *= m1 * (GRAV / r);
+                        }else{
+                            m2 *= m1 * (GRAV / d);
+                        }
                         dy = VectorAngle(dx, dy);
                         dx = cos(dy);
                         dy = sin(dy);
@@ -621,7 +630,12 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 }
             }
         }
-
+        /*
+            printf("inserted: %.3f, %hd - %hd, %d\n", collision->time,
+                                              collision->who,
+                                              collision->with,
+                                              (int)collision->with_movable);
+            */
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
                 movable_done[j] = false;
@@ -644,9 +658,8 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 }
             }
         }
-        printf("heap size: %d\n", Data->Level.collision_queue.length);
         while(Data->Level.collision_queue.length > 0){
-            coll = pop_min(&Data->Level.collision_queue);//printf("%f\n", coll.time);
+            coll = pop_min(&Data->Level.collision_queue);printf("%f\n", coll.time);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
                 //check if dirty
                 //for each: who is the one, with is the other one
@@ -657,7 +670,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                     continue;
                 }
             }
-            move_objects(Data, coll.time - time);printf("moved by: %f\n", coll.time - time);
+            move_objects(Data, coll.time - time);
             time = coll.time;
             //Collide  avec:
             //new dx,dy
