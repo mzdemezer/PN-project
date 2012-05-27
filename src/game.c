@@ -118,12 +118,14 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     Acc[i].vy = ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
                     Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
                     Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    change_zones_for_movable(Data, i, 1.);
                     break;
                 case motPARTICLE:
                     Acc[i].vx = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vx;
                     Acc[i].vy = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
                     Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
                     Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    change_zones_for_movable(Data, i, 1.);
                     break;
                 default:
                     ;
@@ -576,16 +578,11 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
     #define Acc Data->Level.Acc
 
     float time;
-    int i;
+    int i, j, k, l;
     struct collision_data coll;
-    coll_tree dirty_tree;
-    dirty_tree.nil = (coll_node*)malloc(sizeof(coll_node));
-    dirty_tree.nil->color = BLACK;
-    dirty_tree.nil->key.time = 10;
-    dirty_tree.nil->key.who = -10;
-    dirty_tree.nil->key.with = -20;
-    dirty_tree.nil->key.with_movable = false;
-    dirty_tree.root = dirty_tree.nil;
+    short int temp;
+    bool fixed_done[Data->Level.number_of_fixed_objects],
+         movable_done[Data->Level.number_of_movable_objects];
 
     StopThread(3, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -594,18 +591,44 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             */
         time = 0;
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            ;
+            for(j = 0; j < Data->Level.number_of_fixed_objects; ++j){
+                fixed_done[j] = false;
+            }
+            for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
+                for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
+                    for(l = 0; l < Data->Level.zones[j][k].number_of_fixed; ++l){
+                        if(!fixed_done[Data->Level.zones[j][k].fixed[l]]){
+                            fixed_done[Data->Level.zones[j][k].fixed[l]] = true;
+                            coll = get_collision_with_fixed(&Data->Level.MovableObjects[i],
+                                                                &Data->Level.FixedObjects[Data->Level.zones[j][k].fixed[l]]);
+                            if(coll.time >= 0 && coll.time <= 1){
+                                if(coll.time < Data->Level.MovableObjects[i].coll_with_fixed.time){
+                                    coll.with = Data->Level.zones[j][k].fixed[l];
+                                    Data->Level.MovableObjects[i].coll_with_fixed = coll;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
+                movable_done[j] = false;
+            }
+            ;//find among movables
         }
 
         while(Data->Level.collision_queue.length > 0){
             coll = pop_min(&Data->Level.collision_queue);
-            if(dirty_tree.root != dirty_tree.nil){
-                //check if dirty      I think some order who/with issues may occur TOrethink
+            if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
+                //check if dirty
                 //for each: who is the one, with is the other one
                 //if a coll was put down due to getting something
                 //sooner, then it must be here
 
-                if(coll_delete_node(&dirty_tree, &coll)){
+                if(coll_delete_node(&Data->Level.dirty_tree, &coll)){
                     continue;
                 }
             }
@@ -614,17 +637,28 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             //Collide  avec:
             //new dx,dy
             change_zones_for_movable(Data, coll.who, 1 - time);
-            //for each in Data->Level.MovableObjects[coll.who].colls_with_mov
-            //if with_movable then in that tree remove  keys that have with == coll.who
 
             //clear collision tree
-            coll_clear_tree(&Data->Level.MovableObjects[coll.who].colls_with_mov);
+            coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
+            coll_clear_trash(Data, &Data->Level.MovableObjects[coll.who].colls_with_mov.root,
+                                   &Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
             if(coll.with_movable){
                 //if with_movable, the same for him
-                change_zones_for_movable(Data, coll.with, 1 - time);
-            }
+                //new dx, dy from collision
+                temp = coll.with;
+                coll.with = coll.who;
+                coll.who = temp;
+                change_zones_for_movable(Data, coll.who, 1 - time);
+                coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
+                coll_clear_trash(Data, &Data->Level.MovableObjects[coll.who].colls_with_mov.root,
+                                   &Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
 
-            //New collisions excluding   coll.with in who and vice versa
+                //New collisions
+                find_next_collision(Data, coll.with, coll.who, fixed_done, movable_done);
+                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done);
+            }else{
+                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done);
+            }
         }
 
         if(time < 1){

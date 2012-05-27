@@ -165,10 +165,9 @@ void load_level_from_file(struct GameSharedData *Data){
         sscanf(buffer, "%f %f %f", &Data->Level.Player->center.x,
                                    &Data->Level.Player->center.y,
                                    &Data->Level.Player->ang);
-        /**
-            Firing player constructor, that happens not to be present in the code at the moment
-            */
+
         construct_player(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -189,10 +188,10 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &op0);
 
         read_color(buffer, level, &Factory.NewRectangle->color, op0, "Invalid level input: rectangle#%d color\n", i);
-        /**
-            Firing temporarily non-existant rectangle constructor
-            */
+
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
+        get_zone_for_object(Factory.NewRectangle->center.x, Factory.NewRectangle->center.y, 0, 0, Factory.NewRectangle->r, Factory.new_zones);
+        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -210,10 +209,10 @@ void load_level_from_file(struct GameSharedData *Data){
                                         &Factory.NewCircle->r,
                                         &op0);
         read_color(buffer, level, &Factory.NewCircle->color, op0, "Invalid level input: circle#%d color\n", i);
-        get_zone_for_object(Factory.NewCircle->center.x, Factory.NewCircle->center.y, 0, 0, Factory.NewCircle->r, Factory.new_zones);
-
 
         construct_circle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
+        get_zone_for_object(Factory.NewCircle->center.x, Factory.NewCircle->center.y, 0, 0, Factory.NewCircle->r, Factory.new_zones);
+        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -232,10 +231,10 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &Factory.NewSquare->ang,
                                             &op0);
         read_color(buffer, level, &Factory.NewSquare->color, op0, "Invalid level input: square#%d color\n", i);
-        /**
-            They say this is a perfect place to run something they call "Square constructor"
-            */
+
         construct_square(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
+        get_zone_for_object(Factory.NewSquare->center.x, Factory.NewSquare->center.y, 0, 0, Factory.NewSquare->r, Factory.new_zones);
+        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -255,10 +254,10 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &Factory.NewEntrance->ang,
                                             &op0);
         read_color(buffer, level, &Factory.NewEntrance->color, op0, "Invalid level input: entrance#%d color\n", i);
-        /**
-            Enter the Matrix with my constructor that does not exist
-            */
-        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);//for the meantime
+
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
+        get_zone_for_object(Factory.NewEntrance->center.x, Factory.NewEntrance->center.y, 0, 0, Factory.NewEntrance->r, Factory.new_zones);
+        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -282,7 +281,9 @@ void load_level_from_file(struct GameSharedData *Data){
         /**
             Calling saws and hammers for constructing an exit
             */
-        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);//destroy this after righting the function!
+        construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
+        get_zone_for_object(Factory.NewExit->center.x, Factory.NewExit->center.y, 0, 0, Factory.NewExit->r, Factory.new_zones);
+        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -342,6 +343,7 @@ void load_level_from_file(struct GameSharedData *Data){
             This is the right place, yes Luke
             */
         construct_switch(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -370,6 +372,7 @@ void load_level_from_file(struct GameSharedData *Data){
             The door should be now built
             */
         construct_door(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -391,6 +394,7 @@ void load_level_from_file(struct GameSharedData *Data){
             I heard news, that here will be particle constructor
             */
         construct_particle(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     al_fclose(level);

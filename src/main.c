@@ -275,6 +275,16 @@ void heap_insert(struct collision_heap* heap, struct collision_data *collision){
         i = heap_parent(i);
     }
     heap->heap[i] = *collision;
+    /**
+        Keeping who > with order for movables
+        */
+    if(heap->heap[i].with_movable){
+        if(heap->heap[i].with < heap->heap[i].who){
+            short int temp = heap->heap[i].who;
+            heap->heap[i].who = heap->heap[i].with;
+            heap->heap[i].with = temp;
+        }
+    }
 }
 
 /**
@@ -555,6 +565,26 @@ void in_order(RB_node *root, RB_node *nil){
 }
 
 /**
+    First it's important to get fresh collision data
+    with fixed objects - that's the limit if the object
+    doesn't collide with other movable one.
+    */
+void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with){
+    struct collision_data coll = get_collision_with_movable(&Data->Level.MovableObjects[who], &Data->Level.MovableObjects[with]);
+    if(coll.time >= 0 && coll.time <= 1){
+        if(coll.time < Data->Level.MovableObjects[who].coll_with_fixed.time &&
+           coll.time < Data->Level.MovableObjects[with].coll_with_fixed.time){//otherwise it's pointless to store such information
+            coll.who = who;
+            coll.with = with;
+            coll_insert_node(&Data->Level.MovableObjects[who].colls_with_mov, &coll);
+            coll.who = with;
+            coll.with = who;
+            coll_insert_node(&Data->Level.MovableObjects[with].colls_with_mov, &coll);
+        }
+    }
+}
+
+/**
     A DFS that does something like that
     i  <--  some_value
     for(j = i + 1; j < length; ++j){
@@ -566,38 +596,51 @@ void in_order(RB_node *root, RB_node *nil){
     Obj.next_collision.who = this_object_index
     */
 
-void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil){//jeszcze parametr ommit - dla indeksu z którym się zderzył
+void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
     while(node != nil &&
-          node->key < Obj->next_collision->who){
+          node->key < who){
         node = node->right;
     }
     if(node != nil){
-        if(Obj->next_collision->who != node->key){
-            for_each_higher_check_collision(Data, movable_done, Obj, node->left, nil);
+        if(who != node->key){
+            for_each_higher_check_collision(Data, movable_done, who, node->left, nil);
             if(!movable_done[node->key]){
                 movable_done[node->key] = true;
-                //Check collision here
-                printf("%hd\n", node->key);
+                get_and_check_mov_coll_if_valid(Data, who, node->key);
             }
         }
-        in_order_check_collision(Data, movable_done, Obj, node->right, nil);
+        in_order_check_collision(Data, movable_done, who, node->right, nil);
     }
 }
-
-void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil){
+//jeszcze parametr ommit - dla indeksu z którym się zderzył; gdzie to upchnąć??
+void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
     if(node != nil){
-        in_order_check_collision(Data, movable_done, Obj, node->left, nil);
+        in_order_check_collision(Data, movable_done, who, node->left, nil);
 
         if(!movable_done[node->key]){
             movable_done[node->key] = true;
-            //Check collision here
-            printf("%hd\n", node->key);
+            get_and_check_mov_coll_if_valid(Data, who, node->key);
         }
 
-        in_order_check_collision(Data, movable_done, Obj, node->right, nil);
+        in_order_check_collision(Data, movable_done, who, node->right, nil);
     }
 }
 
+void in_order_find_new_collision(struct GameSharedData *Data, bool *movable_done, short int who, short int ommit, RB_node *node, RB_node *nil){
+    if(node != nil){
+        in_order_find_new_collision(Data, movable_done, who, ommit, node->left, nil);
+
+        if(!movable_done[node->key]){
+            movable_done[node->key] = true;
+            if(who != node->key &&
+               ommit != node->key){
+                get_and_check_mov_coll_if_valid(Data, who, node->key);
+            }
+        }
+
+        in_order_find_new_collision(Data, movable_done, who, ommit, node->right, nil);
+    }
+}
 /**
     Red-Black Tree for collisions
     */
@@ -615,6 +658,34 @@ short int coll_comp(struct collision_data *a, struct collision_data *b){
             if(a->with < b->with){
                 return LESS;
             }else if(a->with > b->with){
+                return MORE;
+            }else{
+                if((short int)a->with_movable < (short int)b->with_movable){
+                    return LESS;
+                }else if((short int)a->with_movable > (short int)b->with_movable){
+                    return MORE;
+                }else{
+                    return EQUAL;
+                }
+            }
+        }
+    }
+}
+
+short int coll_rev_comp(struct collision_data *a, struct collision_data *b){
+    if(a->time < b->time){
+        return LESS;
+    }else if(a->time > b->time){
+        return MORE;
+    }else{
+        if(a->who < b->with){
+            return LESS;
+        }else if(a->who > b->with){
+            return MORE;
+        }else{
+            if(a->with < b->who){
+                return LESS;
+            }else if(a->with > b->who){
                 return MORE;
             }else{
                 if((short int)a->with_movable < (short int)b->with_movable){
@@ -667,7 +738,7 @@ coll_node* coll_get_successor(coll_node *node, coll_node *nil){
 
 void coll_insert_node(coll_tree *tree, struct collision_data *key){
     coll_node *node = tree->root,
-            *last = tree->nil;
+              *last = tree->nil;
     short int comp = LESS;
     while(node != tree->nil){
         last = node;
@@ -908,6 +979,34 @@ void coll_rotate_right(coll_tree *tree, coll_node *node){
     }
 }
 
+void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *nil){
+    if(node != nil){
+        coll_clear_trash(Data, node->left, nil);
+        coll_clear_trash(Data, node->right, nil);
+
+        short int temp = node->key.with;
+        node->key.with = node->key.who;
+        node->key.who = temp;
+
+        temp = coll_comp(&node->key, Data->Level.MovableObjects[node->key.who].next_collision);
+        coll_delete_node(&Data->Level.MovableObjects[node->key.who].colls_with_mov, &node->key);
+        if(temp == EQUAL){
+            //mark dirty
+            temp = node->key.who;
+            if(node->key.with < node->key.who){
+                node->key.who = node->key.with;
+                node->key.with = temp;
+            }
+            coll_insert_node(&Data->Level.dirty_tree, &node->key);
+            //find new min
+            collision_min_for_object(Data, temp);
+            //push on queue //how to push so that one collision gets on queue only once?
+            heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[node->key.who].next_collision);
+        }
+        free(node);
+    }
+}
+
 /**
     Zones
     */
@@ -1063,7 +1162,7 @@ void move_objects(struct GameSharedData *Data, float t){
 
 struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what){
     struct collision_data new_coll;
-
+    new_coll.time = 5;
     //BIG SWITCH
 
     return new_coll;
@@ -1071,28 +1170,23 @@ struct collision_data get_collision_with_fixed(struct movable_object_structure *
 
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom){
     struct collision_data new_coll;
-
+    new_coll.time = 5;
     //EVEN BIGGER SWITCH
 
     return new_coll;
 }
 
-void collision_min_for_object(struct movable_object_structure *who, struct collision_data *coll){
-    if(coll->time >= 0 && coll->time <= 1){
-        if(coll->time < who->next_collision->time){
-            who->next_collision = coll;
-        }
+void collision_min_for_object(struct GameSharedData *Data, short int who){
+    if(Data->Level.MovableObjects[who].colls_with_mov.root == Data->Level.MovableObjects[who].colls_with_mov.nil){
+        Data->Level.MovableObjects[who].next_collision = &Data->Level.MovableObjects[who].coll_with_fixed;
+    }else{
+        Data->Level.MovableObjects[who].next_collision = &(coll_get_minimum(Data->Level.MovableObjects[who].colls_with_mov.root,
+                                                                              Data->Level.MovableObjects[who].colls_with_mov.nil)->key);
     }
 }
 
-/**
-    Requires setting the-who field
-    */
-
-void find_next_collision(struct GameSharedData *Data, short int index){
+void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done){
     struct collision_data new_coll;
-    bool fixed_done[Data->Level.number_of_fixed_objects],
-         movable_done[Data->Level.number_of_movable_objects];
     int i, j, k;
     for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
         fixed_done[i] = false;
@@ -1100,7 +1194,9 @@ void find_next_collision(struct GameSharedData *Data, short int index){
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         movable_done[i] = false;
     }
-
+    new_coll.who = index;
+    new_coll.with_movable = false;
+    Data->Level.MovableObjects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
     for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
             for(k = 0; k < Data->Level.zones[i][j].number_of_fixed; ++k){
@@ -1108,11 +1204,31 @@ void find_next_collision(struct GameSharedData *Data, short int index){
                     fixed_done[Data->Level.zones[i][j].fixed[k]] = true;
                     new_coll = get_collision_with_fixed(&Data->Level.MovableObjects[index],
                                                         &Data->Level.FixedObjects[Data->Level.zones[i][j].fixed[k]]);
-                    collision_min_for_object(&Data->Level.MovableObjects[index], &new_coll);
+                    if(new_coll.time >= 0 && new_coll.time <= 1){
+                        if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
+                            new_coll.with = Data->Level.zones[i][j].fixed[k];
+                            Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
+                        }
+                    }
                 }
+
             }
-            for_each_higher_check_collision(Data, movable_done, &Data->Level.MovableObjects[index], Data->Level.zones[i][j].movable.root, Data->Level.zones[i][j].movable.nil);
         }
+    }
+    for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
+        for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
+            for_each_higher_check_collision(Data, movable_done,
+                                            index,
+                                            Data->Level.zones[i][j].movable.root,
+                                            Data->Level.zones[i][j].movable.nil);
+        }
+    }
+
+    collision_min_for_object(Data, index);
+
+    //push on queue  //heap checks if who < with and does necessary exchanges
+    if(Data->Level.MovableObjects[index].next_collision->time != EMPTY_COLLISION_TIME){
+        heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[index].next_collision);
     }
 }
 
@@ -1393,13 +1509,10 @@ void construct_rectangle(struct fixed_object_structure *Object){
 void construct_door(struct movable_object_structure *Object){
     #define Data ((struct doorData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    //Object->next_collision->time = 10;//just something bigger than 1
 
     Object->draw = draw_door;
     Data->vx = 0;
     Data->vy = 0;
-    Object->dx = 0;
-    Object->dy = 0;
 
     #undef Data
 }
@@ -1407,27 +1520,21 @@ void construct_door(struct movable_object_structure *Object){
 void construct_switch(struct movable_object_structure *Object){
     #define Data ((struct switchData*)(Object->ObjectData))
     construct_rectangle((struct fixed_object_structure*)Object);
-    //Object->next_collision->time = 10;
 
     Object->draw = draw_switch;
     Data->vx = 0;
     Data->vy = 0;
-    Object->dx = 0;
-    Object->dy = 0;
 
     #undef Data
 }
 
 void construct_player(struct movable_object_structure *Object){
     #define Data ((struct playerData*)(Object->ObjectData))
-    //Object->next_collision->time = 10;
 
     Object->draw = draw_player;
     Object->r = rPlayer;
     Data->vx = 0;
     Data->vy = 0;
-    Object->dx = 0;
-    Object->dy = 0;
     Data->engine_state = 0;
     Data->mass = PLAYER_MASS;
     Data->charge = 0;
@@ -1439,17 +1546,21 @@ void construct_player(struct movable_object_structure *Object){
 
 void construct_particle(struct movable_object_structure *Object){
     #define Data ((struct particleData*)(Object->ObjectData))
-    //Object->next_collision->time = 10;
     Object->draw = draw_particle;
     Object->r = rCircle;
     Data->vx = 0;
     Data->vy = 0;
-    Object->dx = 0;
-    Object->dy = 0;
     Data->surface_field = Data->r * Data->r * PI;
     #undef Data
 }
 
+void construct_movable(struct GameSharedData *Data, struct movable_object_structure *Object){
+    Object->dx = 0;
+    Object->dy = 0;
+    Object->colls_with_mov.nil = Data->Level.dirty_tree.nil;
+    Object->colls_with_mov.root = Data->Level.dirty_tree.nil;
+    Object->next_collision = &Data->Level.dirty_tree.nil->key;
+}
 /**
     Arrays interface
     */
@@ -1881,6 +1992,14 @@ int main(){
             Data.Level.zones[i][j].fixed = (short int*)malloc(sizeof(short int) * INITIAL_FIXED_PER_ZONE);
         }
     }
+
+    Data.Level.dirty_tree.nil = (coll_node*)malloc(sizeof(coll_node));
+    Data.Level.dirty_tree.nil->color = BLACK;
+    Data.Level.dirty_tree.nil->key.time = EMPTY_COLLISION_TIME;
+    Data.Level.dirty_tree.nil->key.who = -10;
+    Data.Level.dirty_tree.nil->key.with = -20;
+    Data.Level.dirty_tree.nil->key.with_movable = false;
+    Data.Level.dirty_tree.root = Data.Level.dirty_tree.nil;
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
     Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;

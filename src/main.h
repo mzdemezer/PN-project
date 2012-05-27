@@ -404,6 +404,7 @@ struct level_structure{
 
     struct zone zones[ZONE_FACTOR][ZONE_FACTOR];
     struct collision_heap collision_queue;
+    coll_tree dirty_tree;
 
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
@@ -534,14 +535,15 @@ void rotate_left(RB_tree *tree, RB_node *node);
 void rotate_right(RB_tree *tree, RB_node *node);
 
 void in_order(RB_node *root, RB_node *nil);
-void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil);
-void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil);
+void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
+void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
 
 //Red-Black Tree for collisions
 #define LESS -1
 #define MORE 1
 #define EQUAL 0
 short int coll_comp(struct collision_data *a, struct collision_data *b);
+short int coll_rev_comp(struct collision_data *a, struct collision_data *b);
 coll_node* coll_get_node(coll_tree *tree, struct collision_data *key);
 coll_node* coll_get_minimum(coll_node *node, coll_node *nil);
 coll_node* coll_get_successor(coll_node *node, coll_node *nil);
@@ -573,11 +575,13 @@ void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones
 void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
 
 //Colisions
+#define EMPTY_COLLISION_TIME 10
 void move_objects(struct GameSharedData *Data, float t);
 struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what);
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
-void collision_min_for_object(struct movable_object_structure *who, struct collision_data *coll);
-void find_next_collision(struct GameSharedData *Data, short int index);
+void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with);
+void collision_min_for_object(struct GameSharedData *Data, short int who);
+void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done);
 
 
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
@@ -610,6 +614,7 @@ void construct_player(struct movable_object_structure *);
 void construct_particle(struct movable_object_structure *);
 void construct_door(struct movable_object_structure *);
 void construct_switch(struct movable_object_structure *);
+void construct_movable(struct GameSharedData *Data, struct movable_object_structure *Object);
 
 //Math
 int int_abs(int);
