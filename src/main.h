@@ -537,6 +537,7 @@ void rotate_right(RB_tree *tree, RB_node *node);
 void in_order(RB_node *root, RB_node *nil);
 void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
 void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
+void in_order_find_new_collision(struct GameSharedData *Data, bool *movable_done, short int who, short int ommit, RB_node *node, RB_node *nil, float time_passed);
 
 //Red-Black Tree for collisions
 #define LESS -1
@@ -552,6 +553,7 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key);
 void coll_delete_fixup(coll_tree *tree, coll_node *node);
 void coll_clear_nodes(coll_node *node, coll_node *nil);
 void coll_clear_tree(coll_tree *tree);
+void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *nil);
 inline bool coll_is_left(coll_node *node);
 void coll_rotate_left(coll_tree *tree, coll_node *node);
 void coll_rotate_right(coll_tree *tree, coll_node *node);
@@ -576,18 +578,24 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
 
 //Colisions
 #define EMPTY_COLLISION_TIME 10
+float check_collision_between_two_balls(double x, double y, float dx, float dy, double d);
 void move_objects(struct GameSharedData *Data, float t);
 struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what);
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
-void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with);
+void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, float time_passed);
 void collision_min_for_object(struct GameSharedData *Data, short int who);
-void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done);
+void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done, float time_passed);
 
 
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
 void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);
-
+void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt);
+void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
+                                              float dx, float dy, float m1, float m2, float restitution);
+#define PLAYER_TO_PLAYER_RESTITUTION 1
+#define PLAYER_TO_PARTICLE_RESTITUTION 1
+#define PARTICLE_TO_PARTICLE_RESTITUTION 1
 //Draw
 
 #define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)

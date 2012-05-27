@@ -636,12 +636,15 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             time = coll.time;
             //Collide  avec:
             //new dx,dy
+            collide(Data, coll.who, coll.with, coll.with_movable, Data->Level.dt);
             change_zones_for_movable(Data, coll.who, 1 - time);
 
             //clear collision tree
             coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
-            coll_clear_trash(Data, &Data->Level.MovableObjects[coll.who].colls_with_mov.root,
-                                   &Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
+            coll_clear_trash(Data, Data->Level.MovableObjects[coll.who].colls_with_mov.root,
+                                   Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
+            Data->Level.MovableObjects[coll.who].colls_with_mov.root = Data->Level.MovableObjects[coll.who].colls_with_mov.nil;
+
             if(coll.with_movable){
                 //if with_movable, the same for him
                 //new dx, dy from collision
@@ -650,14 +653,15 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 coll.who = temp;
                 change_zones_for_movable(Data, coll.who, 1 - time);
                 coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
-                coll_clear_trash(Data, &Data->Level.MovableObjects[coll.who].colls_with_mov.root,
-                                   &Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
+                coll_clear_trash(Data, Data->Level.MovableObjects[coll.who].colls_with_mov.root,
+                                       Data->Level.MovableObjects[coll.who].colls_with_mov.nil);
+                Data->Level.MovableObjects[coll.who].colls_with_mov.root = Data->Level.MovableObjects[coll.who].colls_with_mov.nil;
 
                 //New collisions
-                find_next_collision(Data, coll.with, coll.who, fixed_done, movable_done);
-                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done);
+                find_next_collision(Data, coll.with, coll.who, fixed_done, movable_done, time);
+                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done, time);
             }else{
-                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done);
+                find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
             }
         }
 
