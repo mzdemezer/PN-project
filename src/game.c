@@ -323,8 +323,16 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Data->DrawCall = true;
         al_unlock_mutex(Data->MutexDrawCall);
 
+        /**
+            After-after work, that can be done
+            after sending ready-draw signal;
+            clean-up
+            */
         parity = !parity;
         imparity = !imparity;
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            coll_clear_tree(&Data->Level.MovableObjects[i].colls_with_mov);
+        }
 
         if(!al_get_thread_should_stop(thread)){
             al_lock_mutex(Data->MutexMainIteration);
@@ -594,6 +602,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             for(j = 0; j < Data->Level.number_of_fixed_objects; ++j){
                 fixed_done[j] = false;
             }
+            Data->Level.MovableObjects[i].coll_with_fixed.time = EMPTY_COLLISION_TIME;
             for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
                 for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
                     for(l = 0; l < Data->Level.zones[j][k].number_of_fixed; ++l){
@@ -617,11 +626,27 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
                 movable_done[j] = false;
             }
-            ;//find among movables
+            for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
+                for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
+                    for_each_higher_check_collision(Data, movable_done, (short int)i,
+                                                    Data->Level.zones[j][k].movable.root,
+                                                    Data->Level.zones[j][k].movable.nil);
+                }
+            }
+            collision_min_for_object(Data, i);
+            if(Data->Level.MovableObjects[i].next_collision->time >= 0 &&
+               Data->Level.MovableObjects[i].next_collision->time <= 1){
+                if(!(Data->Level.MovableObjects[i].next_collision->with_movable &&
+                     Data->Level.MovableObjects[i].next_collision->with < Data->Level.MovableObjects[i].next_collision->who &&
+                     coll_rev_comp(Data->Level.MovableObjects[i].next_collision,
+                                   Data->Level.MovableObjects[Data->Level.MovableObjects[i].next_collision->with].next_collision) == EQUAL)){
+                    heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[i].next_collision);
+                }
+            }
         }
-
+        printf("heap size: %d\n", Data->Level.collision_queue.length);
         while(Data->Level.collision_queue.length > 0){
-            coll = pop_min(&Data->Level.collision_queue);
+            coll = pop_min(&Data->Level.collision_queue);//printf("%f\n", coll.time);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
                 //check if dirty
                 //for each: who is the one, with is the other one
@@ -632,7 +657,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                     continue;
                 }
             }
-            move_objects(Data, coll.time - time);
+            move_objects(Data, coll.time - time);printf("moved by: %f\n", coll.time - time);
             time = coll.time;
             //Collide  avec:
             //new dx,dy

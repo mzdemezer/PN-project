@@ -373,7 +373,7 @@ struct keyboard_structure{
 
 struct zone{
     RB_tree movable;
-    short int number_of_fixed, allocated;
+    int number_of_fixed, allocated;
     short int *fixed;
 };
 
@@ -387,7 +387,7 @@ struct move_arrays{
 };
 
 #define ZONE_FACTOR 50
-#define ZONE_SIZE SCREEN_BUFFER_HEIGHT / ZONE_FACTOR
+#define ZONE_SIZE (SCREEN_BUFFER_HEIGHT / ZONE_FACTOR)
 #define INITIAL_FIXED_PER_ZONE 64
 #define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 
@@ -557,6 +557,7 @@ void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *n
 inline bool coll_is_left(coll_node *node);
 void coll_rotate_left(coll_tree *tree, coll_node *node);
 void coll_rotate_right(coll_tree *tree, coll_node *node);
+void coll_in_order(coll_node *root, coll_node *nil);
 
 //Heap for collision
 void construct_heap(struct collision_heap* heap, int size);
@@ -629,6 +630,7 @@ int int_abs(int);
 float float_abs(float);
 double double_abs(double);
 float float_min(float, float);
+inline double double_min(double a, double b);
 int sign(float);
 float norm(float fi);
 

@@ -265,6 +265,10 @@ struct collision_data pop_min(struct collision_heap* heap){
 
 void heap_insert(struct collision_heap* heap, struct collision_data *collision){
     heap->length += 1;
+    printf("inserted: %.3f, %hd - %hd, %d\n", collision->time,
+                                              collision->who,
+                                              collision->with,
+                                              (int)collision->with_movable);
     if(heap->length > heap->allocated){
         heap->allocated <<= 1;
         heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
@@ -581,6 +585,9 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
             coll.who = with;
             coll.with = who;
             coll_insert_node(&Data->Level.MovableObjects[with].colls_with_mov, &coll);
+            if(time_passed > 0){
+                ;//check if DIRTY things happen
+            }
         }
     }
 }
@@ -592,9 +599,6 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
         DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF
         DO_MORE_STUFF
     }
-
-    For collisions requires setting
-    Obj.next_collision.who = this_object_index
     */
 
 void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
@@ -613,7 +617,7 @@ void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_
         in_order_check_collision(Data, movable_done, who, node->right, nil);
     }
 }
-//jeszcze parametr ommit - dla indeksu z którym się zderzył; gdzie to upchnąć??
+
 void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
     if(node != nil){
         in_order_check_collision(Data, movable_done, who, node->left, nil);
@@ -1008,13 +1012,34 @@ void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *n
     }
 }
 
+
+void coll_in_order(coll_node *root, coll_node *nil){
+    if(root != nil){
+        coll_in_order(root->left, nil);
+
+        printf("%f\n", root->key.time);
+
+        coll_in_order(root->right, nil);
+    }
+}
+
 /**
     Zones
     */
 
 void get_zone(float x, float y, short int *zone){
     zone[0] = (short int)((int)x / ZONE_SIZE);
+    if(zone[0] < 0){
+        zone[0] = 0;
+    }else if(zone[0] >= ZONE_FACTOR){
+        zone[0] = ZONE_FACTOR - 1;
+    }
     zone[1] = (short int)((int)y / ZONE_SIZE);
+    if(zone[1] < 0){
+        zone[1] = 0;
+    }else if(zone[1] >= ZONE_FACTOR){
+        zone[1] = ZONE_FACTOR - 1;
+    }
 }
 
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone){
@@ -1026,9 +1051,11 @@ void get_zone_for_object(float x, float y, float dx, float dy, float r0, short i
 
 void add_fixed_to_zone(struct zone* zone, short int key){
     if(zone->number_of_fixed == zone->allocated){
-        zone->allocated <<= 1;
+        zone->allocated *= 2;
         zone->fixed = (short int*)realloc(zone->fixed, sizeof(short int) * zone->allocated);
     }
+
+    //printf("%d at %d\n", (int)zone->fixed, zone->number_of_fixed);
     zone->fixed[zone->number_of_fixed] = key;
     zone->number_of_fixed += 1;
 }
@@ -1223,7 +1250,7 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
 
 struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what){
     struct collision_data new_coll;
-    new_coll.time = 5;
+    new_coll.time = EMPTY_COLLISION_TIME;
     //BIG SWITCH
 
     return new_coll;
@@ -1231,8 +1258,59 @@ struct collision_data get_collision_with_fixed(struct movable_object_structure *
 
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom){
     struct collision_data new_coll;
-    new_coll.time = 5;
-    //EVEN BIGGER SWITCH
+    new_coll.time = EMPTY_COLLISION_TIME;
+    switch(who->Type){
+        case motPLAYER:
+            #define WHO_PLAYER ((struct playerData*)who->ObjectData)
+            switch(with_whom->Type){
+                case motPLAYER:
+                    #define WITH_PLAYER ((struct playerData*)with_whom->ObjectData)
+                    new_coll.time = check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_PLAYER->center.y - WHO_PLAYER->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PLAYER->r + WHO_PLAYER->r);
+                    #undef WITH_PLAYER
+                    break;
+                case motPARTICLE:
+                    #define WITH_PARTICLE ((struct particleData*)with_whom->ObjectData)
+                    new_coll.time = check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PARTICLE->r + WHO_PLAYER->r);
+                    #undef WITH_PARTICLE
+                    break;
+                default:
+                    break;
+            }
+            #undef WHO_PLAYER
+            break;
+        case motPARTICLE:
+            #define WHO_PARTICLE ((struct particleData*)who->ObjectData)
+            switch(with_whom->Type){
+                case motPLAYER:
+                    #define WITH_PLAYER ((struct playerData*)with_whom->ObjectData)
+                    new_coll.time = check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
+                                                                      WITH_PLAYER->center.y - WHO_PARTICLE->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PLAYER->r + WHO_PARTICLE->r);
+                    #undef WITH_PLAYER
+                    break;
+                case motPARTICLE:
+                    #define WITH_PARTICLE ((struct particleData*)with_whom->ObjectData)
+                    new_coll.time = check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PARTICLE->center.x,
+                                                                      WITH_PARTICLE->center.y - WHO_PARTICLE->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PARTICLE->r + WHO_PARTICLE->r);
+                    #undef WITH_PARTICLE
+                    break;
+                default:
+                    break;
+            }
+            #undef WHO_PARTICLE
+            break;
+        default:
+            break;
+    }
 
     return new_coll;
 }
@@ -1290,7 +1368,8 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
     collision_min_for_object(Data, index);
 
     //push on queue  //heap checks if who < with and does necessary exchanges
-    if(Data->Level.MovableObjects[index].next_collision->time <= 1){
+    if(Data->Level.MovableObjects[index].next_collision->time <= 1 &&
+       Data->Level.MovableObjects[index].next_collision->time >= 0){
         heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[index].next_collision);
     }
 }
@@ -1688,6 +1767,7 @@ void construct_door(struct movable_object_structure *Object){
     Object->draw = draw_door;
     Data->vx = 0;
     Data->vy = 0;
+    get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, Object->zones);
 
     #undef Data
 }
@@ -1699,6 +1779,7 @@ void construct_switch(struct movable_object_structure *Object){
     Object->draw = draw_switch;
     Data->vx = 0;
     Data->vy = 0;
+    get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, Object->zones);
 
     #undef Data
 }
@@ -1715,7 +1796,7 @@ void construct_player(struct movable_object_structure *Object){
     Data->charge = 0;
     Data->r = PLAYER_RADIUS;
     Data->r0 = PLAYER_RADIUS;
-
+    get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, Object->zones);
     #undef Data
 }
 
@@ -1726,6 +1807,7 @@ void construct_particle(struct movable_object_structure *Object){
     Data->vx = 0;
     Data->vy = 0;
     Data->surface_field = Data->r * Data->r * PI;
+    get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, Object->zones);
     #undef Data
 }
 
