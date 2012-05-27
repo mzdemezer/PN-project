@@ -208,6 +208,7 @@ typedef struct RB_tree{
 typedef struct coll_node{
     struct collision_data key;
     bool color;
+    short int counter;
     struct coll_node *left, *right, *parent;
 }coll_node;
 
@@ -537,8 +538,10 @@ void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_
 void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, struct movable_object_structure *Obj, RB_node *node, RB_node *nil);
 
 //Red-Black Tree for collisions
-inline bool coll_comp(struct collision_data *a, struct collision_data *b);
-inline bool coll_rev_comp(struct collision_data *a, struct collision_data *b);
+#define LESS -1
+#define MORE 1
+#define EQUAL 0
+short int coll_comp(struct collision_data *a, struct collision_data *b);
 coll_node* coll_get_node(coll_tree *tree, struct collision_data *key);
 coll_node* coll_get_minimum(coll_node *node, coll_node *nil);
 coll_node* coll_get_successor(coll_node *node, coll_node *nil);

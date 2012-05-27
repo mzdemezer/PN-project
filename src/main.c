@@ -601,27 +601,42 @@ void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, s
 /**
     Red-Black Tree for collisions
     */
-inline bool coll_comp(struct collision_data *a, struct collision_data *b){
-    return a->time == b->time &&
-           a->with_movable == b->with_movable &&
-           a->who == b->who &&
-           a->with == b->with;
-}
-
-/**
-    To check if collisions in DIFFERENT trees are equal
-    */
-inline bool coll_rev_comp(struct collision_data *a, struct collision_data *b){
-    return a->time == b->time &&
-           a->with_movable == b->with_movable &&
-           a->who == b->with &&
-           a->with == b->who;
+short int coll_comp(struct collision_data *a, struct collision_data *b){
+    if(a->time < b->time){
+        return LESS;
+    }else if(a->time > b->time){
+        return MORE;
+    }else{
+        if(a->who < b->who){
+            return LESS;
+        }else if(a->who > b->who){
+            return MORE;
+        }else{
+            if(a->with < b->with){
+                return LESS;
+            }else if(a->with > b->with){
+                return MORE;
+            }else{
+                if((short int)a->with_movable < (short int)b->with_movable){
+                    return LESS;
+                }else if((short int)a->with_movable > (short int)b->with_movable){
+                    return MORE;
+                }else{
+                    return EQUAL;
+                }
+            }
+        }
+    }
 }
 
 coll_node* coll_get_node(coll_tree *tree, struct collision_data *key){
     coll_node *node = tree->root;
-    while((node != tree->nil) && coll_comp(key, &node->key)){
-        if(key->time < node->key.time){
+    short int comp;
+    while((node != tree->nil)){
+        comp = coll_comp(key, &node->key);
+        if(comp == EQUAL){
+            break;
+        }else if(comp == LESS){
             node = node->left;
         }else{
             node = node->right;
@@ -653,68 +668,76 @@ coll_node* coll_get_successor(coll_node *node, coll_node *nil){
 void coll_insert_node(coll_tree *tree, struct collision_data *key){
     coll_node *node = tree->root,
             *last = tree->nil;
+    short int comp = LESS;
     while(node != tree->nil){
         last = node;
-        if(key->time < node->key.time){
+        comp = coll_comp(key, &node->key);
+        if(comp == EQUAL){
+            break;
+        }else if(comp == LESS){
             node = node->left;
         }else{
             node = node->right;
         }
     }
-
-    node = (coll_node*)malloc(sizeof(coll_node));
-    node->left = tree->nil;
-    node->right = tree->nil;
-    node->parent = last;
-    node->key = *key;
-
-    if(last == tree->nil){
-        tree->root = node;
-        node->color = BLACK;
+    if(comp == EQUAL){
+        node->counter += 1;
     }else{
-        if(key->time < last->key.time){
-            last->left = node;
-        }else{
-            last->right = node;
-        }
+        node = (coll_node*)malloc(sizeof(coll_node));
+        node->left = tree->nil;
+        node->right = tree->nil;
+        node->parent = last;
+        node->counter = 1;
+        node->key = *key;
 
-        node->color = RED;
-        while(node != tree->root && node->parent->color == RED){
-            if(coll_is_left(node->parent)){
-                last = node->parent->parent->right;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->right){//2nd CASE --> 3rd
-                        node = node->parent;
-                        coll_rotate_left(tree, node);
-                    }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    coll_rotate_right(tree, node->parent->parent);
-                }
+        if(last == tree->nil){
+            tree->root = node;
+            node->color = BLACK;
+        }else{
+            if(key->time < last->key.time){
+                last->left = node;
             }else{
-                last = node->parent->parent->left;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->left){//2nd CASE --> 3rd
-                        node = node->parent;
-                        coll_rotate_right(tree, node);
+                last->right = node;
+            }
+
+            node->color = RED;
+            while(node != tree->root && node->parent->color == RED){
+                if(coll_is_left(node->parent)){
+                    last = node->parent->parent->right;
+                    if(last->color == RED){//1st CASE
+                        node->parent->color = BLACK;
+                        last->color = BLACK;
+                        node->parent->parent->color = RED;
+                        node = node->parent->parent;
+                    }else{
+                        if(node == node->parent->right){//2nd CASE --> 3rd
+                            node = node->parent;
+                            coll_rotate_left(tree, node);
+                        }
+                        node->parent->color = BLACK;//3rd CASE
+                        node->parent->parent->color = RED;
+                        coll_rotate_right(tree, node->parent->parent);
                     }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    coll_rotate_left(tree, node->parent->parent);
+                }else{
+                    last = node->parent->parent->left;
+                    if(last->color == RED){//1st CASE
+                        node->parent->color = BLACK;
+                        last->color = BLACK;
+                        node->parent->parent->color = RED;
+                        node = node->parent->parent;
+                    }else{
+                        if(node == node->parent->left){//2nd CASE --> 3rd
+                            node = node->parent;
+                            coll_rotate_right(tree, node);
+                        }
+                        node->parent->color = BLACK;//3rd CASE
+                        node->parent->parent->color = RED;
+                        coll_rotate_left(tree, node->parent->parent);
+                    }
                 }
             }
+            tree->root->color = BLACK;
         }
-        tree->root->color = BLACK;
     }
 }
 
@@ -723,36 +746,40 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key){
     if(node == tree->nil){
         return false;
     }else{
-        coll_node *y, *x;
-        if(node->left == tree->nil || node->right == tree->nil){
-            y = node;
-        }else{
-            y = coll_get_successor(node, tree->nil);
-        }
-        if(y->left != tree->nil){
-            x = y->left;
-        }else{
-            x = y->right;
-        }
+        node->counter -= 1;
+        if(node->counter == 0){
+            coll_node *y, *x;
+            if(node->left == tree->nil || node->right == tree->nil){
+                y = node;
+            }else{
+                y = coll_get_successor(node, tree->nil);
+            }
+            if(y->left != tree->nil){
+                x = y->left;
+            }else{
+                x = y->right;
+            }
 
-        x->parent = y->parent;
+            x->parent = y->parent;
 
-        if(y->parent == tree->nil){
-            tree->root = x;
-        }else if(coll_is_left(y)){
-            y->parent->left = x;
-        }else{
-            y->parent->right = x;
-        }
-        if(y != node){
-            node->key = y->key;
-        }
+            if(y->parent == tree->nil){
+                tree->root = x;
+            }else if(coll_is_left(y)){
+                y->parent->left = x;
+            }else{
+                y->parent->right = x;
+            }
+            if(y != node){
+                node->key = y->key;
+                node->counter = y->counter;
+            }
 
-        if(y->color == BLACK){
-            coll_delete_fixup(tree, x);
-        }
+            if(y->color == BLACK){
+                coll_delete_fixup(tree, x);
+            }
 
-        free(y);
+            free(y);
+        }
         return true;
     }
 }
