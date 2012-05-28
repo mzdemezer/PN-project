@@ -266,8 +266,8 @@ struct collision_data pop_min(struct collision_heap* heap){
 void heap_insert(struct collision_heap* heap, struct collision_data *collision){
     heap->length += 1;
     if(heap->length > heap->allocated){
-        heap->allocated <<= 1;
-        heap->heap = (struct collision_data*)realloc(heap->heap, heap->allocated + 1);
+        heap->allocated *= 2;
+        heap->heap = (struct collision_data*)realloc(heap->heap, sizeof(struct collision_data) * (heap->allocated + 1));
     }
     int i = heap->length;
     while(i > 1 && heap->heap[heap_parent(i)].time > collision->time){
@@ -1105,7 +1105,11 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         if(newz(0) > oldz[0]){
             for(i = oldz[0]; i < newz(0); ++i){
                 for(j = oldz[1]; j <= oldz[3]; ++j){
-                    delete_node(&Zonez(i, j).movable, index);
+                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
+                    if(nd == Zonez(i, j).movable.nil){
+                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
+                    }else{//printf("no nil, key: %hd\n", nd->key);
+                    delete_node(&Zonez(i, j).movable, index);}
                 }
             }
         }else{
@@ -1119,7 +1123,11 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         if(oldz[2] > newz(2)){
             for(i = newz(2) + 1; i <= oldz[2]; ++i){
                 for(j = oldz[1]; j <= oldz[3]; ++j){
-                    delete_node(&Zonez(i, j).movable, index);
+                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
+                    if(nd == Zonez(i, j).movable.nil){
+                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
+                    }else{
+                    delete_node(&Zonez(i, j).movable, index);}
                 }
             }
         }else{
@@ -1142,7 +1150,11 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         }else{
             for(i = xleft; i <= xright; ++i){
                 for(j = oldz[1]; j < newz(1); ++j){
-                    delete_node(&Zonez(i, j).movable, index);
+                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
+                    if(nd == Zonez(i, j).movable.nil){
+                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
+                    }else{
+                    delete_node(&Zonez(i, j).movable, index);}
                 }
             }
         }
@@ -1156,14 +1168,22 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         }else{
             for(i = xleft; i <= xright; ++i){
                 for(j = newz(3) + 1; j <= oldz[3]; ++j){
-                    delete_node(&Zonez(i, j).movable, index);
+                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
+                    if(nd == Zonez(i, j).movable.nil){
+                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
+                    }else{
+                    delete_node(&Zonez(i, j).movable, index);}
                 }
             }
         }
     }else{
         for(i = oldz[0]; i <= oldz[2]; ++i){
             for(j = oldz[1]; j <= oldz[3]; ++j){
-                delete_node(&Zonez(i, j).movable, index);
+                RB_node * nd = get_node(&Zonez(i, j).movable, index);
+                    if(nd == Zonez(i, j).movable.nil){
+                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
+                    }else{
+                delete_node(&Zonez(i, j).movable, index);}
             }
         }
 

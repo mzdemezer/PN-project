@@ -309,6 +309,25 @@ void testRBtree_height(CuTest *tc){
     free(tree.nil);
 }
 
+void testRBtree_massive_delete(CuTest *tc){
+    RB_tree tree;
+    tree.nil = (RB_node*)malloc(sizeof(RB_node));
+    tree.nil->color = BLACK;
+    tree.nil->key = -10;
+
+    tree.root = tree.nil;
+    int i;
+    for(i = 32000; i >= 0; --i){
+        insert_node(&tree, i);
+    }
+    for(i = 0; i <= 32000; ++i){
+        delete_node(&tree, i);
+    }
+
+    CuAssertTrue(tc, tree.root == tree.nil);
+    free(tree.nil);
+}
+
 void test_heap_left01(CuTest *tc){
     CuAssertTrue(tc, heap_left(1) == 2);
 }
@@ -519,6 +538,7 @@ void test_heap05(CuTest *tc){
     min.time = 0.009;
     heap_insert(&heap, &min);
     min = pop_min(&heap);
+
     CuAssertTrue(tc, float_abs(min.time - 0.009) < eps);
 
     free(heap.heap);
@@ -620,6 +640,8 @@ CuSuite* mainGetSuite(void){
     SUITE_ADD_TEST(suite, testRBtree_delete);
     SUITE_ADD_TEST(suite, testRBtree_delete_is_root_nil);
     SUITE_ADD_TEST(suite, testRBtree_height);
+    SUITE_ADD_TEST(suite, testRBtree_massive_delete);
+
 
     SUITE_ADD_TEST(suite, test_heap_left01);
     SUITE_ADD_TEST(suite, test_heap_left02);

@@ -413,9 +413,9 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
                         dy = (double)Acc[j].y - (double)Acc[i].y;
                         d = dx * dx + dy * dy;
                         r = r1 + r2;
-                        r *= r;
-                        if(r > d){
-                            m2 *= m1 * (GRAV / r);
+                        if(r * r > d){
+                            d = sqrt(d);
+                            m2 *= m1 * (GRAV / r * r);// * (d / r);
                         }else{
                             m2 *= m1 * (GRAV / d);
                         }
@@ -449,16 +449,18 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
     Electrostatics
     */
 
-bool get_elec_data(struct movable_object_structure *Obj, double *charge){
+bool get_elec_data(struct movable_object_structure *Obj, double *charge, double *r){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
             *charge = ObData->charge;
+            *r = ObData->r;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
             *charge = ObData->charge;
+            *r = ObData->r;
             #undef ObData
             return true;
         default:
@@ -470,7 +472,7 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
     int i, j;
-    double q1, q2, dx, dy;
+    double q1, q2, dx, dy, r, r1, r2, d;
 
 
     StopThread(1, Data, thread);
@@ -483,14 +485,21 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
             Acc[i].ay[3] = 0;
         }
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_elec_data(&(Data->Level.MovableObjects[i]), &q1)){
+            if(get_elec_data(&(Data->Level.MovableObjects[i]), &q1, &r1)){
                 for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
-                    if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2)){
+                    if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2, &r2)){
                         q2 *= q1;
                         if(q2){
                             dx = (double)Acc[j].x - (double)Acc[i].x;
                             dy = (double)Acc[j].y - (double)Acc[i].y;
-                            q2 *= (COULOMB / (dx * dx + dy * dy));//add linear for collision
+                            d = dx * dx + dy * dy;
+                            r = r1 + r2;
+                            if(r * r > d){
+                                d = sqrt(d);
+                                q2 *= (COULOMB / r * r);// * (d / r);
+                            }else{
+                                q2 *= (COULOMB / d);//add linear for collision
+                            }
                             dy = VectorAngle(dx, dy);
                             dx = cos(dy);
                             dy = sin(dy);
@@ -657,7 +666,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                     heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[i].next_collision);
                 }
             }
-        }
+        }/*
         while(Data->Level.collision_queue.length > 0){
             coll = pop_min(&Data->Level.collision_queue);printf("%f\n", coll.time);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
@@ -701,7 +710,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }else{
                 find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
             }
-        }
+        }*/
 
         if(time < 1){
             move_objects(Data, 1 - time);
