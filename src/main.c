@@ -423,34 +423,64 @@ void delete_node(RB_tree *tree, short int key){
         }
 
         if(y->color == BLACK){
+            if(x == tree->nil){
+                printf("nil in fixup\n");
+            }
             RB_delete_fixup(tree, x);
+            if(x == tree->nil){
+                printf("nil was ok\n");
+            }
         }
-
+        if(y == tree->nil){
+                printf("\nfreeing nil!!!!\n");
+            }
         free(y);
     }
 }
 
 void RB_delete_fixup(RB_tree *tree, RB_node *node){
-    RB_node *sibl;
+    RB_node *sibl;printf("FIXUP node: %p, root: %p, nil: %p\n", node, tree->root, tree->nil);
     while(node != tree->root && node->color == BLACK){
         if(is_left(node)){
             sibl = node->parent->right;
-            if(sibl->color == RED){//1st CASE
+            printf("FIXUP left\n");
+            if(sibl == NULL)printf("sibl NULL!!!!!");
+            else
+            printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+            if(sibl->color == RED){printf("FIXUP #1: %p <-- root %p --> %p, nil %p, sibl %p, node %p\n", tree->root->left, tree->root, tree->root->right, tree->nil, sibl, node);
+                //1st CASE
                 sibl->color = BLACK;
                 sibl->parent->color = RED;
                 rotate_left(tree, node->parent);
                 sibl = node->parent->right;
             }
-            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){printf("FIXUP #2: %p <-- root %p --> %p, nil %p, sibl %p, node %p\n", tree->root->left, tree->root, tree->root->right, tree->nil, sibl, node);
+                //2nd CASE
                 sibl->color = RED;
                 node = node->parent;
             }else{
-                if(sibl->right->color == BLACK){//3th CASE --> 4th
+                if(sibl->right->color == BLACK){
+                    printf("FIXUP #3:\n");
+                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
+                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
+                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
+                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
+                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    //3th CASE --> 4th
                     sibl->left->color = BLACK;
-                    sibl->color = RED;
-                    rotate_right(tree, sibl);
+                    sibl->color = RED;printf("sibl before:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    rotate_right(tree, sibl);printf("sibl after:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
                     sibl = node->parent->right;
+                    if(sibl == tree->nil){
+                        sibl = node->parent->parent;
+                    }
                 }
+                printf("FIXUP #4:\n");
+                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
+                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
+                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
+                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
+                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
                 sibl->right->color = BLACK;
@@ -459,22 +489,44 @@ void RB_delete_fixup(RB_tree *tree, RB_node *node){
             }
         }else{
             sibl = node->parent->left;
-            if(sibl->color == RED){//1st CASE
+            printf("FIXUP right\n");
+            if(sibl == NULL)printf("sibl NULL!!!!!");
+            else
+            printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+            if(sibl->color == RED){
+                //1st CASE
                 sibl->color = BLACK;
                 sibl->parent->color = RED;
                 rotate_right(tree, node->parent);
                 sibl = node->parent->left;
             }
-            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){
+                //2nd CASE
                 sibl->color = RED;
                 node = node->parent;
             }else{
-                if(sibl->left->color == BLACK){//3th CASE --> 4th
+                if(sibl->left->color == BLACK){
+                    printf("FIXUP #3:\n");
+                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
+                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
+                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
+                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
+                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    //3th CASE --> 4th
                     sibl->right->color = BLACK;
-                    sibl->color = RED;
-                    rotate_left(tree, sibl);
-                    sibl = node->parent->left;
+                    sibl->color = RED;printf("sibl before:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    rotate_left(tree, sibl);printf("sibl after:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    sibl = node->parent->left;printf("nil after: ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
+                    if(sibl == tree->nil){
+                        sibl = node->parent->parent;
+                    }
                 }
+                printf("FIXUP #4:\n");
+                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
+                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
+                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
+                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
+                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
                 sibl->left->color = BLACK;
@@ -583,15 +635,18 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
             coll.with = who;
             coll_insert_node(&Data->Level.MovableObjects[with].colls_with_mov, &coll);
             if(time_passed > 0){
-                struct collision_data *dirty_pointer = coll_get_minimum(Data->Level.MovableObjects[with].colls_with_mov.root,
-                                                                        Data->Level.MovableObjects[with].colls_with_mov.nil);
+                struct collision_data *dirty_pointer = &coll_get_minimum(Data->Level.MovableObjects[with].colls_with_mov.root,
+                                                                        Data->Level.MovableObjects[with].colls_with_mov.nil)->key;
                 if(dirty_pointer != Data->Level.MovableObjects[with].next_collision){//check if DIRTY things happen
-                    coll = *Data->Level.MovableObjects[with].next_collision;
-                    if(coll.with < coll.who){
-                        coll.who = coll.with;
-                        coll.with = Data->Level.MovableObjects[with].next_collision->who;
+                    if(Data->Level.MovableObjects[with].next_collision->time <= 1 &&
+                       Data->Level.MovableObjects[with].next_collision->time >= 0){
+                        coll = *Data->Level.MovableObjects[with].next_collision;
+                        if(coll.with < coll.who){
+                            coll.who = coll.with;
+                            coll.with = Data->Level.MovableObjects[with].next_collision->who;
+                        }
+                        coll_insert_node(&Data->Level.dirty_tree, &coll);
                     }
-                    coll_insert_node(&Data->Level.dirty_tree, &coll);
                     Data->Level.MovableObjects[with].next_collision = dirty_pointer;
                 }
             }
@@ -715,7 +770,7 @@ short int coll_rev_comp(struct collision_data *a, struct collision_data *b){
 coll_node* coll_get_node(coll_tree *tree, struct collision_data *key){
     coll_node *node = tree->root;
     short int comp;
-    while((node != tree->nil)){
+    while(node != tree->nil){
         comp = coll_comp(key, &node->key);
         if(comp == EQUAL){
             break;
@@ -729,8 +784,10 @@ coll_node* coll_get_node(coll_tree *tree, struct collision_data *key){
 }
 
 coll_node* coll_get_minimum(coll_node *node, coll_node *nil){
-    while(node->left != nil){
-        node = node->left;
+    if(node != nil){
+        while(node->left != nil){
+            node = node->left;
+        }
     }
     return node;
 }
@@ -831,6 +888,7 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key){
     }else{
         node->counter -= 1;
         if(node->counter == 0){
+            coll_in_order(tree->root, tree->nil);
             coll_node *y, *x;
             if(node->left == tree->nil || node->right == tree->nil){
                 y = node;
@@ -861,6 +919,9 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key){
                 coll_delete_fixup(tree, x);
             }
 
+            if(y == tree->nil){
+                printf("\nfreeing nil!!!!\n");
+            }
             free(y);
         }
         return true;
@@ -1117,10 +1178,9 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                 for(j = oldz[1]; j <= oldz[3]; ++j){
                     RB_node * nd = get_node(&Zonez(i, j).movable, index);
                     if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
-                    }else{//printf("no nil, key: %hd\n", nd->key);
-                    //delete_node(&Zonez(i, j).movable, index);
-                    }
+                        printf("nil\n");
+                    }//printf("no nil, key: %hd\n", nd->key);
+                    delete_node(&Zonez(i, j).movable, index);
                 }
             }
         }else{
@@ -1136,10 +1196,9 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                 for(j = oldz[1]; j <= oldz[3]; ++j){
                     RB_node * nd = get_node(&Zonez(i, j).movable, index);
                     if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
-                    }else{
-                   // delete_node(&Zonez(i, j).movable, index);
-                   }
+                        printf("nil\n");
+                    }
+                    delete_node(&Zonez(i, j).movable, index);
                 }
             }
         }else{
@@ -1164,10 +1223,9 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                 for(j = oldz[1]; j < newz(1); ++j){
                     RB_node * nd = get_node(&Zonez(i, j).movable, index);
                     if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
-                    }else{
-                    //delete_node(&Zonez(i, j).movable, index);
+                        printf("nil\n");
                     }
+                    delete_node(&Zonez(i, j).movable, index);
                 }
             }
         }
@@ -1183,10 +1241,9 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                 for(j = newz(3) + 1; j <= oldz[3]; ++j){
                     RB_node * nd = get_node(&Zonez(i, j).movable, index);
                     if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
-                    }else{
-                    //delete_node(&Zonez(i, j).movable, index);
+                        printf("nil\n");
                     }
+                    delete_node(&Zonez(i, j).movable, index);
                 }
             }
         }
@@ -1195,10 +1252,9 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
             for(j = oldz[1]; j <= oldz[3]; ++j){
                 RB_node * nd = get_node(&Zonez(i, j).movable, index);
                     if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");delete_node(&Zonez(i, j).movable, index);
-                    }else{
-                //delete_node(&Zonez(i, j).movable, index);
-                }
+                        printf("nil\n");
+                    }
+                delete_node(&Zonez(i, j).movable, index);
             }
         }
 
@@ -1429,22 +1485,22 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               float dx, float dy, float m1, float m2, float restitution){
-    printf("Before: [%.3f, %.3f] [%.3f, %.3f]  E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
-    *v1x -= *v2x;printf("%f %f %f %f %f\n", dx, dy, m1, m2, restitution);
+    //printf("Before: [%.3f, %.3f] [%.3f, %.3f]  E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
+    *v1x -= *v2x;//printf("%f %f %f %f %f\n", dx, dy, m1, m2, restitution);
     *v1y -= *v2y;
     dy = VectorAngle(dx, dy);
     dx = cos(dy);
     dy = sin(dy);
     float v_into = *v1x * dx + *v1y * dy,
           v_perp = *v1y * dx - *v1x * dy,
-          mc = m1 + m2;printf("%.3f  ==  %.3f\n", sqrt(v_into * v_into + v_perp * v_perp), sqrt(*v1x * *v1x + *v1y * *v1y));
-    *v1x = v_into * ((m1 - restitution * m2) / mc);printf("%.3f  ,  %.3f\n", ((m1 - restitution * m2) / mc), (((1 + restitution) * m1) / mc));
+          mc = m1 + m2;//printf("%.3f  ==  %.3f\n", sqrt(v_into * v_into + v_perp * v_perp), sqrt(*v1x * *v1x + *v1y * *v1y));
+    *v1x = v_into * ((m1 - restitution * m2) / mc);//printf("%.3f  ,  %.3f\n", ((m1 - restitution * m2) / mc), (((1 + restitution) * m1) / mc));
     *v1y = *v1x * dy + *v2y + v_perp * dx;
     *v1x = *v1x * dx + *v2x - v_perp * dy;
     v_perp = (((1 + restitution) * m1) / mc) * v_into;
     *v2x += v_perp * dx;
     *v2x += v_perp * dy;
-    printf("After: [%.3f, %.3f] [%.3f, %.3f] E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
+    //printf("After: [%.3f, %.3f] [%.3f, %.3f] E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
 }
 
 void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
@@ -1486,10 +1542,10 @@ void particle_get_dx_dy(struct movable_object_structure *Obj, float dt){
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt){
     if(with_movable){
         switch(Data->Level.MovableObjects[who].Type){
-            case motPLAYER:printf("player\n");
+            case motPLAYER://printf("player\n");
                 #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
                 switch(Data->Level.MovableObjects[with].Type){
-                    case motPLAYER:printf("with player\n");
+                    case motPLAYER://printf("with player\n");
                         #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
@@ -1504,7 +1560,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
                         #undef WITH_PLAYER
                         break;
-                    case motPARTICLE:printf("with particle\n");
+                    case motPARTICLE://printf("with particle\n");
                         #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
@@ -1524,10 +1580,10 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                 }
                 #undef WHO_PLAYER
                 break;
-            case motPARTICLE:printf("particle\n");
+            case motPARTICLE://printf("particle\n");
                 #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
                 switch(Data->Level.MovableObjects[with].Type){
-                    case motPLAYER:printf("with player\n");
+                    case motPLAYER://printf("with player\n");
                         #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
@@ -1542,7 +1598,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
                         #undef WITH_PLAYER
                         break;
-                    case motPARTICLE:printf("with particle\n");
+                    case motPARTICLE://printf("with particle\n");
                         #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
@@ -1885,9 +1941,16 @@ void construct_particle(struct movable_object_structure *Object){
 void construct_movable(struct GameSharedData *Data, struct movable_object_structure *Object){
     Object->dx = 0;
     Object->dy = 0;
-    Object->colls_with_mov.nil = Data->Level.dirty_tree.nil;
-    Object->colls_with_mov.root = Data->Level.dirty_tree.nil;
-    Object->next_collision = &Data->Level.dirty_tree.nil->key;
+    Object->colls_with_mov.nil = (coll_node*)malloc(sizeof(coll_node));
+    Object->colls_with_mov.nil->color = BLACK;
+    Object->colls_with_mov.nil->key.time = EMPTY_COLLISION_TIME;
+    Object->colls_with_mov.nil->key.who = -10;
+    Object->colls_with_mov.nil->key.with = -20;
+    Object->colls_with_mov.nil->key.with_movable = false;
+    Object->colls_with_mov.nil->left = NULL;
+    Object->colls_with_mov.nil->right = NULL;
+    Object->colls_with_mov.root = Object->colls_with_mov.nil;
+    Object->next_collision = &Object->colls_with_mov.nil->key;
 }
 /**
     Arrays interface
@@ -2306,15 +2369,14 @@ int main(){
 
     construct_heap(&Data.Level.collision_queue, INITIAL_OBJECT_COLLISION_QUEUE_SIZE);
 
-    RB_node *nil = (RB_node*)malloc(sizeof(RB_node));
-    nil->color = BLACK;
-    nil->left = NULL;
-    nil->right = NULL;
-    nil->key = -10;
     for(i = 0; i < ZONE_FACTOR; ++i){
         for(j = 0; j < ZONE_FACTOR; ++j){
-            Data.Level.zones[i][j].movable.nil = nil;
-            Data.Level.zones[i][j].movable.root = nil;
+            Data.Level.zones[i][j].movable.nil = (RB_node*)malloc(sizeof(RB_node));
+            Data.Level.zones[i][j].movable.nil->color = BLACK;
+            Data.Level.zones[i][j].movable.nil->left = NULL;
+            Data.Level.zones[i][j].movable.nil->right = NULL;
+            Data.Level.zones[i][j].movable.nil->key = -10;
+            Data.Level.zones[i][j].movable.root = Data.Level.zones[i][j].movable.nil;
             Data.Level.zones[i][j].number_of_fixed = 0;
             Data.Level.zones[i][j].allocated = INITIAL_FIXED_PER_ZONE;
             Data.Level.zones[i][j].fixed = (short int*)malloc(sizeof(short int) * INITIAL_FIXED_PER_ZONE);
@@ -2327,6 +2389,8 @@ int main(){
     Data.Level.dirty_tree.nil->key.who = -10;
     Data.Level.dirty_tree.nil->key.with = -20;
     Data.Level.dirty_tree.nil->key.with_movable = false;
+    Data.Level.dirty_tree.nil->left = NULL;
+    Data.Level.dirty_tree.nil->right = NULL;
     Data.Level.dirty_tree.root = Data.Level.dirty_tree.nil;
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
