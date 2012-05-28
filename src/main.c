@@ -583,7 +583,17 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
             coll.with = who;
             coll_insert_node(&Data->Level.MovableObjects[with].colls_with_mov, &coll);
             if(time_passed > 0){
-                ;//check if DIRTY things happen
+                struct collision_data *dirty_pointer = coll_get_minimum(Data->Level.MovableObjects[with].colls_with_mov.root,
+                                                                        Data->Level.MovableObjects[with].colls_with_mov.nil);
+                if(dirty_pointer != Data->Level.MovableObjects[with].next_collision){//check if DIRTY things happen
+                    coll = *Data->Level.MovableObjects[with].next_collision;
+                    if(coll.with < coll.who){
+                        coll.who = coll.with;
+                        coll.with = Data->Level.MovableObjects[with].next_collision->who;
+                    }
+                    coll_insert_node(&Data->Level.dirty_tree, &coll);
+                    Data->Level.MovableObjects[with].next_collision = dirty_pointer;
+                }
             }
         }
     }
@@ -1055,7 +1065,7 @@ void add_fixed_to_zone(struct zone* zone, short int key){
         zone->fixed = (short int*)realloc(zone->fixed, sizeof(short int) * zone->allocated);
     }
 
-    //printf("%d at %d\n", (int)zone->fixed, zone->number_of_fixed);
+    //printf("%p at %d\n", zone->fixed, zone->number_of_fixed);
     zone->fixed[zone->number_of_fixed] = key;
     zone->number_of_fixed += 1;
 }
@@ -1403,7 +1413,7 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
     L->A = y1 - y2;
     L->B = x2 - x1;
-    L->C = x1 * (y2 - y1) + y1 * (x1 - x2);
+    L->C = -x1 * L->A - y1 * L->B;
 }
 
 void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *L){

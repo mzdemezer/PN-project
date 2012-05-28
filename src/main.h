@@ -595,8 +595,8 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               float dx, float dy, float m1, float m2, float restitution);
 #define PLAYER_TO_PLAYER_RESTITUTION 1
-#define PLAYER_TO_PARTICLE_RESTITUTION 1
-#define PARTICLE_TO_PARTICLE_RESTITUTION 1
+#define PLAYER_TO_PARTICLE_RESTITUTION 0
+#define PARTICLE_TO_PARTICLE_RESTITUTION 0
 //Draw
 
 #define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)
