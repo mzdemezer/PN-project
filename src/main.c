@@ -1109,7 +1109,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                     if(nd == Zonez(i, j).movable.nil){
                         printf("nil\n");delete_node(&Zonez(i, j).movable, index);
                     }else{//printf("no nil, key: %hd\n", nd->key);
-                    delete_node(&Zonez(i, j).movable, index);}
+                    //delete_node(&Zonez(i, j).movable, index);
+                    }
                 }
             }
         }else{
@@ -1127,7 +1128,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                     if(nd == Zonez(i, j).movable.nil){
                         printf("nil\n");delete_node(&Zonez(i, j).movable, index);
                     }else{
-                    delete_node(&Zonez(i, j).movable, index);}
+                   // delete_node(&Zonez(i, j).movable, index);
+                   }
                 }
             }
         }else{
@@ -1154,7 +1156,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                     if(nd == Zonez(i, j).movable.nil){
                         printf("nil\n");delete_node(&Zonez(i, j).movable, index);
                     }else{
-                    delete_node(&Zonez(i, j).movable, index);}
+                    //delete_node(&Zonez(i, j).movable, index);
+                    }
                 }
             }
         }
@@ -1172,7 +1175,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                     if(nd == Zonez(i, j).movable.nil){
                         printf("nil\n");delete_node(&Zonez(i, j).movable, index);
                     }else{
-                    delete_node(&Zonez(i, j).movable, index);}
+                    //delete_node(&Zonez(i, j).movable, index);
+                    }
                 }
             }
         }
@@ -1183,7 +1187,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                     if(nd == Zonez(i, j).movable.nil){
                         printf("nil\n");delete_node(&Zonez(i, j).movable, index);
                     }else{
-                delete_node(&Zonez(i, j).movable, index);}
+                //delete_node(&Zonez(i, j).movable, index);
+                }
             }
         }
 
@@ -1422,14 +1427,36 @@ void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x
     dy = sin(dy);
     float v_into = *v1x * dx + *v1y * dy,
           v_perp = *v1y * dx - *v1x * dy,
-          mc = m1 + m2;
-    *v1x = v_into * ((m1 - restitution * m2) / mc);
+          mc = m1 + m2;printf("%.3f  ==  %.3f\n", sqrt(v_into * v_into + v_perp * v_perp), sqrt(*v1x * *v1x + *v1y * *v1y));
+    *v1x = v_into * ((m1 - restitution * m2) / mc);printf("%.3f  ,  %.3f\n", ((m1 - restitution * m2) / mc), (((1 + restitution) * m1) / mc));
     *v1y = *v1x * dy + *v2y + v_perp * dx;
     *v1x = *v1x * dx + *v2x - v_perp * dy;
     v_perp = (((1 + restitution) * m1) / mc) * v_into;
     *v2x += v_perp * dx;
     *v2x += v_perp * dy;
     printf("After: [%.3f, %.3f] [%.3f, %.3f] E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
+}
+
+void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
+    double dx = (double)*x2 - *x1,
+           dy = (double)*y2 - *y1,
+           ang = VectorAngle(dx, dy);
+    dx = sqrt(dx * dx + dy * dy);
+    if(dx < d){
+        d -= dx;
+        //d += 0.03; //??
+        d += 2 * eps; //??
+        dx = d * sin(ang); //y
+        d *= cos(ang); //x
+        ang = m1 + m2;
+
+        dy = m1 / ang; //m1 mass factor
+        ang = m2 / ang; //m2 mass factor
+        *x1 -= d * m2;
+        *y1 -= dx * m2;
+        *x2 += d * m1;
+        *y2 += dx * m2;
+    }
 }
 
 void player_get_dx_dy(struct movable_object_structure *Obj, float dt){
@@ -1454,6 +1481,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                 switch(Data->Level.MovableObjects[with].Type){
                     case motPLAYER:printf("with player\n");
                         #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                        separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
+                                           &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
+                                           WHO_PLAYER->r + WITH_PLAYER->r);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PLAYER->center.x,
@@ -1466,6 +1496,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         break;
                     case motPARTICLE:printf("with particle\n");
                         #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                        separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
+                                           &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
+                                           WHO_PLAYER->r + WITH_PARTICLE->r);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
@@ -1486,6 +1519,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                 switch(Data->Level.MovableObjects[with].Type){
                     case motPLAYER:printf("with player\n");
                         #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                        separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
+                                           &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
+                                           WHO_PARTICLE->r + WITH_PLAYER->r);
                         get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
@@ -1498,6 +1534,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         break;
                     case motPARTICLE:printf("with particle\n");
                         #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                        separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
+                                           &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
+                                           WHO_PARTICLE->r + WITH_PARTICLE->r);
                         get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
                                                                  &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PARTICLE->center.x,

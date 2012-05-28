@@ -52,7 +52,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
 
     int i, j;
     bool f;
-
+    double Cx, S, vx, vy;
     float op;
 
     /**
@@ -114,17 +114,13 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Acc[i].y = ((struct circleData*)(Data->Level.MovableObjects[i].ObjectData))->center.y;
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
-                    Acc[i].vx = ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))->vx;
-                    Acc[i].vy = ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
-                    Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
-                    Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    Data->Level.MovableObjects[i].dx = ((struct playerData*)Data->Level.MovableObjects[i].ObjectData)->vx * dt;
+                    Data->Level.MovableObjects[i].dy = ((struct playerData*)Data->Level.MovableObjects[i].ObjectData)->vy * dt;
                     change_zones_for_movable(Data, i, 1.);
                     break;
                 case motPARTICLE:
-                    Acc[i].vx = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vx;
-                    Acc[i].vy = ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))->vy;
-                    Data->Level.MovableObjects[i].dx = Acc[i].vx * dt;
-                    Data->Level.MovableObjects[i].dy = Acc[i].vy * dt;
+                    Data->Level.MovableObjects[i].dx = ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vx * dt;
+                    Data->Level.MovableObjects[i].dy = ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vy * dt;
                     change_zones_for_movable(Data, i, 1.);
                     break;
                 default:
@@ -218,6 +214,13 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
+                Cx = S * Cx * Data->Level.dens;
+                vx = Data->Level.wind_vx - vx;
+                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
+                vy = Data->Level.wind_vy - vy;
+                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
+            }
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
                     #define ObData ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))
@@ -415,7 +418,7 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
                         r = r1 + r2;
                         if(r * r > d){
                             d = sqrt(d);
-                            m2 *= m1 * (GRAV / r * r);// * (d / r);
+                            m2 *= m1 * ((GRAV * d) / (r * r * r));
                         }else{
                             m2 *= m1 * (GRAV / d);
                         }
@@ -496,7 +499,7 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
                             r = r1 + r2;
                             if(r * r > d){
                                 d = sqrt(d);
-                                q2 *= (COULOMB / r * r);// * (d / r);
+                                q2 *= (COULOMB * d) / (r * r * r);
                             }else{
                                 q2 *= (COULOMB / d);//add linear for collision
                             }
@@ -531,18 +534,22 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
     basically bullshit, but it seems to work pretty well
     */
 
-bool get_drag_data(struct movable_object_structure *Obj, double *Cx, double *S){
+bool get_drag_data(struct movable_object_structure *Obj, double *vx, double *vy, double *Cx, double *S){
     switch(Obj->Type){
         case motPLAYER:
             #define ObData ((struct playerData*)Obj->ObjectData)
             *Cx = SPHERE_DRAG_COEFFICENT;
             *S = ObData->r * ObData->r * PI;
+            *vx = ObData->vx;
+            *vy = ObData->vy;
             #undef ObData
             return true;
         case motPARTICLE:
             #define ObData ((struct particleData*)Obj->ObjectData)
             *Cx = SPHERE_DRAG_COEFFICENT;
             *S = ObData->surface_field;
+            *vx = ObData->vx;
+            *vy = ObData->vy;
             #undef ObData
             return true;
         default:
@@ -562,27 +569,17 @@ double coefficient_multiplier(double v){
     }
 }
 
-void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
+void* iteration_2(ALLEGRO_THREAD *thread, void *argument){//Empty for a while
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
-
-    int i;
-    double vx, vy, Cx, S;
 
     StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
             */
-        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_drag_data(&(Data->Level.MovableObjects[i]), &Cx, &S)){
-                vx = (double)Acc[i].vx - Data->Level.wind_vx;
-                vy = (double)Acc[i].vy - Data->Level.wind_vy;
-                Cx = S * Cx * Data->Level.dens;
-                Acc[i].ax[4] = -vx * Cx * coefficient_multiplier(vx);
-                Acc[i].ay[4] = -vy * Cx * coefficient_multiplier(vy);
-            }
-        }
+
+
         /**
             Signal and stop
             */
@@ -666,7 +663,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                     heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[i].next_collision);
                 }
             }
-        }/*
+        }printf("heap length: %d\n", Data->Level.collision_queue.length);
         while(Data->Level.collision_queue.length > 0){
             coll = pop_min(&Data->Level.collision_queue);printf("%f\n", coll.time);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
@@ -710,7 +707,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }else{
                 find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
             }
-        }*/
+        }
 
         if(time < 1){
             move_objects(Data, 1 - time);
