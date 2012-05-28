@@ -660,10 +660,10 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }
         }
 
-        if(Data->Level.collision_queue.length > 0){printf("heap length: %d\n", Data->Level.collision_queue.length);}
+//        if(Data->Level.collision_queue.length > 0){printf("heap length: %d\n", Data->Level.collision_queue.length);}
 
         while(Data->Level.collision_queue.length > 0){
-            coll = pop_min(&Data->Level.collision_queue);//printf("%f\n", coll.time);
+            coll = pop_min(&Data->Level.collision_queue);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
                 //check if dirty
                 //for each: who is the one, with is the other one
@@ -679,10 +679,10 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }
             move_objects(Data, coll.time - time);
             time = coll.time;
-                printf("buggey: %.3f, %hd - %hd, %d\n", coll.time,
-                                                  coll.who,
-                                                  coll.with,
-                                                  (int)coll.with_movable);
+//                printf("buggey: %.3f, %hd - %hd, %d\n", coll.time,
+//                                                  coll.who,
+//                                                  coll.with,
+//                                                  (int)coll.with_movable);
             //Collide  avec:
             //new dx,dy
             collide(Data, coll.who, coll.with, coll.with_movable, Data->Level.dt);
@@ -718,8 +718,6 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             move_objects(Data, 1 - time);
         }
 
-        //printf("in order:\n");
-        //coll_in_order(Data->Level.dirty_tree.root, Data->Level.dirty_tree.nil);
         coll_clear_tree(&Data->Level.dirty_tree);
         /**
             Signal and stop

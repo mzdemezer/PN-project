@@ -423,64 +423,38 @@ void delete_node(RB_tree *tree, short int key){
         }
 
         if(y->color == BLACK){
-            if(x == tree->nil){
-                printf("nil in fixup\n");
-            }
             RB_delete_fixup(tree, x);
-            if(x == tree->nil){
-                printf("nil was ok\n");
-            }
         }
-        if(y == tree->nil){
-                printf("\nfreeing nil!!!!\n");
-            }
+
         free(y);
     }
 }
 
 void RB_delete_fixup(RB_tree *tree, RB_node *node){
-    RB_node *sibl;printf("FIXUP node: %p, root: %p, nil: %p\n", node, tree->root, tree->nil);
+    RB_node *sibl;
     while(node != tree->root && node->color == BLACK){
         if(is_left(node)){
             sibl = node->parent->right;
-            printf("FIXUP left\n");
-            if(sibl == NULL)printf("sibl NULL!!!!!");
-            else
-            printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-            if(sibl->color == RED){printf("FIXUP #1: %p <-- root %p --> %p, nil %p, sibl %p, node %p\n", tree->root->left, tree->root, tree->root->right, tree->nil, sibl, node);
-                //1st CASE
+            if(sibl->color == RED){//1st CASE
                 sibl->color = BLACK;
                 sibl->parent->color = RED;
                 rotate_left(tree, node->parent);
                 sibl = node->parent->right;
             }
-            if(sibl->left->color == BLACK && sibl->right->color == BLACK){printf("FIXUP #2: %p <-- root %p --> %p, nil %p, sibl %p, node %p\n", tree->root->left, tree->root, tree->root->right, tree->nil, sibl, node);
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){
                 //2nd CASE
                 sibl->color = RED;
                 node = node->parent;
             }else{
-                if(sibl->right->color == BLACK){
-                    printf("FIXUP #3:\n");
-                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
-                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
-                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
-                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
-                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-                    //3th CASE --> 4th
+                if(sibl->right->color == BLACK){//3th CASE --> 4th
                     sibl->left->color = BLACK;
-                    sibl->color = RED;printf("sibl before:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-                    rotate_right(tree, sibl);printf("sibl after:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
+                    sibl->color = RED;
+                    rotate_right(tree, sibl);
                     sibl = node->parent->right;
-                    if(sibl == tree->nil){
-                        sibl = node->parent->parent;
-                    }
+//                    if(sibl == tree->nil){
+//                        sibl = node->parent->parent;
+//                    }
                 }
-                printf("FIXUP #4:\n");
-                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
-                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
-                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
-                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
-                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
                 sibl->right->color = BLACK;
@@ -489,44 +463,25 @@ void RB_delete_fixup(RB_tree *tree, RB_node *node){
             }
         }else{
             sibl = node->parent->left;
-            printf("FIXUP right\n");
-            if(sibl == NULL)printf("sibl NULL!!!!!");
-            else
-            printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-            if(sibl->color == RED){
-                //1st CASE
+            if(sibl->color == RED){//1st CASE
                 sibl->color = BLACK;
                 sibl->parent->color = RED;
                 rotate_right(tree, node->parent);
                 sibl = node->parent->left;
             }
-            if(sibl->left->color == BLACK && sibl->right->color == BLACK){
-                //2nd CASE
+            if(sibl->left->color == BLACK && sibl->right->color == BLACK){//2nd CASE
                 sibl->color = RED;
                 node = node->parent;
             }else{
-                if(sibl->left->color == BLACK){
-                    printf("FIXUP #3:\n");
-                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
-                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
-                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
-                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
-                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-                    //3th CASE --> 4th
+                if(sibl->left->color == BLACK){//3th CASE --> 4th
                     sibl->right->color = BLACK;
-                    sibl->color = RED;printf("sibl before:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-                    rotate_left(tree, sibl);printf("sibl after:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
-                    sibl = node->parent->left;printf("nil after: ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
-                    if(sibl == tree->nil){
-                        sibl = node->parent->parent;
-                    }
+                    sibl->color = RED;
+                    rotate_left(tree, sibl);
+                    sibl = node->parent->left;
+//                    if(sibl == tree->nil){
+//                        sibl = node->parent->parent;
+//                    }
                 }
-                printf("FIXUP #4:\n");
-                    printf("root:   ^%p, %p <-- root %p --> %p\n", tree->root->parent, tree->root->left, tree->root, tree->root->right);
-                    printf("node:   ^%p, %p <-- %p --> %p\n", node->parent, node->left, node, node->right);
-                    printf("node p: ^%p, %p <-- %p --> %p\n", node->parent->parent, node->parent->left, node->parent, node->parent->right);
-                    printf("nil:    ^%p, %p <-- %p --> %p\n", tree->nil->parent, tree->nil->left, tree->nil, tree->nil->right);
-                    printf("sibl:   ^%p, %p <-- %p --> %p\n", sibl->parent, sibl->left, sibl, sibl->right);
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
                 sibl->left->color = BLACK;
@@ -888,7 +843,6 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key){
     }else{
         node->counter -= 1;
         if(node->counter == 0){
-            coll_in_order(tree->root, tree->nil);
             coll_node *y, *x;
             if(node->left == tree->nil || node->right == tree->nil){
                 y = node;
@@ -919,9 +873,6 @@ bool coll_delete_node(coll_tree *tree, struct collision_data *key){
                 coll_delete_fixup(tree, x);
             }
 
-            if(y == tree->nil){
-                printf("\nfreeing nil!!!!\n");
-            }
             free(y);
         }
         return true;
@@ -1126,7 +1077,6 @@ void add_fixed_to_zone(struct zone* zone, short int key){
         zone->fixed = (short int*)realloc(zone->fixed, sizeof(short int) * zone->allocated);
     }
 
-    //printf("%p at %d\n", zone->fixed, zone->number_of_fixed);
     zone->fixed[zone->number_of_fixed] = key;
     zone->number_of_fixed += 1;
 }
@@ -1176,10 +1126,6 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         if(newz(0) > oldz[0]){
             for(i = oldz[0]; i < newz(0); ++i){
                 for(j = oldz[1]; j <= oldz[3]; ++j){
-                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
-                    if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");
-                    }//printf("no nil, key: %hd\n", nd->key);
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }
@@ -1194,10 +1140,6 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         if(oldz[2] > newz(2)){
             for(i = newz(2) + 1; i <= oldz[2]; ++i){
                 for(j = oldz[1]; j <= oldz[3]; ++j){
-                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
-                    if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");
-                    }
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }
@@ -1221,10 +1163,6 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         }else{
             for(i = xleft; i <= xright; ++i){
                 for(j = oldz[1]; j < newz(1); ++j){
-                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
-                    if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");
-                    }
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }
@@ -1239,10 +1177,6 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         }else{
             for(i = xleft; i <= xright; ++i){
                 for(j = newz(3) + 1; j <= oldz[3]; ++j){
-                    RB_node * nd = get_node(&Zonez(i, j).movable, index);
-                    if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");
-                    }
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }
@@ -1250,10 +1184,6 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
     }else{
         for(i = oldz[0]; i <= oldz[2]; ++i){
             for(j = oldz[1]; j <= oldz[3]; ++j){
-                RB_node * nd = get_node(&Zonez(i, j).movable, index);
-                    if(nd == Zonez(i, j).movable.nil){
-                        printf("nil\n");
-                    }
                 delete_node(&Zonez(i, j).movable, index);
             }
         }
@@ -1947,8 +1877,8 @@ void construct_movable(struct GameSharedData *Data, struct movable_object_struct
     Object->colls_with_mov.nil->key.who = -10;
     Object->colls_with_mov.nil->key.with = -20;
     Object->colls_with_mov.nil->key.with_movable = false;
-    Object->colls_with_mov.nil->left = NULL;
-    Object->colls_with_mov.nil->right = NULL;
+    Object->colls_with_mov.nil->left = Object->colls_with_mov.nil;
+    Object->colls_with_mov.nil->right = Object->colls_with_mov.nil;
     Object->colls_with_mov.root = Object->colls_with_mov.nil;
     Object->next_collision = &Object->colls_with_mov.nil->key;
 }
@@ -2373,8 +2303,8 @@ int main(){
         for(j = 0; j < ZONE_FACTOR; ++j){
             Data.Level.zones[i][j].movable.nil = (RB_node*)malloc(sizeof(RB_node));
             Data.Level.zones[i][j].movable.nil->color = BLACK;
-            Data.Level.zones[i][j].movable.nil->left = NULL;
-            Data.Level.zones[i][j].movable.nil->right = NULL;
+            Data.Level.zones[i][j].movable.nil->left = Data.Level.zones[i][j].movable.nil;
+            Data.Level.zones[i][j].movable.nil->right = Data.Level.zones[i][j].movable.nil;
             Data.Level.zones[i][j].movable.nil->key = -10;
             Data.Level.zones[i][j].movable.root = Data.Level.zones[i][j].movable.nil;
             Data.Level.zones[i][j].number_of_fixed = 0;
@@ -2389,8 +2319,8 @@ int main(){
     Data.Level.dirty_tree.nil->key.who = -10;
     Data.Level.dirty_tree.nil->key.with = -20;
     Data.Level.dirty_tree.nil->key.with_movable = false;
-    Data.Level.dirty_tree.nil->left = NULL;
-    Data.Level.dirty_tree.nil->right = NULL;
+    Data.Level.dirty_tree.nil->left = Data.Level.dirty_tree.nil;
+    Data.Level.dirty_tree.nil->right = Data.Level.dirty_tree.nil;
     Data.Level.dirty_tree.root = Data.Level.dirty_tree.nil;
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
