@@ -1305,6 +1305,7 @@ struct collision_data get_collision_with_movable(struct movable_object_structure
                                                                       WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
                                                                       WITH_PARTICLE->r + WHO_PLAYER->r);
+                    //printf("%f\n", new_coll.time);
                     #undef WITH_PARTICLE
                     break;
                 default:
@@ -1422,22 +1423,20 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               float dx, float dy, float m1, float m2, float restitution){
-    //printf("Before: [%.3f, %.3f] [%.3f, %.3f]  E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
-    *v1x -= *v2x;//printf("%f %f %f %f %f\n", dx, dy, m1, m2, restitution);
+    *v1x -= *v2x;
     *v1y -= *v2y;
     dy = VectorAngle(dx, dy);
     dx = cos(dy);
     dy = sin(dy);
     float v_into = *v1x * dx + *v1y * dy,
           v_perp = *v1y * dx - *v1x * dy,
-          mc = m1 + m2;//printf("%.3f  ==  %.3f\n", sqrt(v_into * v_into + v_perp * v_perp), sqrt(*v1x * *v1x + *v1y * *v1y));
-    *v1x = v_into * ((m1 - restitution * m2) / mc);//printf("%.3f  ,  %.3f\n", ((m1 - restitution * m2) / mc), (((1 + restitution) * m1) / mc));
+          mc = m1 + m2;
+    *v1x = v_into * ((m1 - restitution * m2) / mc);
     *v1y = *v1x * dy + *v2y + v_perp * dx;
     *v1x = *v1x * dx + *v2x - v_perp * dy;
     v_perp = (((1 + restitution) * m1) / mc) * v_into;
     *v2x += v_perp * dx;
     *v2x += v_perp * dy;
-    //printf("After: [%.3f, %.3f] [%.3f, %.3f] E = %f\n", *v1x, *v1y, *v2x, *v2y, (m1 * *v1x * *v1x + m1 * *v1y * *v1y + m2 * *v2x * *v2x + m2 * *v2y * *v2y)/2);
 }
 
 void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
@@ -1448,17 +1447,18 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
     if(dx < d){
         d -= dx;
         //d += 0.03; //??
-        d += 2 * eps; //??
+        //d += 2 * eps; //??
+        d += 50;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
         ang = m1 + m2;
 
         dy = m1 / ang; //m1 mass factor
         ang = m2 / ang; //m2 mass factor
-        *x1 -= d * m2;
-        *y1 -= dx * m2;
-        *x2 += d * m1;
-        *y2 += dx * m2;
+        *x1 -= d * ang;
+        *y1 -= dx * ang;
+        *x2 += d * dy;
+        *y2 += dx * dy;
     }
 }
 
