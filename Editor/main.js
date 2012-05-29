@@ -400,8 +400,6 @@ function GenerateOutput(){
 		$output.value += op;
 		$sieczka.value += op;
 	}
-	$output.value = $output.value.slice(0, -1);
-	$sieczka.value = $sieczka.value.slice(0, -1);
 }
 
 function ColorToNumbers(color){
@@ -1117,7 +1115,14 @@ function Change(which){
 						Data.Selected[i].color = NewValue;
 					}
 				}
-				
+				break;
+			case 'Mass':
+				for(i in Data.Selected){
+					if( (Data.Selected[i].type == "Particle") ||
+						 (Data.Selected[i].type == "Switch") ){
+						Data.Selected[i].mass = NewValue;
+					}
+				}
 				break;
 		}
 		
