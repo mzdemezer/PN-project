@@ -491,6 +491,7 @@ struct GameSharedData{
     bool SpecialMainCall;
     void (*special_main_call_procedure)(struct GameSharedData*);
 
+    bool Debug;
     bool CloseNow;
 
     /**

@@ -748,6 +748,8 @@ void handle_event_game(struct GameSharedData *Data){
                 Data->Keyboard.Flags[ekKEY_LEFT] = true;
             }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
                 Data->Keyboard.Flags[ekKEY_RIGHT] = true;
+            }else if(Data->LastEvent.keyboard.keycode == ALLEGRO_KEY_TILDE){
+                Data->Debug = !Data->Debug;
             }
             al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             break;
@@ -767,6 +769,28 @@ void handle_event_game(struct GameSharedData *Data){
     }
 }
 
+void draw_zones(struct GameSharedData *Data, struct movable_object_structure *Obj, ALLEGRO_COLOR color){
+    #define OFFSET 0.5
+    al_draw_filled_rectangle(Obj->zones[0] * ZONE_SIZE + OFFSET + Data->scales.trans_x, Obj->zones[1] * ZONE_SIZE + OFFSET + Data->scales.trans_y,
+                        (Obj->zones[2] + 1) * ZONE_SIZE - OFFSET + Data->scales.trans_x, (Obj->zones[3] + 1) * ZONE_SIZE - OFFSET + Data->scales.trans_y,
+                        color);
+    #undef OFFSET
+}
+
+void draw_grid(struct GameSharedData *Data){
+    #define OFFSET 0.5
+    short int i;
+    for(i = 1; i < ZONE_FACTOR; ++i){
+        al_draw_line(OFFSET + Data->scales.trans_x + i * ZONE_SIZE, OFFSET + Data->scales.trans_y,
+                     OFFSET + Data->scales.trans_x + i * ZONE_SIZE, OFFSET + Data->scales.trans_y + SCREEN_BUFFER_HEIGHT,
+                     al_map_rgba(0, 0, 0, 70), 1);
+        al_draw_line(OFFSET + Data->scales.trans_x, OFFSET + Data->scales.trans_y + i * ZONE_SIZE,
+                     OFFSET + Data->scales.trans_x + SCREEN_BUFFER_WIDTH, OFFSET + Data->scales.trans_y + i * ZONE_SIZE,
+                     al_map_rgba(0, 0, 0, 70), 1);
+    }
+    #undef OFFSET
+}
+
 void draw_game(struct GameSharedData *Data){
     int i;
     ALLEGRO_TRANSFORM tempT;
@@ -778,9 +802,18 @@ void draw_game(struct GameSharedData *Data){
     al_draw_bitmap(Data->Level.ScaledBackground, Data->scales.scale_x, Data->scales.scale_y, 0);
     al_use_transform(&Data->Transformation);
 
+    if(Data->Debug){
+        for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+            draw_zones(Data, &Data->Level.MovableObjects[i], al_map_rgba(150, 90, 30, 0.01));
+        }
+        draw_grid(Data);
+    }
+
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
        DRAW_MOVABLE(Data->Level.MovableObjects[i]);
     }
+
+
 
     draw_stat_bar(Data);
 }

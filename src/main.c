@@ -2282,6 +2282,7 @@ int main(){
         Initializing data
         */
 
+    Data.Debug = false;
     Data.IterationFinished = true;
     Data.CloseLevel = false;
     Data.SpecialMainCall = false;
