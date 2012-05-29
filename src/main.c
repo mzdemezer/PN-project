@@ -1051,24 +1051,31 @@ void coll_in_order(coll_node *root, coll_node *nil){
 
 void get_zone(float x, float y, short int *zone){
     zone[0] = (short int)((int)x / ZONE_SIZE);
-    if(zone[0] < 0){
-        zone[0] = 0;
-    }else if(zone[0] >= ZONE_FACTOR){
-        zone[0] = ZONE_FACTOR - 1;
-    }
     zone[1] = (short int)((int)y / ZONE_SIZE);
-    if(zone[1] < 0){
-        zone[1] = 0;
-    }else if(zone[1] >= ZONE_FACTOR){
-        zone[1] = ZONE_FACTOR - 1;
-    }
 }
 
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone){
     dx = float_abs(dx) + r0;
     dy = float_abs(dy) + r0;
     get_zone(x - dx, y - dy, zone);
+    zone[0] -= 1;
+    zone[1] -= 1;
+    if(zone[0] < 0){
+        zone[0] = 0;
+    }
+    if(zone[1] < 0){
+        zone[1] = 0;
+    }
     get_zone(x + dx, y + dy, zone + 2);
+    zone[2] += 1;
+    zone[3] += 1;
+    if(zone[2] >= ZONE_FACTOR){
+        zone[2] = ZONE_FACTOR - 1;
+    }
+    if(zone[3] >= ZONE_FACTOR){
+        zone[3] = ZONE_FACTOR - 1;
+    }
+
 }
 
 void add_fixed_to_zone(struct zone* zone, short int key){
