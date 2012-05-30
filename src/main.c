@@ -42,7 +42,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
             ++sec;
             if(sec == 60){
                 al_lock_mutex(Data->MutexFPS);
-                    printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
+//                    printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
                     sec=0;
                     Data->FPS = 0;
                 al_unlock_mutex(Data->MutexFPS);
@@ -1447,8 +1447,8 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
     if(dx < d){
         d -= dx;
         //d += 0.03; //??
-        //d += 2 * eps; //??
-        d += 50;
+        d += 2 * eps; //??
+        //d += 50;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
         ang = m1 + m2;
@@ -1478,6 +1478,8 @@ void particle_get_dx_dy(struct movable_object_structure *Obj, float dt){
 
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt){
     if(with_movable){
+        Data->DeCollAngs[0] = VectorAngle(Data->Level.MovableObjects[who].dx, Data->Level.MovableObjects[who].dy);
+        Data->DeCollAngs[1] = VectorAngle(Data->Level.MovableObjects[with].dx, Data->Level.MovableObjects[with].dy);
         switch(Data->Level.MovableObjects[who].Type){
             case motPLAYER://printf("player\n");
                 #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
@@ -1558,6 +1560,8 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
             default:
                 break;
         }
+        Data->DeCollAngs[2] = VectorAngle(Data->Level.MovableObjects[who].dx, Data->Level.MovableObjects[who].dy);
+        Data->DeCollAngs[3] = VectorAngle(Data->Level.MovableObjects[with].dx, Data->Level.MovableObjects[with].dy);
     }else{
         switch(Data->Level.MovableObjects[who].Type){
             case motPLAYER:
@@ -2244,7 +2248,7 @@ int main(){
         return -1;
     }
     Data.DrawTimer = NULL;
-    Data.DrawTimer = al_create_timer(1.0 / 60);
+    Data.DrawTimer = al_create_timer(1.0 / MAX_FPS);
     if(!Data.DrawTimer) {
         fprintf(stderr, "failed to create timer!\n");
         al_destroy_display(Data.Display);
@@ -2290,6 +2294,13 @@ int main(){
         */
 
     Data.Debug = false;
+    Data.DeFont = NULL;
+    Data.DeBuffer[0] = '\0';
+    Data.DeFont = al_load_ttf_font("cour.ttf", 16, 0);
+    for(i = 0; i < 4; ++i){
+        Data.DeCollAngs[i] = 0;
+    }
+
     Data.IterationFinished = true;
     Data.CloseLevel = false;
     Data.SpecialMainCall = false;

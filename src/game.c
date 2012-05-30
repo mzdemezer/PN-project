@@ -93,6 +93,16 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
          imparity = true;
     float half_dt;
 
+    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
+        switch(Data->Level.MovableObjects[i].Type){
+            case motPARTICLE:
+                ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vx = 1;
+                ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vy = 1;
+                break;
+            default:
+                ;
+        }
+    }
     printf("In game: after main-iter-init, starting to operate\n");
 
     while(!al_get_thread_should_stop(thread)){
@@ -214,31 +224,31 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
-                Cx = S * Cx * Data->Level.dens;
-                vx = Data->Level.wind_vx - vx;
-                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
-                vy = Data->Level.wind_vy - vy;
-                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
-            }
+//            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
+//                Cx = S * Cx * Data->Level.dens;
+//                vx = Data->Level.wind_vx - vx;
+//                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
+//                vy = Data->Level.wind_vy - vy;
+//                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
+//            }
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
                     #define ObData ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))
-                    op = ObData->mass;
-                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
-                    }
-                    Acc[i].ax[(int)parity] /= op;
-
-                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
-                    }
-                    Acc[i].ay[(int)parity] /= op;
-
-                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
-                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+//                    op = ObData->mass;
+//                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+//                    for(j = 3; j < ACC_2nd_DIM; ++j){
+//                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+//                    }
+//                    Acc[i].ax[(int)parity] /= op;
+//
+//                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+//                    for(j = 3; j < ACC_2nd_DIM; ++j){
+//                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+//                    }
+//                    Acc[i].ay[(int)parity] /= op;
+//
+//                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+//                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
                         Simple bounce
@@ -269,21 +279,21 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     break;
                 case motPARTICLE:
                     #define ObData ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))
-                    op = ObData->mass;
-                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
-                    }
-                    Acc[i].ax[(int)parity] /= op;
-
-                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
-                    }
-                    Acc[i].ay[(int)parity] /= op;
-
-                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
-                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+//                    op = ObData->mass;
+//                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+//                    for(j = 3; j < ACC_2nd_DIM; ++j){
+//                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+//                    }
+//                    Acc[i].ax[(int)parity] /= op;
+//
+//                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+//                    for(j = 3; j < ACC_2nd_DIM; ++j){
+//                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+//                    }
+//                    Acc[i].ay[(int)parity] /= op;
+//
+//                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+//                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
                         Simple bounce
@@ -664,6 +674,14 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
 
         while(Data->Level.collision_queue.length > 0){
             coll = pop_min(&Data->Level.collision_queue);
+            printf("\nlast coll: %.3f, %hd - %hd, %d\n", coll.time,
+                                  coll.who,
+                                  coll.with,
+                                  (int)coll.with_movable);
+            sprintf(Data->DeBuffer, "last coll: %.3f, %hd - %hd, %d", coll.time,
+                                  coll.who,
+                                  coll.with,
+                                  (int)coll.with_movable);
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
                 //check if dirty
                 //for each: who is the one, with is the other one
@@ -675,6 +693,11 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 }
             }
             if(time > coll.time){
+                printf("buggey: %.3f, %hd - %hd, %d\n", coll.time,
+                                  coll.who,
+                                  coll.with,
+                                  (int)coll.with_movable);
+
                 continue;
             }
             move_objects(Data, coll.time - time);
@@ -712,6 +735,7 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }else{
                 find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
             }
+            if(Data->Level.collision_queue.length > 0){printf("heap length after: %d\n", Data->Level.collision_queue.length);}
         }
 
         if(time < 1){
@@ -791,6 +815,23 @@ void draw_grid(struct GameSharedData *Data){
     #undef OFFSET
 }
 
+void draw_arrow(struct GameSharedData *Data, float cx, float cy, float ang, int size, ALLEGRO_COLOR color){
+    float fx = cx + size * 0.5 * cos(ang),
+          fy = cy + size * 0.5 * sin(ang);
+
+    size *= 0.5;
+    al_draw_line(fx, fy,
+                 cx - size * cos(ang), cy - size * sin(ang),
+                 color, 1.5);
+    size *= 0.7;
+    al_draw_line(fx, fy,
+                 cx + size * cos(ang + dANG), cy + size * sin(ang + dANG),
+                 color, 1.5);
+    al_draw_line(fx, fy,
+                 cx + size * cos(ang - dANG), cy + size * sin(ang - dANG),
+                 color, 1.5);
+}
+
 void draw_game(struct GameSharedData *Data){
     int i;
     ALLEGRO_TRANSFORM tempT;
@@ -816,6 +857,20 @@ void draw_game(struct GameSharedData *Data){
 
 
     draw_stat_bar(Data);
+
+    if(Data->Debug){
+        if(Data->DeBuffer){
+            al_use_transform(&tempT);
+            al_draw_text(Data->DeFont, al_map_rgba(255, 255, 255, 0.01),
+                         Data->scales.scale_w + Data->scales.scale_x, Data->scales.scale_y + Data->scales.scale_h * 0.9,
+                         ALLEGRO_ALIGN_RIGHT, Data->DeBuffer);
+            al_use_transform(&Data->Transformation);
+            draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 30 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.58 + Data->scales.trans_y, Data->DeCollAngs[0], 60, al_map_rgba(0, 0, 160, 0.01));
+            draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 120 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.58 + Data->scales.trans_y, Data->DeCollAngs[1], 60, al_map_rgba(0, 0, 160, 0.01));
+            draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 30 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.7 + Data->scales.trans_y, Data->DeCollAngs[2], 60, al_map_rgba(160, 90, 10, 0.01));
+            draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 120 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.7 + Data->scales.trans_y, Data->DeCollAngs[3], 60, al_map_rgba(160, 90, 10, 0.01));
+        }
+    }
 }
 
 void draw_stat_bar(struct GameSharedData *Data){

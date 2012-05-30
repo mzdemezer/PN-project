@@ -20,6 +20,7 @@
 
 #define SCREEN_BUFFER_WIDTH 1000
 #define SCREEN_BUFFER_HEIGHT 750
+#define MAX_FPS 80
 
 /**
     Negatives values are for configuration menus
@@ -492,6 +493,10 @@ struct GameSharedData{
     void (*special_main_call_procedure)(struct GameSharedData*);
 
     bool Debug;
+    char DeBuffer[1024];
+    ALLEGRO_FONT *DeFont;
+    float DeCollAngs[4];
+
     bool CloseNow;
 
     /**
