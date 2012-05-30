@@ -579,34 +579,10 @@ double coefficient_multiplier(double v){
     }
 }
 
-void* iteration_2(ALLEGRO_THREAD *thread, void *argument){//Empty for a while
-    #define Data ((struct GameSharedData*)argument)
-    #define Acc Data->Level.Acc
-
-    StopThread(2, Data, thread);
-    while(!al_get_thread_should_stop(thread)){
-        /**
-            Work
-            */
-
-
-        /**
-            Signal and stop
-            */
-
-        StopThread(2, Data, thread);
-    }
-    printf("Closing Thread #2\n");
-
-    return NULL;
-    #undef Acc
-    #undef Data
-}
-
 /**
     Collision thread
     */
-void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
+void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
 
@@ -616,8 +592,8 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
     short int temp;
     bool fixed_done[Data->Level.number_of_fixed_objects],
          movable_done[Data->Level.number_of_movable_objects];
-
-    StopThread(3, Data, thread);
+    int collisions_this_turn;
+    StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
             Work
@@ -670,18 +646,15 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }
         }
 
-//        if(Data->Level.collision_queue.length > 0){printf("heap length: %d\n", Data->Level.collision_queue.length);}
-
+        collisions_this_turn = 0;
         while(Data->Level.collision_queue.length > 0){
             coll = pop_min(&Data->Level.collision_queue);
-            printf("\nlast coll: %.3f, %hd - %hd, %d\n", coll.time,
-                                  coll.who,
-                                  coll.with,
-                                  (int)coll.with_movable);
-            sprintf(Data->DeBuffer, "last coll: %.3f, %hd - %hd, %d", coll.time,
-                                  coll.who,
-                                  coll.with,
-                                  (int)coll.with_movable);
+            if(Data->Debug){
+                sprintf(Data->DeBuffer, "last coll: %.3f, %hd - %hd, %d", coll.time,
+                                      coll.who,
+                                      coll.with,
+                                      (int)coll.with_movable);
+            }
             if(Data->Level.dirty_tree.root != Data->Level.dirty_tree.nil){
                 //check if dirty
                 //for each: who is the one, with is the other one
@@ -693,11 +666,6 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
                 }
             }
             if(time > coll.time){
-                printf("buggey: %.3f, %hd - %hd, %d\n", coll.time,
-                                  coll.who,
-                                  coll.with,
-                                  (int)coll.with_movable);
-
                 continue;
             }
             move_objects(Data, coll.time - time);
@@ -735,7 +703,11 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             }else{
                 find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
             }
-            if(Data->Level.collision_queue.length > 0){printf("heap length after: %d\n", Data->Level.collision_queue.length);}
+            collisions_this_turn += 1;
+            if(collisions_this_turn >= MAX_COLLISIONS_PER_TURN){
+                clear_heap(&Data->Level.collision_queue);
+                break;
+            }
         }
 
         if(time < 1){
@@ -747,9 +719,9 @@ void* iteration_3(ALLEGRO_THREAD *thread, void *argument){
             Signal and stop
             */
 
-        StopThread(3, Data, thread);
+        StopThread(2, Data, thread);
     }
-    printf("Closing Thread #3\n");
+    printf("Closing Thread #2\n");
 
     return NULL;
     #undef Acc

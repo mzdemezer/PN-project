@@ -12,7 +12,6 @@ void* main_iteration(ALLEGRO_THREAD *, void *);
 void* iteration_0(ALLEGRO_THREAD *, void *);
 void* iteration_1(ALLEGRO_THREAD *, void *);
 void* iteration_2(ALLEGRO_THREAD *, void *);
-void* iteration_3(ALLEGRO_THREAD *, void *);
 void terminate_iteration(struct GameSharedData *);
 
 #endif

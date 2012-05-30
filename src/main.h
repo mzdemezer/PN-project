@@ -20,7 +20,7 @@
 
 #define SCREEN_BUFFER_WIDTH 1000
 #define SCREEN_BUFFER_HEIGHT 750
-#define MAX_FPS 80
+#define MAX_FPS 60
 
 /**
     Negatives values are for configuration menus
@@ -46,14 +46,18 @@
     */
 
 #define COULOMB 0.1
-#define GRAV 400
+#define GRAV 600
 
 #define DEFAULT_FLUID_DENSITY 0.001
 #define MACH_SPEED 300
 #define SPHERE_DRAG_COEFFICENT 0.45
 
+#define MAX_COLLISIONS_PER_TURN 1600
 #define WALL_COLLISION_COEFFICIENT 0.8
 
+#define PLAYER_TO_PLAYER_RESTITUTION 1
+#define PLAYER_TO_PARTICLE_RESTITUTION 1
+#define PARTICLE_TO_PARTICLE_RESTITUTION 1
 /**
     Maths
     */
@@ -378,8 +382,8 @@ struct zone{
     short int *fixed;
 };
 
-#define NumOfThreads 4
-#define ACC_2nd_DIM NumOfThreads + 1
+#define NumOfThreads 3
+#define ACC_2nd_DIM NumOfThreads + 2
 struct move_arrays{
     float x, y,
           vx, vy,
@@ -574,6 +578,7 @@ void heapify(struct collision_heap* heap, short int i);
 void build_heap(struct collision_heap* heap);
 struct collision_data pop_min(struct collision_heap* heap);
 void heap_insert(struct collision_heap* heap, struct collision_data *collision);
+void clear_heap(struct collision_heap* heap);
 
 //Zones
 void get_zone(float x, float y, short int *zone);
@@ -600,9 +605,6 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt);
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               double dx, double dy, float m1, float m2, float restitution);
-#define PLAYER_TO_PLAYER_RESTITUTION 1
-#define PLAYER_TO_PARTICLE_RESTITUTION 1
-#define PARTICLE_TO_PARTICLE_RESTITUTION 1
 //Draw
 
 #define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)

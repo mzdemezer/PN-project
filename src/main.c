@@ -42,7 +42,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
             ++sec;
             if(sec == 60){
                 al_lock_mutex(Data->MutexFPS);
-//                    printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
+                    printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
                     sec=0;
                     Data->FPS = 0;
                 al_unlock_mutex(Data->MutexFPS);
@@ -285,6 +285,10 @@ void heap_insert(struct collision_heap* heap, struct collision_data *collision){
             heap->heap[i].with = temp;
         }
     }
+}
+
+void clear_heap(struct collision_heap* heap){
+    heap->length = 0;
 }
 
 /**
@@ -1051,31 +1055,24 @@ void coll_in_order(coll_node *root, coll_node *nil){
 
 void get_zone(float x, float y, short int *zone){
     zone[0] = (short int)((int)x / ZONE_SIZE);
+    if(zone[0] < 0){
+        zone[0] = 0;
+    }else if(zone[0] >= ZONE_FACTOR){
+        zone[0] = ZONE_FACTOR - 1;
+    }
     zone[1] = (short int)((int)y / ZONE_SIZE);
+    if(zone[1] < 0){
+        zone[1] = 0;
+    }else if(zone[1] >= ZONE_FACTOR){
+        zone[1] = ZONE_FACTOR - 1;
+    }
 }
 
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone){
     dx = float_abs(dx) + r0;
     dy = float_abs(dy) + r0;
     get_zone(x - dx, y - dy, zone);
-    zone[0] -= 1;
-    zone[1] -= 1;
-    if(zone[0] < 0){
-        zone[0] = 0;
-    }
-    if(zone[1] < 0){
-        zone[1] = 0;
-    }
     get_zone(x + dx, y + dy, zone + 2);
-    zone[2] += 1;
-    zone[3] += 1;
-    if(zone[2] >= ZONE_FACTOR){
-        zone[2] = ZONE_FACTOR - 1;
-    }
-    if(zone[3] >= ZONE_FACTOR){
-        zone[3] = ZONE_FACTOR - 1;
-    }
-
 }
 
 void add_fixed_to_zone(struct zone* zone, short int key){
@@ -1447,9 +1444,6 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
         d -= dx;
-        //d += 0.03; //??
-        d += 2 * eps; //??
-        //d += 50;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
         ang = m1 + m2;
@@ -2285,7 +2279,6 @@ int main(){
     Data.IterationThreads[0].Job = iteration_0;
     Data.IterationThreads[1].Job = iteration_1;
     Data.IterationThreads[2].Job = iteration_2;
-    Data.IterationThreads[3].Job = iteration_3;
 
     for(i = 0; i < NumOfThreads; ++i){
         Data.IterationThreads[i].Thread = al_create_thread(Data.IterationThreads[i].Job, (void*)&Data);
