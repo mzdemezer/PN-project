@@ -1422,13 +1422,13 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 }
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
-                                              float dx, float dy, float m1, float m2, float restitution){
+                                              double dx, double dy, float m1, float m2, float restitution){
     *v1x -= *v2x;
     *v1y -= *v2y;
     dy = VectorAngle(dx, dy);
     dx = cos(dy);
     dy = sin(dy);
-    float v_into = *v1x * dx + *v1y * dy,
+    double v_into = *v1x * dx + *v1y * dy,
           v_perp = *v1y * dx - *v1x * dy,
           mc = m1 + m2;
     *v1x = v_into * ((m1 - restitution * m2) / mc);
@@ -1436,7 +1436,8 @@ void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x
     *v1x = *v1x * dx + *v2x - v_perp * dy;
     v_perp = (((1 + restitution) * m1) / mc) * v_into;
     *v2x += v_perp * dx;
-    *v2x += v_perp * dy;
+    *v2y += v_perp * dy;
+
 }
 
 void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){

@@ -599,7 +599,7 @@ void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt);
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
-                                              float dx, float dy, float m1, float m2, float restitution);
+                                              double dx, double dy, float m1, float m2, float restitution);
 #define PLAYER_TO_PLAYER_RESTITUTION 1
 #define PLAYER_TO_PARTICLE_RESTITUTION 1
 #define PARTICLE_TO_PARTICLE_RESTITUTION 1

@@ -224,31 +224,31 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-//            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
-//                Cx = S * Cx * Data->Level.dens;
-//                vx = Data->Level.wind_vx - vx;
-//                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
-//                vy = Data->Level.wind_vy - vy;
-//                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
-//            }
+            if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
+                Cx = S * Cx * Data->Level.dens;
+                vx = Data->Level.wind_vx - vx;
+                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
+                vy = Data->Level.wind_vy - vy;
+                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
+            }
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
                     #define ObData ((struct playerData*)(Data->Level.MovableObjects[i].ObjectData))
-//                    op = ObData->mass;
-//                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
-//                    for(j = 3; j < ACC_2nd_DIM; ++j){
-//                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
-//                    }
-//                    Acc[i].ax[(int)parity] /= op;
-//
-//                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
-//                    for(j = 3; j < ACC_2nd_DIM; ++j){
-//                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
-//                    }
-//                    Acc[i].ay[(int)parity] /= op;
-//
-//                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
-//                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+                    op = ObData->mass;
+                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+                    }
+                    Acc[i].ax[(int)parity] /= op;
+
+                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+                    }
+                    Acc[i].ay[(int)parity] /= op;
+
+                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
                         Simple bounce
@@ -279,21 +279,21 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     break;
                 case motPARTICLE:
                     #define ObData ((struct particleData*)(Data->Level.MovableObjects[i].ObjectData))
-//                    op = ObData->mass;
-//                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
-//                    for(j = 3; j < ACC_2nd_DIM; ++j){
-//                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
-//                    }
-//                    Acc[i].ax[(int)parity] /= op;
-//
-//                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
-//                    for(j = 3; j < ACC_2nd_DIM; ++j){
-//                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
-//                    }
-//                    Acc[i].ay[(int)parity] /= op;
-//
-//                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
-//                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
+                    op = ObData->mass;
+                    Acc[i].ax[(int)parity] = Acc[i].ax[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ax[(int)parity] += Acc[i].ax[j];
+                    }
+                    Acc[i].ax[(int)parity] /= op;
+
+                    Acc[i].ay[(int)parity] = Acc[i].ay[2];
+                    for(j = 3; j < ACC_2nd_DIM; ++j){
+                        Acc[i].ay[(int)parity] += Acc[i].ay[j];
+                    }
+                    Acc[i].ay[(int)parity] /= op;
+
+                    ObData->vx += (Acc[i].ax[(int)parity] + Acc[i].ax[(int)imparity]) * half_dt;
+                    ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
                         Simple bounce
