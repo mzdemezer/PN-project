@@ -636,6 +636,51 @@ void test_heap06(CuTest *tc){
     free(heap.heap);
 }
 
+void test_segment_intersection01(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {0, 5},
+                 B2 = {5, 0};
+
+    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+}
+
+void test_segment_intersection02(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {0, 0},
+                 B2 = {5, 5};
+
+    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+}
+
+void test_segment_intersection03(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {2, 2},
+                 B2 = {3, 3};
+
+    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+}
+
+void test_segment_intersection04(CuTest *tc){
+    struct point A1 = {0,  0},
+                 A2 = {5,  0},
+                 B1 = {5, -3},
+                 B2 = {5,  0};
+
+    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+}
+
+void test_segment_intersection05(CuTest *tc){
+    struct point A1 = {0,  0},
+                 A2 = {5,  0},
+                 B1 = {6, -3},
+                 B2 = {6,  0};
+
+    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2) == false);
+}
+
 CuSuite* mainGetSuite(void){
     CuSuite* suite = CuSuiteNew();
 
@@ -712,6 +757,15 @@ CuSuite* mainGetSuite(void){
     SUITE_ADD_TEST(suite, test_heap04);
     SUITE_ADD_TEST(suite, test_heap05);
     SUITE_ADD_TEST(suite, test_heap06);
+
+
+    SUITE_ADD_TEST(suite, test_segment_intersection01);
+    SUITE_ADD_TEST(suite, test_segment_intersection02);
+    SUITE_ADD_TEST(suite, test_segment_intersection03);
+    SUITE_ADD_TEST(suite, test_segment_intersection04);
+    SUITE_ADD_TEST(suite, test_segment_intersection05);
+
+
 
     return suite;
 }

@@ -36,7 +36,8 @@
 #define NUMBER_OF_SIGNIFICANT_KEYS 4
 
 #define INITIAL_BOUNDRY_MOVABLE 300
-#define INITIAL_BOUNDRY_FIXED 1000
+#define INITIAL_BOUNDRY_FIXED 1024
+#define INITIAL_BOUNDRY_PRIMITIVE 8192
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
 #define DEFAULT_BACKGROUND_COLOR al_map_rgb(80, 0, 0)
@@ -171,6 +172,12 @@ enum movable_object_type{
     motPARTICLE
 };
 
+enum primitive_object_type{
+    potSEGMENT,
+    potPOINT,
+    potCIRCLE
+};
+
 /**
     These structures enable objectivization
     by casting on different objects in
@@ -178,6 +185,25 @@ enum movable_object_type{
     creating lists of objects that are
     logically connected with each other
     */
+
+struct primitive_object_structure{
+    enum primitive_object_type Type;
+    void *ObjectData;
+};
+
+struct point{
+    float x, y;
+};
+
+struct segment{
+    struct point A, B;
+    float ang; // direction of AB vector; to make collisions faster
+};
+
+struct circle{
+    struct point center;
+    float r;
+};
 
 struct fixed_object_structure{
     enum fixed_object_type Type;
@@ -246,9 +272,6 @@ struct ObjectWorkshop{
     short int new_zones[4];
 };
 
-struct point{
-    float x, y;
-};
 
 /**
     Order of first few fields in objects is
@@ -378,8 +401,8 @@ struct keyboard_structure{
 
 struct zone{
     RB_tree movable;
-    int number_of_fixed, allocated;
-    short int *fixed;
+    int number_of_primitives, allocated;
+    short int *primitives;
 };
 
 #define NumOfThreads 3
@@ -393,15 +416,18 @@ struct move_arrays{
 
 #define ZONE_FACTOR 50
 #define ZONE_SIZE (SCREEN_BUFFER_HEIGHT / ZONE_FACTOR)
-#define INITIAL_FIXED_PER_ZONE 64
+#define INITIAL_PRIMITIVES_PER_ZONE 64
 #define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 
 struct level_structure{
     int LevelNumber,
         number_of_movable_objects,
         number_of_fixed_objects,
+        number_of_primitive_objects,
         boundry_movable,
-        boundry_fixed;
+        boundry_fixed,
+        boundry_primitive;
+    struct primitive_object_structure *PrimitiveObjects;
     struct fixed_object_structure *FixedObjects;
     struct movable_object_structure *MovableObjects;
 
@@ -524,12 +550,19 @@ void* main_iteration(ALLEGRO_THREAD *, void *);
 void* thread_event_queue_procedure(ALLEGRO_THREAD *, void *);
 void* load_level(ALLEGRO_THREAD *, void *);
 
-void add_movable_object(struct GameSharedData*, enum movable_object_type, void*);
-void add_fixed_object(struct GameSharedData*, enum fixed_object_type, void*);
-
-
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
+
+//Arrays for objects
+void add_primitive_object(struct GameSharedData *, enum primitive_object_type, void* NewObjectData);
+void delete_primitive_object(struct primitive_object_structure *);
+void clear_primitive_object_list(struct GameSharedData *);
+void add_fixed_object(struct GameSharedData *, enum fixed_object_type, void* NewObjectData);
+void delete_fixed_object(struct fixed_object_structure *);
+void clear_fixed_object_list(struct GameSharedData *);
+void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData);
+void delete_movable_object(struct movable_object_structure *);
+void clear_movable_object_list(struct GameSharedData *);
 
 //Red-Black Tree for zones
 RB_node* get_node(RB_tree *tree, short int key);
@@ -583,8 +616,8 @@ void clear_heap(struct collision_heap* heap);
 //Zones
 void get_zone(float x, float y, short int *zone);
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
-void add_fixed_to_zone(struct zone* zone, short int key);
-void initialize_zones_with_fixed(struct GameSharedData *Data, short int *zones, short int index);
+void add_primitive_to_zone(struct zone* zone, short int key);
+void initialize_zones_with_primitive(struct GameSharedData *Data, short int *zones, short int index);
 void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
 void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
 
@@ -592,13 +625,16 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
 #define EMPTY_COLLISION_TIME 10
 float check_collision_between_two_balls(double x, double y, float dx, float dy, double d);
 void move_objects(struct GameSharedData *Data, float t);
-struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what);
+struct collision_data get_collision_with_primitive(struct movable_object_structure *who, struct primitive_object_structure *with_what);
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
 void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, float time_passed);
 void collision_min_for_object(struct GameSharedData *Data, short int who);
 void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done, float time_passed);
 
-
+float vector_product(float x1, float y1, float x2, float y2);
+bool vectors_on_two_sides(float vector_pr1, float vector_pr2);
+bool segment_intersection(const struct point *A1, const struct point *A2,
+                         const struct point *B1, const struct point *B2);
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
 void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);

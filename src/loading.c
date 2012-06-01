@@ -166,7 +166,6 @@ void load_level_from_file(struct GameSharedData *Data){
                                    &Data->Level.Player->center.y,
                                    &Data->Level.Player->ang);
 
-        construct_player(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
         construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
@@ -191,7 +190,7 @@ void load_level_from_file(struct GameSharedData *Data){
 
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         get_zone_for_object(Factory.NewRectangle->center.x, Factory.NewRectangle->center.y, 0, 0, Factory.NewRectangle->r, Factory.new_zones);
-        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -212,7 +211,7 @@ void load_level_from_file(struct GameSharedData *Data){
 
         construct_circle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         get_zone_for_object(Factory.NewCircle->center.x, Factory.NewCircle->center.y, 0, 0, Factory.NewCircle->r, Factory.new_zones);
-        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -234,7 +233,7 @@ void load_level_from_file(struct GameSharedData *Data){
 
         construct_square(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         get_zone_for_object(Factory.NewSquare->center.x, Factory.NewSquare->center.y, 0, 0, Factory.NewSquare->r, Factory.new_zones);
-        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -257,7 +256,7 @@ void load_level_from_file(struct GameSharedData *Data){
 
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         get_zone_for_object(Factory.NewEntrance->center.x, Factory.NewEntrance->center.y, 0, 0, Factory.NewEntrance->r, Factory.new_zones);
-        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -278,12 +277,9 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &op0);
         read_color(buffer, level, &Factory.NewExit->color, op0, "Invalid level input: rectangle#%d color\n", i);
 
-        /**
-            Calling saws and hammers for constructing an exit
-            */
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         get_zone_for_object(Factory.NewExit->center.x, Factory.NewExit->center.y, 0, 0, Factory.NewExit->r, Factory.new_zones);
-        initialize_zones_with_fixed(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -339,10 +335,7 @@ void load_level_from_file(struct GameSharedData *Data){
         sscanf(buffer, "%f %d", &Factory.NewSwitch->mass,
                                 &op0);
         read_color(buffer, level, &Factory.NewSwitch->color, op0, "Invalid level input: switch#%d color\n", i);
-        /**
-            This is the right place, yes Luke
-            */
-        construct_switch(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+
         construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
@@ -368,10 +361,6 @@ void load_level_from_file(struct GameSharedData *Data){
         Factory.NewDoor->doorType = (enum switch_type) op1;
         read_color(buffer, level, &Factory.NewDoor->color, op0, "Invalid level input: door#%d color\n", i);
 
-         /**
-            The door should be now built
-            */
-        construct_door(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
         construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
@@ -390,10 +379,7 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &Factory.NewParticle->r,
                                             &Factory.NewParticle->mass,
                                             &Factory.NewParticle->charge);
-        /**
-            I heard news, that here will be particle constructor
-            */
-        construct_particle(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+
         construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 

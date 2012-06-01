@@ -138,7 +138,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             }
         }
 
-
+        printf("at launch\n");
         /**
             Launching other iterations
             */
@@ -346,6 +346,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             coll_clear_tree(&Data->Level.MovableObjects[i].colls_with_mov);
         }
+        printf("at end\n");
 
         if(!al_get_thread_should_stop(thread)){
             al_lock_mutex(Data->MutexMainIteration);
@@ -590,7 +591,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     int i, j, k, l;
     struct collision_data coll;
     short int temp;
-    bool fixed_done[Data->Level.number_of_fixed_objects],
+    bool primitive_done[Data->Level.number_of_primitive_objects],
          movable_done[Data->Level.number_of_movable_objects];
     int collisions_this_turn;
     StopThread(2, Data, thread);
@@ -598,30 +599,48 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         /**
             Work
             */
+        printf("in iter#2!\n");
         time = 0;
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            for(j = 0; j < Data->Level.number_of_fixed_objects; ++j){
-                fixed_done[j] = false;
+            for(j = 0; j < Data->Level.number_of_primitive_objects; ++j){
+                primitive_done[j] = false;//this really needs optymalization... use tree instead? or also? maybe also checking O(1), if not many objects then small tree, and only a few nodes
             }
             Data->Level.MovableObjects[i].coll_with_fixed.time = EMPTY_COLLISION_TIME;
             for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
                 for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
-                    for(l = 0; l < Data->Level.zones[j][k].number_of_fixed; ++l){
-                        if(!fixed_done[Data->Level.zones[j][k].fixed[l]]){
-                            fixed_done[Data->Level.zones[j][k].fixed[l]] = true;
-                            coll = get_collision_with_fixed(&Data->Level.MovableObjects[i],
-                                                                &Data->Level.FixedObjects[Data->Level.zones[j][k].fixed[l]]);
+                    printf("%d in loop: %d %d\n", i, j, k);
+                    for(l = 0; l < Data->Level.zones[j][k].number_of_primitives; ++l){
+                        printf("begin \t");
+                        printf("%d %d %d -> %d\n", j, k, l, Data->Level.zones[j][k].primitives[l]);
+                        printf("%p\n", &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]]);
+                        printf("%d\n", Data->Level.zones[j][k].primitives[l]);
+                        if(!primitive_done[Data->Level.zones[j][k].primitives[l]]){
+                            primitive_done[Data->Level.zones[j][k].primitives[l]] = true;
+                            printf("in: n_o_prim: %d\n", Data->Level.zones[j][k].number_of_primitives);
+                            printf("%d", Data->Level.zones[j][k].primitives[l]);
+                            printf("in %p %p\n", &Data->Level.MovableObjects[i], Data->Level.PrimitiveObjects);
+//                                               &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]])
+                            printf("next: %p\n", Data->Level.PrimitiveObjects + 99);
+                            coll = get_collision_with_primitive(&Data->Level.MovableObjects[i],
+                                                                &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]]);
+                            printf("outside %f\n", coll.time);
                             if(coll.time >= 0 && coll.time <= 1){
                                 if(coll.time < Data->Level.MovableObjects[i].coll_with_fixed.time){
-                                    coll.with = Data->Level.zones[j][k].fixed[l];
+                                    coll.with = Data->Level.zones[j][k].primitives[l];
                                     Data->Level.MovableObjects[i].coll_with_fixed = coll;
                                 }
                             }
+                            printf("past\n");
                         }
                     }
+                    printf("past loop\n");
                 }
+                printf("past loop 2\n");
             }
+            printf("past loop 3\n");*/
         }
+
+        printf("OUT OF LOOP\n");
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
@@ -698,10 +717,10 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                 Data->Level.MovableObjects[coll.who].colls_with_mov.root = Data->Level.MovableObjects[coll.who].colls_with_mov.nil;
 
                 //New collisions
-                find_next_collision(Data, coll.with, coll.who, fixed_done, movable_done, time);
-                find_next_collision(Data, coll.who, coll.with, fixed_done, movable_done, time);
+                find_next_collision(Data, coll.with, coll.who, primitive_done, movable_done, time);
+                find_next_collision(Data, coll.who, coll.with, primitive_done, movable_done, time);
             }else{
-                find_next_collision(Data, coll.who, -coll.with, fixed_done, movable_done, time);
+                find_next_collision(Data, coll.who, -coll.with, primitive_done, movable_done, time);
             }
             collisions_this_turn += 1;
             if(collisions_this_turn >= MAX_COLLISIONS_PER_TURN){
@@ -718,7 +737,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         /**
             Signal and stop
             */
-
+        printf("at signal\n");
         StopThread(2, Data, thread);
     }
     printf("Closing Thread #2\n");
@@ -765,6 +784,14 @@ void handle_event_game(struct GameSharedData *Data){
     }
 }
 
+void highlight_zone(struct GameSharedData *Data, short int x, short int y, ALLEGRO_COLOR color){
+    #define OFFSET 0.5
+    al_draw_filled_rectangle(x * ZONE_SIZE + OFFSET + Data->scales.trans_x, y * ZONE_SIZE + OFFSET + Data->scales.trans_y,
+                        (x + 1) * ZONE_SIZE - OFFSET + Data->scales.trans_x, (y + 1) * ZONE_SIZE - OFFSET + Data->scales.trans_y,
+                        color);
+    #undef OFFSET
+}
+
 void draw_zones(struct GameSharedData *Data, struct movable_object_structure *Obj, ALLEGRO_COLOR color){
     #define OFFSET 0.5
     al_draw_filled_rectangle(Obj->zones[0] * ZONE_SIZE + OFFSET + Data->scales.trans_x, Obj->zones[1] * ZONE_SIZE + OFFSET + Data->scales.trans_y,
@@ -805,7 +832,7 @@ void draw_arrow(struct GameSharedData *Data, float cx, float cy, float ang, int 
 }
 
 void draw_game(struct GameSharedData *Data){
-    int i;
+    int i, j, k;
     ALLEGRO_TRANSFORM tempT;
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -816,6 +843,13 @@ void draw_game(struct GameSharedData *Data){
     al_use_transform(&Data->Transformation);
 
     if(Data->Debug){
+        for(i = 0; i < ZONE_FACTOR; ++i){
+            for(j = 0; j < ZONE_FACTOR; ++j){
+                for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
+                    highlight_zone(Data, i, j, al_map_rgba(70, 15, 0, 0.01));
+                }
+            }
+        }
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             draw_zones(Data, &Data->Level.MovableObjects[i], al_map_rgba(150, 90, 30, 0.01));
         }

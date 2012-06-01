@@ -595,7 +595,7 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
             coll_insert_node(&Data->Level.MovableObjects[with].colls_with_mov, &coll);
             if(time_passed > 0){
                 struct collision_data *dirty_pointer = &coll_get_minimum(Data->Level.MovableObjects[with].colls_with_mov.root,
-                                                                        Data->Level.MovableObjects[with].colls_with_mov.nil)->key;
+                                                                         Data->Level.MovableObjects[with].colls_with_mov.nil)->key;
                 if(dirty_pointer != Data->Level.MovableObjects[with].next_collision){//check if DIRTY things happen
                     if(Data->Level.MovableObjects[with].next_collision->time <= 1 &&
                        Data->Level.MovableObjects[with].next_collision->time >= 0){
@@ -1075,21 +1075,22 @@ void get_zone_for_object(float x, float y, float dx, float dy, float r0, short i
     get_zone(x + dx, y + dy, zone + 2);
 }
 
-void add_fixed_to_zone(struct zone* zone, short int key){
-    if(zone->number_of_fixed == zone->allocated){
+void add_primitive_to_zone(struct zone* zone, short int key){
+    if(zone->number_of_primitives == zone->allocated){
         zone->allocated *= 2;
-        zone->fixed = (short int*)realloc(zone->fixed, sizeof(short int) * zone->allocated);
+        zone->primitives = (short int*)realloc(zone->primitives, sizeof(short int) * zone->allocated);
+        printf("REALLOCATION\n");
     }
 
-    zone->fixed[zone->number_of_fixed] = key;
-    zone->number_of_fixed += 1;
+    zone->primitives[zone->number_of_primitives] = key;
+    zone->number_of_primitives += 1;
 }
 
-void initialize_zones_with_fixed(struct GameSharedData *Data, short int *zones, short int index){
+void initialize_zones_with_primitive(struct GameSharedData *Data, short int *zones, short int index){
     int i, j;
     for(i = zones[0]; i <= zones[2]; ++i){
         for(j = zones[1]; j <= zones[3]; ++j){
-            add_fixed_to_zone(&Data->Level.zones[i][j], index);
+            add_primitive_to_zone(&Data->Level.zones[i][j], index);
         }
     }
 }
@@ -1273,11 +1274,11 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
     }
 }
 
-struct collision_data get_collision_with_fixed(struct movable_object_structure *who, struct fixed_object_structure *with_what){
+struct collision_data get_collision_with_primitive(struct movable_object_structure *who, struct primitive_object_structure *with_what){
     struct collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
     //BIG SWITCH
-
+    printf("inside: %p, %p\n", who, with_what);
     return new_coll;
 }
 
@@ -1350,11 +1351,11 @@ void collision_min_for_object(struct GameSharedData *Data, short int who){
     }
 }
 
-void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done, float time_passed){
+void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *primitive_done, bool *movable_done, float time_passed){
     struct collision_data new_coll;
     int i, j, k;
-    for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
-        fixed_done[i] = false;
+    for(i = 0; i < Data->Level.number_of_primitive_objects; ++i){
+        primitive_done[i] = false;
     }
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         movable_done[i] = false;
@@ -1364,15 +1365,16 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
     Data->Level.MovableObjects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
     for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
-            for(k = 0; k < Data->Level.zones[i][j].number_of_fixed; ++k){
-                if(!fixed_done[Data->Level.zones[i][j].fixed[k]]){
-                    fixed_done[Data->Level.zones[i][j].fixed[k]] = true;
-                    new_coll = get_collision_with_fixed(&Data->Level.MovableObjects[index],
-                                                        &Data->Level.FixedObjects[Data->Level.zones[i][j].fixed[k]]);
+            for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
+                if(!primitive_done[Data->Level.zones[i][j].primitives[k]]){
+                    printf("%d | %d %hd\n", Data->Level.zones[i][j].number_of_primitives, k, Data->Level.zones[i][j].primitives[k]);
+                    primitive_done[Data->Level.zones[i][j].primitives[k]] = true;
+                    new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
+                                                            &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
                     new_coll.time += time_passed;
                     if(new_coll.time >= 0 && new_coll.time <= 1){
                         if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
-                            new_coll.with = Data->Level.zones[i][j].fixed[k];
+                            new_coll.with = Data->Level.zones[i][j].primitives[k];
                             Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
                         }
                     }
@@ -1416,6 +1418,46 @@ void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y){
     *y = (L1->C * L2->A - L1->A * L2->C) / (L2->B * L1->A - L1->B * L2->A);
     *x = -(L1->C + L1->B * *y) / L1->A;
+}
+
+/**
+    for vectors [x1, y1] and [x2, y2]
+    */
+float vector_product(float x1, float y1, float x2, float y2){
+    return x1 * y2 - x2 * y1;
+}
+
+bool vectors_on_two_sides(float vector_pr1, float vector_pr2){
+    if(vector_pr1 == 0 || vector_pr2 == 0){
+        return true;
+    }else if((vector_pr1 > 0 && vector_pr2 < 0) ||
+             (vector_pr1 < 0 && vector_pr2 > 0) ){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+bool segment_intersection(const struct point *A1, const struct point *A2,
+                          const struct point *B1, const struct point *B2){
+    float v_x = A2->x - A1->x,
+          v_y = A2->y - A1->y,
+          b_x = B1->x - A1->x,
+          b_y = B1->y - A1->y;
+
+    if(vectors_on_two_sides(vector_product(v_x, v_y, B2->x - A1->x, B2->y - A1->y), vector_product(v_x, v_y, b_x, b_y))){
+        b_x = -b_x;
+        b_y = -b_y;
+        v_x = B2->x - B1->x;
+        v_y = B2->y - B1->y;
+        if(vectors_on_two_sides(vector_product(v_x, v_y, b_x, b_y), vector_product(v_x, v_y, A2->x - B1->x, A2->y - B1->y))){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
 }
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
@@ -1887,13 +1929,28 @@ void construct_movable(struct GameSharedData *Data, struct movable_object_struct
     Object->colls_with_mov.nil->right = Object->colls_with_mov.nil;
     Object->colls_with_mov.root = Object->colls_with_mov.nil;
     Object->next_collision = &Object->colls_with_mov.nil->key;
+
+    switch(Object->Type){
+        case motPLAYER:
+            construct_player(Object);
+            break;
+        case motPARTICLE:
+            construct_particle(Object);
+            break;
+        case motDOOR:
+            construct_door(Object);
+            break;
+        case motSWITCH:
+            construct_switch(Object);
+            break;
+    }
 }
 /**
     Arrays interface
     */
 
 void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.number_of_movable_objects == Data->Level.boundry_movable){
+    if(Data->Level.number_of_movable_objects >= Data->Level.boundry_movable){
         Data->Level.boundry_movable *= 2;
         Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.boundry_movable);
     }
@@ -1903,13 +1960,23 @@ void add_movable_object(struct GameSharedData *Data, enum movable_object_type Ne
 }
 
 void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.number_of_fixed_objects == Data->Level.boundry_fixed){
+    if(Data->Level.number_of_fixed_objects >= Data->Level.boundry_fixed){
         Data->Level.boundry_fixed *= 2;
         Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.boundry_fixed);
     }
     Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].Type = NewObjectType;
     Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].ObjectData = NewObjectData;
     Data->Level.number_of_fixed_objects += 1;
+}
+
+void add_primitive_object(struct GameSharedData *Data, enum primitive_object_type NewObjectType, void* NewObjectData){
+    if(Data->Level.number_of_primitive_objects >= Data->Level.boundry_primitive){
+        Data->Level.boundry_primitive *= 2;
+        Data->Level.PrimitiveObjects = (struct primitive_object_structure*)realloc((void*)Data->Level.PrimitiveObjects, sizeof(struct primitive_object_structure) * Data->Level.boundry_primitive);
+    }
+    Data->Level.PrimitiveObjects[Data->Level.number_of_primitive_objects].Type = NewObjectType;
+    Data->Level.PrimitiveObjects[Data->Level.number_of_primitive_objects].ObjectData = NewObjectData;
+    Data->Level.number_of_primitive_objects += 1;
 }
 
 void delete_fixed_object(struct fixed_object_structure *Object){
@@ -1963,6 +2030,28 @@ void clear_movable_object_list(struct GameSharedData *Data){
         delete_movable_object(&Data->Level.MovableObjects[i]);
     }
     Data->Level.number_of_movable_objects = 0;
+}
+
+void delete_primitive_object(struct primitive_object_structure *Object){
+    switch(Object->Type){
+        case potPOINT:
+            free((struct point*)Object->ObjectData);
+            break;
+        case potSEGMENT:
+            free((struct segment*)Object->ObjectData);
+            break;
+        case potCIRCLE:
+            free((struct circle*)Object->ObjectData);
+            break;
+    }
+}
+
+void clear_primitive_object_list(struct GameSharedData *Data){
+    int i;
+    for(i = 0; i < Data->Level.number_of_primitive_objects; ++i){
+        delete_primitive_object(&Data->Level.PrimitiveObjects[i]);
+    }
+    Data->Level.number_of_primitive_objects = 0;
 }
 
 void calculate_transformation(struct GameSharedData *Data){
@@ -2302,10 +2391,13 @@ int main(){
     Data.Level.LevelNumber = 0;
     Data.Level.number_of_movable_objects = 0;
     Data.Level.number_of_fixed_objects = 0;
+    Data.Level.number_of_primitive_objects = 0;
     Data.Level.boundry_movable = INITIAL_BOUNDRY_MOVABLE;
     Data.Level.boundry_fixed = INITIAL_BOUNDRY_FIXED;
-    Data.Level.MovableObjects = (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure) * Data.Level.boundry_movable);
-    Data.Level.FixedObjects =   (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)   * Data.Level.boundry_fixed);
+    Data.Level.boundry_primitive = INITIAL_BOUNDRY_PRIMITIVE;
+    Data.Level.MovableObjects =     (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure)     * Data.Level.boundry_movable);
+    Data.Level.FixedObjects =         (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)       * Data.Level.boundry_fixed);
+    Data.Level.PrimitiveObjects = (struct primitive_object_structure*)malloc(sizeof(struct primitive_object_structure)   * Data.Level.boundry_primitive);
     Data.Level.Background = NULL;
     Data.Level.ScaledBackground = NULL;
     Data.Level.Acc = NULL;
@@ -2320,9 +2412,9 @@ int main(){
             Data.Level.zones[i][j].movable.nil->right = Data.Level.zones[i][j].movable.nil;
             Data.Level.zones[i][j].movable.nil->key = -10;
             Data.Level.zones[i][j].movable.root = Data.Level.zones[i][j].movable.nil;
-            Data.Level.zones[i][j].number_of_fixed = 0;
-            Data.Level.zones[i][j].allocated = INITIAL_FIXED_PER_ZONE;
-            Data.Level.zones[i][j].fixed = (short int*)malloc(sizeof(short int) * INITIAL_FIXED_PER_ZONE);
+            Data.Level.zones[i][j].number_of_primitives = 0;
+            Data.Level.zones[i][j].allocated = INITIAL_PRIMITIVES_PER_ZONE;
+            Data.Level.zones[i][j].primitives = (short int*)malloc(sizeof(short int) * INITIAL_PRIMITIVES_PER_ZONE);
         }
     }
 
