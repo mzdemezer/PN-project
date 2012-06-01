@@ -138,7 +138,6 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             }
         }
 
-        printf("at launch\n");
         /**
             Launching other iterations
             */
@@ -346,7 +345,6 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             coll_clear_tree(&Data->Level.MovableObjects[i].colls_with_mov);
         }
-        printf("at end\n");
 
         if(!al_get_thread_should_stop(thread)){
             al_lock_mutex(Data->MutexMainIteration);
@@ -599,7 +597,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         /**
             Work
             */
-        printf("in iter#2!\n");
         time = 0;
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             for(j = 0; j < Data->Level.number_of_primitive_objects; ++j){
@@ -608,39 +605,24 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             Data->Level.MovableObjects[i].coll_with_fixed.time = EMPTY_COLLISION_TIME;
             for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
                 for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
-                    printf("%d in loop: %d %d\n", i, j, k);
                     for(l = 0; l < Data->Level.zones[j][k].number_of_primitives; ++l){
-                        printf("begin \t");
-                        printf("%d %d %d -> %d\n", j, k, l, Data->Level.zones[j][k].primitives[l]);
-                        printf("%p\n", &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]]);
-                        printf("%d\n", Data->Level.zones[j][k].primitives[l]);
                         if(!primitive_done[Data->Level.zones[j][k].primitives[l]]){
                             primitive_done[Data->Level.zones[j][k].primitives[l]] = true;
-                            printf("in: n_o_prim: %d\n", Data->Level.zones[j][k].number_of_primitives);
-                            printf("%d", Data->Level.zones[j][k].primitives[l]);
-                            printf("in %p %p\n", &Data->Level.MovableObjects[i], Data->Level.PrimitiveObjects);
-//                                               &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]])
-                            printf("next: %p\n", Data->Level.PrimitiveObjects + 99);
                             coll = get_collision_with_primitive(&Data->Level.MovableObjects[i],
                                                                 &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]]);
-                            printf("outside %f\n", coll.time);
                             if(coll.time >= 0 && coll.time <= 1){
                                 if(coll.time < Data->Level.MovableObjects[i].coll_with_fixed.time){
                                     coll.with = Data->Level.zones[j][k].primitives[l];
                                     Data->Level.MovableObjects[i].coll_with_fixed = coll;
                                 }
                             }
-                            printf("past\n");
+
                         }
                     }
-                    printf("past loop\n");
                 }
-                printf("past loop 2\n");
             }
-            printf("past loop 3\n");*/
         }
 
-        printf("OUT OF LOOP\n");
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
             for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
@@ -737,7 +719,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         /**
             Signal and stop
             */
-        printf("at signal\n");
         StopThread(2, Data, thread);
     }
     printf("Closing Thread #2\n");

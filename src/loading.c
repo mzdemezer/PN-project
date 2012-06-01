@@ -19,7 +19,8 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     Data->Level.dens = DEFAULT_FLUID_DENSITY;
     Data->Level.wind_vx = 0;
     Data->Level.wind_vy = 0;
-
+    //crap
+    Data->Level.number_of_primitive_objects = Data->Level.number_of_fixed_objects;
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;

@@ -1278,7 +1278,6 @@ struct collision_data get_collision_with_primitive(struct movable_object_structu
     struct collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
     //BIG SWITCH
-    printf("inside: %p, %p\n", who, with_what);
     return new_coll;
 }
 
@@ -1367,7 +1366,6 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
             for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
                 if(!primitive_done[Data->Level.zones[i][j].primitives[k]]){
-                    printf("%d | %d %hd\n", Data->Level.zones[i][j].number_of_primitives, k, Data->Level.zones[i][j].primitives[k]);
                     primitive_done[Data->Level.zones[i][j].primitives[k]] = true;
                     new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
                                                             &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
