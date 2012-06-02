@@ -93,16 +93,6 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
          imparity = true;
     float half_dt;
 
-    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-        switch(Data->Level.MovableObjects[i].Type){
-            case motPARTICLE:
-                ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vx = 1;
-                ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vy = 1;
-                break;
-            default:
-                ;
-        }
-    }
     printf("In game: after main-iter-init, starting to operate\n");
 
     while(!al_get_thread_should_stop(thread)){
@@ -846,11 +836,13 @@ void draw_game(struct GameSharedData *Data){
 
     if(Data->Debug){
         if(Data->DeBuffer){
-            al_use_transform(&tempT);
-            al_draw_text(Data->DeFont, al_map_rgba(255, 255, 255, 0.01),
-                         Data->scales.scale_w + Data->scales.scale_x, Data->scales.scale_y + Data->scales.scale_h * 0.9,
-                         ALLEGRO_ALIGN_RIGHT, Data->DeBuffer);
-            al_use_transform(&Data->Transformation);
+            if(Data->DeFont){
+                al_use_transform(&tempT);
+                al_draw_text(Data->DeFont, al_map_rgba(255, 255, 255, 0.01),
+                             Data->scales.scale_w + Data->scales.scale_x, Data->scales.scale_y + Data->scales.scale_h * 0.9,
+                             ALLEGRO_ALIGN_RIGHT, Data->DeBuffer);
+                al_use_transform(&Data->Transformation);
+            }
             draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 30 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.58 + Data->scales.trans_y, Data->DeCollAngs[0], 60, al_map_rgba(0, 0, 160, 0.01));
             draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 120 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.58 + Data->scales.trans_y, Data->DeCollAngs[1], 60, al_map_rgba(0, 0, 160, 0.01));
             draw_arrow(Data, SCREEN_BUFFER_HEIGHT + 30 + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT * 0.7 + Data->scales.trans_y, Data->DeCollAngs[2], 60, al_map_rgba(160, 90, 10, 0.01));

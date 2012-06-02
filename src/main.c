@@ -2714,7 +2714,7 @@ int main(){
     Data.Debug = false;
     Data.DeFont = NULL;
     Data.DeBuffer[0] = '\0';
-    Data.DeFont = al_load_ttf_font("cour.ttf", 16, 0);
+    Data.DeFont = al_load_ttf_font("DejaVuSans.ttf", 16, 0);
     for(i = 0; i < 4; ++i){
         Data.DeCollAngs[i] = 0;
     }

@@ -40,7 +40,7 @@
 #define INITIAL_BOUNDRY_PRIMITIVE 8192
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
-#define DEFAULT_BACKGROUND_COLOR al_map_rgb(80, 0, 0)
+#define DEFAULT_BACKGROUND_COLOR al_map_rgb(0, 0, 80)
 
 /**
     Physics
