@@ -1689,8 +1689,8 @@ void add_segment(struct GameSharedData *Data, const struct point *A, const struc
             add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[1]], key);
         }else{
             struct point Bord1, Bord2;
-            while(zones[0] != zones[2] &&
-                  zones[1] != zones[3]){
+            while(zones[0] < zones[2] ||
+                  sign(zones[3] - zones[1]) == i){
                 add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[1]], key);
 
                 Bord1.x = (zones[0] + 1) * ZONE_SIZE;
