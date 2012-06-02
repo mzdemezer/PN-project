@@ -443,7 +443,7 @@ struct level_structure{
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
-    float last_time, dt;
+    double last_time, dt;
     struct move_arrays *Acc;
     float dens, wind_vx, wind_vy;
 };

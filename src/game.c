@@ -3,7 +3,6 @@
 #include <allegro5/allegro.h>
 #include <math.h>
 #include <stdio.h>
-#include <time.h>
 
 /**
     This procedure forces termination of all iteration threads
@@ -101,7 +100,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
 
         dt = Data->Level.last_time;
-        Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
+        Data->Level.last_time = al_get_time();
         dt = Data->Level.last_time - dt;
         half_dt = dt / 2;
 
