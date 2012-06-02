@@ -2480,7 +2480,12 @@ int main(){
     Data.GameState = gsMENU;
     Data.CloseNow = false;
     Data.DrawCall = false;
-
+    Data.config = al_load_config_file("config.ini");
+    if(!Data.config){
+        Data.config = al_create_config();
+        al_set_config_value(Data.config, "Graphic", "fullscreen", "1");
+    }
+    Data.fullscreen = atoi(al_get_config_value(Data.config, "Graphic", "fullscreen"));
     /**
         Menu initialization
         */
@@ -2612,8 +2617,11 @@ int main(){
     /**
         Creating display
         */
-
-    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //  ALLEGRO_WINDOWED
+    if(Data.fullscreen){
+        al_set_new_display_flags(ALLEGRO_FULLSCREEN);
+    }else{
+        al_set_new_display_flags(ALLEGRO_WINDOWED);
+    }
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
@@ -2848,6 +2856,8 @@ int main(){
     al_destroy_display(Data.Display);
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);
+
+    al_save_config_file("config.ini", Data.config);
 
     if(Data.Level.Acc){
         free(Data.Level.Acc);

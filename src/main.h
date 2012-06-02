@@ -466,6 +466,8 @@ struct iteration_thread_structure{
 };
 
 struct GameSharedData{
+    ALLEGRO_CONFIG *config;
+    bool fullscreen;
     enum game_state GameState;
     bool RequestChangeState;
     enum game_state NewState;
