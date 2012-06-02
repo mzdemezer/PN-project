@@ -636,50 +636,255 @@ void test_heap06(CuTest *tc){
     free(heap.heap);
 }
 
-void test_segment_intersection01(CuTest *tc){
+void test_do_segments_intersect01(CuTest *tc){
     struct point A1 = {0, 0},
                  A2 = {5, 5},
                  B1 = {0, 5},
                  B2 = {5, 0};
 
-    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+    CuAssertTrue(tc, do_segments_intersect(&A1, &A2, &B1, &B2));
 }
 
-void test_segment_intersection02(CuTest *tc){
+void test_do_segments_intersect02(CuTest *tc){
     struct point A1 = {0, 0},
                  A2 = {5, 5},
                  B1 = {0, 0},
                  B2 = {5, 5};
 
-    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+    CuAssertTrue(tc, do_segments_intersect(&A1, &A2, &B1, &B2));
 }
 
-void test_segment_intersection03(CuTest *tc){
+void test_do_segments_intersect03(CuTest *tc){
     struct point A1 = {0, 0},
                  A2 = {5, 5},
                  B1 = {2, 2},
                  B2 = {3, 3};
 
-    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+    CuAssertTrue(tc, do_segments_intersect(&A1, &A2, &B1, &B2));
 }
 
-void test_segment_intersection04(CuTest *tc){
+void test_do_segments_intersect04(CuTest *tc){
     struct point A1 = {0,  0},
                  A2 = {5,  0},
                  B1 = {5, -3},
                  B2 = {5,  0};
 
-    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2));
+    CuAssertTrue(tc, do_segments_intersect(&A1, &A2, &B1, &B2));
 }
 
-void test_segment_intersection05(CuTest *tc){
+void test_do_segments_intersect05(CuTest *tc){
     struct point A1 = {0,  0},
                  A2 = {5,  0},
                  B1 = {6, -3},
                  B2 = {6,  0};
 
-    CuAssertTrue(tc, segment_intersection(&A1, &A2, &B1, &B2) == false);
+    CuAssertTrue(tc, do_segments_intersect(&A1, &A2, &B1, &B2) == false);
 }
+
+void test_get_segment_intersection01(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {0, 5},
+                 B2 = {5, 0},
+                 I;
+    bool f;
+    f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
+    CuAssertTrue(tc, f &&
+                 float_abs(I.x - 2.5) < eps &&
+                 float_abs(I.y - 2.5) < eps);
+}
+
+void test_get_segment_intersection02(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {2, 2},
+                 B2 = {4, 4},
+                 I;
+    bool f;
+    f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
+    CuAssertTrue(tc, f == false);
+}
+
+void test_get_segment_intersection03(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {5, 5},
+                 B1 = {2.5, 2.5},
+                 B2 = {5, 0},
+                 I;
+    bool f;
+    f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
+    CuAssertTrue(tc, f &&
+                 float_abs(I.x - 2.5) < eps &&
+                 float_abs(I.y - 2.5) < eps);
+}
+
+void test_get_segment_intersection04(CuTest *tc){
+    struct point A1 = {0, 0},
+                 A2 = {0, 10},
+                 B1 = {-1, 0},
+                 B2 = {1, 10},
+                 I;
+    bool f;
+    f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
+    CuAssertTrue(tc, f &&
+                 float_abs(I.x) < eps &&
+                 float_abs(I.y - 5) < eps);
+}
+
+void test_get_segment_intersection05(CuTest *tc){
+    struct point A1 = {5.3, 0.4},
+                 A2 = {0.5, 2.2},
+                 B1 = {2.134, -0.07},
+                 B2 = {5.93, 1.75},
+                 I;
+    bool f;
+    f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
+    CuAssertTrue(tc, f &&
+                 float_abs(I.x - 4.07354709) < eps &&
+                 float_abs(I.y - 0.85991983) < eps);
+}
+
+/**
+    These test assume that ZONE_FACTOR == 50
+    */
+void test_get_outer_zones_of_segment01(CuTest *tc){
+    struct point A = {SCREEN_BUFFER_HEIGHT / 25, SCREEN_BUFFER_HEIGHT / 25},
+                 B = {SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == 2 &&
+                          zones[1] == 2 &&
+                          zones[2] == ZONE_FACTOR - 1 &&
+                          zones[3] == ZONE_FACTOR - 1);
+}
+
+void test_get_outer_zones_of_segment02(CuTest *tc){
+    struct point A = {-1, -1},
+                 B = {SCREEN_BUFFER_HEIGHT + 1, -1};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, !f);
+}
+
+void test_get_outer_zones_of_segment03(CuTest *tc){
+    struct point A = {-1, SCREEN_BUFFER_HEIGHT + 1},
+                 B = {SCREEN_BUFFER_HEIGHT + 1, SCREEN_BUFFER_HEIGHT + 1};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, !f);
+}
+
+void test_get_outer_zones_of_segment04(CuTest *tc){
+    struct point A = {-1, -1},
+                 B = {-1, SCREEN_BUFFER_HEIGHT + 1};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, !f);
+}
+
+void test_get_outer_zones_of_segment05(CuTest *tc){
+    struct point A = {SCREEN_BUFFER_HEIGHT + 1, SCREEN_BUFFER_HEIGHT + 1},
+                 B = {SCREEN_BUFFER_HEIGHT + 1, -1};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, !f);
+}
+
+void test_get_outer_zones_of_segment06(CuTest *tc){
+    struct point A = {-ZONE_SIZE * 3, ZONE_SIZE / 5},
+                 B = {SCREEN_BUFFER_HEIGHT / 2, -ZONE_SIZE * 5};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, !f);
+}
+
+void test_get_outer_zones_of_segment07(CuTest *tc){
+    struct point A = {-ZONE_SIZE, ZONE_SIZE * 2},
+                 B = {ZONE_SIZE * 2, -ZONE_SIZE};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == 0 && zones[1] == 1 &&
+                          zones[2] == 1 && zones[3] == 0);
+}
+
+void test_get_outer_zones_of_segment08(CuTest *tc){
+    struct point A = {SCREEN_BUFFER_HEIGHT + ZONE_SIZE * 2, SCREEN_BUFFER_HEIGHT - ZONE_SIZE * 3},
+                 B = {SCREEN_BUFFER_HEIGHT - ZONE_SIZE * 3, SCREEN_BUFFER_HEIGHT + ZONE_SIZE * 2};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == ZONE_FACTOR - 1 && zones[1] == ZONE_FACTOR - 1 &&
+                          zones[2] == ZONE_FACTOR - 1 && zones[3] == ZONE_FACTOR - 1);
+}
+
+void test_get_outer_zones_of_segment09(CuTest *tc){
+    struct point A = {SCREEN_BUFFER_HEIGHT + ZONE_SIZE * 2, ZONE_SIZE * 3},
+                 B = {SCREEN_BUFFER_HEIGHT - ZONE_SIZE * 3, -ZONE_SIZE * 2};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == ZONE_FACTOR - 1 && zones[1] == 1 &&
+                          zones[2] == ZONE_FACTOR - 1 && zones[3] == 0);
+}
+
+void test_get_outer_zones_of_segment10(CuTest *tc){
+    struct point A = {-ZONE_SIZE, ZONE_SIZE * 4},
+                 B = {ZONE_SIZE * 2, -ZONE_SIZE * 2};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == 0 && zones[1] == 2 &&
+                          zones[2] == 1 && zones[3] == 0);
+}
+
+void test_get_outer_zones_of_segment11(CuTest *tc){
+    struct point A = {ZONE_SIZE * 9, SCREEN_BUFFER_HEIGHT + ZONE_SIZE},
+                 B = {-ZONE_SIZE, SCREEN_BUFFER_HEIGHT - ZONE_SIZE * 2};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == 5 && zones[1] == ZONE_FACTOR - 1 &&
+                          zones[2] == 0 && zones[3] == ZONE_FACTOR - 2);
+}
+
+void test_get_outer_zones_of_segment12(CuTest *tc){
+    struct point A = {(SCREEN_BUFFER_HEIGHT * 2) / 3, (SCREEN_BUFFER_HEIGHT * 2) / 3},
+                 B = {(SCREEN_BUFFER_HEIGHT * 5) / 3, 0};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == (short int)(((float)(ZONE_FACTOR * 2)) / 3) &&
+                          zones[1] == (short int)(((float)(ZONE_FACTOR * 2)) / 3) &&
+                          zones[2] == ZONE_FACTOR - 1 &&
+                          zones[3] == (short int)(((float)(ZONE_FACTOR * 4)) / 9));
+}
+
+void test_get_outer_zones_of_segment13(CuTest *tc){
+    struct point A = {SCREEN_BUFFER_HEIGHT / 2,  SCREEN_BUFFER_HEIGHT * 2},
+                 B = {SCREEN_BUFFER_HEIGHT / 2, -SCREEN_BUFFER_HEIGHT * 2};
+    bool f;
+    short int zones[4];
+    f = get_outer_zones_of_segment(&A, &B, zones);
+    CuAssertTrue(tc, f && zones[0] == (short int)((float)(ZONE_FACTOR / 2)) &&
+                          zones[1] == ZONE_FACTOR - 1 &&
+                          zones[2] == (short int)((float)(ZONE_FACTOR / 2)) &&
+                          zones[3] == 0);
+}
+
+//get_zone(A.x, A.y, zones);
+//    get_zone(B.x, B.y, zones + 2);
+//    printf("(%f, %f), (%f, %f)\n", A.x, A.y, B.x, B.y);
+//    printf("\t%hd x %hd --- %hd x %hd\n", zones[0], zones[1], zones[2], zones[3]);
+//
+//printf("%d\t%hd x %hd --- %hd x %hd\n", (int)f, zones[0], zones[1], zones[2], zones[3]);
+
 
 CuSuite* mainGetSuite(void){
     CuSuite* suite = CuSuiteNew();
@@ -759,12 +964,31 @@ CuSuite* mainGetSuite(void){
     SUITE_ADD_TEST(suite, test_heap06);
 
 
-    SUITE_ADD_TEST(suite, test_segment_intersection01);
-    SUITE_ADD_TEST(suite, test_segment_intersection02);
-    SUITE_ADD_TEST(suite, test_segment_intersection03);
-    SUITE_ADD_TEST(suite, test_segment_intersection04);
-    SUITE_ADD_TEST(suite, test_segment_intersection05);
+    SUITE_ADD_TEST(suite, test_do_segments_intersect01);
+    SUITE_ADD_TEST(suite, test_do_segments_intersect02);
+    SUITE_ADD_TEST(suite, test_do_segments_intersect03);
+    SUITE_ADD_TEST(suite, test_do_segments_intersect04);
+    SUITE_ADD_TEST(suite, test_do_segments_intersect05);
 
+    SUITE_ADD_TEST(suite, test_get_segment_intersection01);
+    SUITE_ADD_TEST(suite, test_get_segment_intersection02);
+    SUITE_ADD_TEST(suite, test_get_segment_intersection03);
+    SUITE_ADD_TEST(suite, test_get_segment_intersection04);
+    SUITE_ADD_TEST(suite, test_get_segment_intersection05);
+
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment01);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment02);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment03);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment04);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment05);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment06);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment07);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment08);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment09);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment10);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment11);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment12);
+    SUITE_ADD_TEST(suite, test_get_outer_zones_of_segment13);
 
 
     return suite;

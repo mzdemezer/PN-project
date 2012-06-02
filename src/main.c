@@ -158,6 +158,14 @@ inline float float_min(float a, float b){
     }
 }
 
+inline float float_max(float a, float b){
+    if(a > b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
 inline short int short_min(short int a, short int b){
     if(a < b){
         return a;
@@ -1054,17 +1062,24 @@ void coll_in_order(coll_node *root, coll_node *nil){
     */
 
 void get_zone(float x, float y, short int *zone){
-    zone[0] = (short int)((int)x / ZONE_SIZE);
-    if(zone[0] < 0){
-        zone[0] = 0;
-    }else if(zone[0] >= ZONE_FACTOR){
+    /**
+        Closure: [0 ; SCREEN_BUFFER_HEIGHT) ---> [0 ; SCREEN_BUFFER_HEIGHT]
+        */
+    if(float_abs(x - SCREEN_BUFFER_HEIGHT) < eps){
         zone[0] = ZONE_FACTOR - 1;
+    }else{
+        zone[0] = (short int)((int)x / ZONE_SIZE);
+        if(x < 0){
+            zone[0] -= 1;
+        }
     }
-    zone[1] = (short int)((int)y / ZONE_SIZE);
-    if(zone[1] < 0){
-        zone[1] = 0;
-    }else if(zone[1] >= ZONE_FACTOR){
+    if(float_abs(y - SCREEN_BUFFER_HEIGHT) < eps){
         zone[1] = ZONE_FACTOR - 1;
+    }else{
+        zone[1] = (short int)((int)y / ZONE_SIZE);
+        if(y < 0){
+            zone[1] -= 1;
+        }
     }
 }
 
@@ -1073,10 +1088,22 @@ void get_zone_for_object(float x, float y, float dx, float dy, float r0, short i
     dy = float_abs(dy) + r0;
     get_zone(x - dx, y - dy, zone);
     get_zone(x + dx, y + dy, zone + 2);
+    if(zone[0] < 0){
+        zone[0] = 0;
+    }
+    if(zone[1] < 0){
+        zone[1] = 0;
+    }
+    if(zone[2] >= ZONE_FACTOR){
+        zone[2] = ZONE_FACTOR - 1;
+    }
+    if(zone[3] >= ZONE_FACTOR){
+        zone[3] = ZONE_FACTOR - 1;
+    }
 }
 
 void add_primitive_to_zone(struct zone* zone, short int key){
-    if(zone->number_of_primitives == zone->allocated){
+    if(zone->number_of_primitives >= zone->allocated){
         zone->allocated *= 2;
         zone->primitives = (short int*)realloc(zone->primitives, sizeof(short int) * zone->allocated);
         printf("REALLOCATION\n");
@@ -1084,15 +1111,6 @@ void add_primitive_to_zone(struct zone* zone, short int key){
 
     zone->primitives[zone->number_of_primitives] = key;
     zone->number_of_primitives += 1;
-}
-
-void initialize_zones_with_primitive(struct GameSharedData *Data, short int *zones, short int index){
-    int i, j;
-    for(i = zones[0]; i <= zones[2]; ++i){
-        for(j = zones[1]; j <= zones[3]; ++j){
-            add_primitive_to_zone(&Data->Level.zones[i][j], index);
-        }
-    }
 }
 
 void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index){
@@ -1436,8 +1454,8 @@ bool vectors_on_two_sides(float vector_pr1, float vector_pr2){
     }
 }
 
-bool segment_intersection(const struct point *A1, const struct point *A2,
-                          const struct point *B1, const struct point *B2){
+bool do_segments_intersect(const struct point *A1, const struct point *A2,
+                           const struct point *B1, const struct point *B2){
     float v_x = A2->x - A1->x,
           v_y = A2->y - A1->y,
           b_x = B1->x - A1->x,
@@ -1456,6 +1474,312 @@ bool segment_intersection(const struct point *A1, const struct point *A2,
     }else{
         return false;
     }
+}
+
+/**
+    This function uses do_segments_intersect
+    */
+bool get_segment_intersection(const struct point *A1, const struct point *A2,
+                              const struct point *B1, const struct point *B2,
+                              struct point *I){
+    if(do_segments_intersect(A1, A2, B1, B2)){
+        double dxA = (double)A1->x - A2->x,
+               dxB = (double)B1->x - B2->x,
+               dyA = (double)A1->y - A2->y,
+               dyB = (double)B1->y - B2->y,
+               denom = dxA * dyB - dyA * dxB,
+               dxyA,
+               dxyB;
+        /**
+            If segments cover each other
+            function does nothing
+            */
+        if(double_abs(denom) < eps){
+            return false;
+        }else{
+            dxyA = (double)A1->x * A2->y - (double)A1->y * A2->x;
+            dxyB = (double)B1->x * B2->y - (double)B1->y * B2->x;
+
+            I->x = (dxyA * dxB - dxA * dxyB) / denom;
+            I->y = (dxyA * dyB - dyA * dxyB) / denom;
+            return true;
+        }
+    }else{
+        return false;
+    }
+}
+
+/**
+    A lot of freakin' cases!
+    This function should be fired
+    after checking rectangular
+    limits of the segment and the map
+    */
+bool get_intersection_within_borders(const struct point *A, const struct point *B, short int *zones){
+    struct point correct, Bord1, Bord2;
+    if(zones[0] < 0){
+            Bord1.x = 0;
+            Bord1.y = 0;
+            Bord2.x = 0;
+            Bord2.y = SCREEN_BUFFER_HEIGHT;
+            if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                get_zone(correct.x, correct.y, zones);
+                return true;
+            }else{
+                if(zones[1] < 0){
+                    Bord2.x = SCREEN_BUFFER_HEIGHT;
+                    Bord2.y = 0;
+                    if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                        get_zone(correct.x, correct.y, zones);
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else if(zones[1] >= ZONE_FACTOR){
+                    Bord1.x = SCREEN_BUFFER_HEIGHT;
+                    Bord1.y = SCREEN_BUFFER_HEIGHT;
+                    if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                        get_zone(correct.x, correct.y, zones);
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else{
+                    return false;
+                }
+            }
+        }else if(zones[0] >= ZONE_FACTOR){
+            Bord1.x = SCREEN_BUFFER_HEIGHT;
+            Bord1.y = 0;
+            Bord2.x = SCREEN_BUFFER_HEIGHT;
+            Bord2.y = SCREEN_BUFFER_HEIGHT;
+            if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                get_zone(correct.x, correct.y, zones);
+                return true;
+            }else{
+                if(zones[1] < 0){
+                    Bord2.x = 0;
+                    Bord2.y = 0;
+                    if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                        get_zone(correct.x, correct.y, zones);
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else if(zones[1] >= ZONE_FACTOR){
+                    Bord1.x = 0;
+                    Bord1.y = SCREEN_BUFFER_HEIGHT;
+                    if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                        get_zone(correct.x, correct.y, zones);
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else{
+                    return false;
+                }
+            }
+        }else{
+            if(zones[1] < 0){
+                Bord1.x = 0;
+                Bord1.y = 0;
+                Bord2.x = SCREEN_BUFFER_HEIGHT;
+                Bord2.y = 0;
+                if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                    get_zone(correct.x, correct.y, zones);
+                    return true;
+                }else{
+                    return false;
+                }
+            }else if(zones[1] >= ZONE_FACTOR){
+                Bord1.x = 0;
+                Bord1.y = SCREEN_BUFFER_HEIGHT;
+                Bord2.x = SCREEN_BUFFER_HEIGHT;
+                Bord2.y = SCREEN_BUFFER_HEIGHT;
+                if(get_segment_intersection(A, B, &Bord1, &Bord2, &correct)){
+                    get_zone(correct.x, correct.y, zones);
+                    return true;
+                }else{
+                    return false;
+                }
+            }else{
+                /**
+                The point is fully inside map
+                and doesn't need any correction
+                */
+                return true;
+            }
+        }
+}
+
+bool get_outer_zones_of_segment(const struct point *A, const struct point *B, short int *zones){
+    get_zone(A->x, A->y, zones);
+    get_zone(B->x, B->y, zones + 2);
+    /**
+        Rule out the cases when the rectangular limits
+        of the segments and the map don't collide
+        */
+          if(zones[0] < 0 && zones[2] < 0){
+        return false;
+    }else if(zones[1] < 0 && zones[3] < 0){
+        return false;
+    }else if(zones[0] >= ZONE_FACTOR && zones[2] >= ZONE_FACTOR){
+        return false;
+    }else if(zones[1] >= ZONE_FACTOR && zones[3] >= ZONE_FACTOR){
+        return false;
+    }else{
+        /**
+            Now, if any point is outside the bonds
+            it is either possible to find intersection
+            with the border and continue from there
+            or segment is still outside the map
+            */
+        if(!get_intersection_within_borders(A, B, zones)){
+            return false;
+        }else if(!get_intersection_within_borders(B, A, zones + 2)){
+            return false;
+        }else{
+            return true;
+        }
+    }
+}
+
+void normalize_segment_zones(short int *zones){
+    short int temp;
+    if(zones[0] > zones[2]){
+        temp = zones[2];
+        zones[2] = zones[0];
+        zones[0] = temp;
+        temp = zones[3];
+        zones[3] = zones[1];
+        zones[1] = temp;
+    }
+}
+
+/**
+    This function does all the allocating
+    and counting. If segment is outside the map
+    it is not added anywhere
+    */
+void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B){
+    short int zones[4];
+    if(get_outer_zones_of_segment(A, B, zones)){
+        /**
+            When correct zones are set it's time to work
+            */
+        normalize_segment_zones(zones);
+        short int i = sign(zones[3] - zones[1]),
+                  key = Data->Level.number_of_primitive_objects;
+        struct segment *seg = (struct segment*)malloc(sizeof(struct segment));
+        seg->ang = VectorAngle(B->x - A->x, B->y - A->y);
+        seg->A = *A;
+        seg->B = *B;
+        add_primitive_object(Data, potSEGMENT, &seg);
+        if(zones[0] == zones[2]){//to simplify: vertical
+            short int j;
+            for(j = zones[1]; j != zones[3]; j += i){
+                add_primitive_to_zone(&Data->Level.zones[zones[0]][j], key);
+            }
+            add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[3]], key);
+        }else if(zones[1] == zones[3]){//horizontal
+            short int j;
+            for(j = zones[0]; j != zones[2]; ++j){
+                add_primitive_to_zone(&Data->Level.zones[j][zones[1]], key);
+            }
+            add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[1]], key);
+        }else{
+            struct point Bord1, Bord2;
+            while(zones[0] != zones[2] &&
+                  zones[1] != zones[3]){
+                add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[1]], key);
+
+                Bord1.x = (zones[0] + 1) * ZONE_SIZE;
+                Bord1.y = zones[1] * ZONE_SIZE;
+                Bord2.x = Bord1.x;
+                Bord2.y = Bord1.y + ZONE_SIZE;
+                if(do_segments_intersect(&Bord1, &Bord2, A, B)){
+                    zones[0] += 1;
+                }else{
+                    zones[1] += i;
+                }
+            }
+            add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[3]], key);
+        }
+    }
+}
+
+/**
+    This function does not allocate
+    the object data - it needs to
+    get newly allocated point.
+    */
+void add_point(struct GameSharedData *Data, struct point *A){
+    short int zone[2];
+    get_zone(A->x, A->y, zone);
+    if(zone[0] >= 0 && zone[0] < ZONE_FACTOR &&
+       zone[1] >= 0 && zone[1] < ZONE_FACTOR){
+        add_primitive_object(Data, potPOINT, (void*)A);
+        add_primitive_to_zone(&Data->Level.zones[zone[0]][zone[1]], Data->Level.number_of_primitive_objects - 1);
+    }
+}
+
+void add_circle(struct GameSharedData *Data, float r, struct point center){
+    short int zones[4];
+    get_zone(center.x - r, center.y - r, zones);
+    get_zone(center.x + r, center.y + r, zones + 2);
+    if(zones[0] < ZONE_FACTOR && zones[1] < ZONE_FACTOR &&
+       zones[2] >= 0 && zones[3] >= 0){
+        if(zones[0] < 0){
+            zones[0] = 0;
+        }
+        if(zones[1] < 0){
+            zones[1] = 0;
+        }
+        if(zones[2] >= ZONE_FACTOR){
+            zones[2] = ZONE_FACTOR - 1;
+        }
+        if(zones[3] >= ZONE_FACTOR){
+            zones[3] = ZONE_FACTOR - 1;
+        }
+        struct circle *C = (struct circle*)malloc(sizeof(struct circle));
+        C->center = center;
+        C->r = r;
+        short int i, j, key = Data->Level.number_of_primitive_objects;
+        add_primitive_object(Data, potCIRCLE, C);
+        float r0 = (SQRT2 / 2) * ZONE_SIZE,
+              dx, dy;
+        for(i = zones[0]; i <= zones[2]; ++i){
+            for(j = zones[1]; j <= zones[3]; ++j){
+                dx = C->center.x - (i + 0.5) * ZONE_SIZE;
+                dy = C->center.y - (j + 0.5) * ZONE_SIZE;
+                if(sqrt(dx * dx + dy * dy) < squareEquation(r0, VectorAngle(dx, dy)) + C->r){
+                    add_primitive_to_zone(&Data->Level.zones[i][j], key);
+                }
+            }
+        }
+    }
+}
+
+void add_square(struct GameSharedData *Data, struct squareData *square){
+    add_point(Data, square->v1);
+    add_point(Data, square->v2);
+    add_point(Data, square->v3);
+    add_point(Data, square->v4);
+    add_segment(Data, square->v1, square->v2);
+    add_segment(Data, square->v2, square->v3);
+    add_segment(Data, square->v3, square->v4);
+    add_segment(Data, square->v4, square->v1);
+}
+
+void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle){
+    add_point(Data, rectangle->v1);
+    add_point(Data, rectangle->v2);
+    add_point(Data, rectangle->v3);
+    add_point(Data, rectangle->v4);
+    add_segment(Data, rectangle->v1, rectangle->v2);
+    add_segment(Data, rectangle->v2, rectangle->v3);
+    add_segment(Data, rectangle->v3, rectangle->v4);
+    add_segment(Data, rectangle->v4, rectangle->v1);
 }
 
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
@@ -1715,7 +2039,7 @@ void draw_tetragon(struct point *v1, struct point *v2, struct point *v3, struct 
 
 void draw_square(void *ObjectData){
     #define Data ((struct squareData*)ObjectData)
-    draw_tetragon(&Data->v1, &Data->v2, &Data->v3, &Data->v4, Data->color);
+    draw_tetragon(Data->v1, Data->v2, Data->v3, Data->v4, Data->color);
     #undef Data
 }
 
@@ -1727,7 +2051,7 @@ void draw_circle(void *ObjectData){
 
 void draw_rectangle(void *ObjectData){
     #define Data ((struct rectangleData*)ObjectData)
-    draw_tetragon(&Data->v1, &Data->v2, &Data->v3, &Data->v4, Data->color);
+    draw_tetragon(Data->v1, Data->v2, Data->v3, Data->v4, Data->color);
     #undef Data
 }
 
@@ -1755,10 +2079,10 @@ void draw_particle(void *ObjectData, float dx, float dy){
 
 void draw_door(void *ObjectData, float dx, float dy){
     #define Data ((struct doorData*)ObjectData)
-    struct point dv1 = Data->v1,
-                 dv2 = Data->v2,
-                 dv3 = Data->v3,
-                 dv4 = Data->v4;
+    struct point dv1 = *Data->v1,
+                 dv2 = *Data->v2,
+                 dv3 = *Data->v3,
+                 dv4 = *Data->v4;
     dv1.x += dx;
     dv1.y += dy;
     dv2.x += dx;
@@ -1773,10 +2097,10 @@ void draw_door(void *ObjectData, float dx, float dy){
 
 void draw_switch(void *ObjectData, float dx, float dy){
     #define Data ((struct switchData*)ObjectData)
-    struct point dv1 = Data->v1,
-                 dv2 = Data->v2,
-                 dv3 = Data->v3,
-                 dv4 = Data->v4;
+    struct point dv1 = *Data->v1,
+                 dv2 = *Data->v2,
+                 dv3 = *Data->v3,
+                 dv4 = *Data->v4;
     dv1.x += dx;
     dv1.y += dy;
     dv2.x += dx;
@@ -1791,6 +2115,8 @@ void draw_switch(void *ObjectData, float dx, float dy){
 
 /**
     Constructors
+    Primitives if needed must be added
+    explicitly outside constructors
     */
 
 void construct_circle(struct fixed_object_structure *Object){
@@ -1806,17 +2132,21 @@ void construct_square(struct fixed_object_structure *Object){
     Object->r = rSquare;
     Data->r = Data->bok * SQRT2 / 2;
     float fi = PI4 + Data->ang;
-    Data->v1.x = Data->center.x + Data->r * cos(fi);
-    Data->v1.y = Data->center.y + Data->r * sin(fi);
+    Data->v1 = (struct point*)malloc(sizeof(struct point));
+    Data->v1->x = Data->center.x + Data->r * cos(fi);
+    Data->v1->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v2.x = Data->center.x + Data->r * cos(fi);
-    Data->v2.y = Data->center.y + Data->r * sin(fi);
+    Data->v2 = (struct point*)malloc(sizeof(struct point));
+    Data->v2->x = Data->center.x + Data->r * cos(fi);
+    Data->v2->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v3.x = Data->center.x + Data->r * cos(fi);
-    Data->v3.y = Data->center.y + Data->r * sin(fi);
+    Data->v3 = (struct point*)malloc(sizeof(struct point));
+    Data->v3->x = Data->center.x + Data->r * cos(fi);
+    Data->v3->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v4.x = Data->center.x + Data->r * cos(fi);
-    Data->v4.y = Data->center.y + Data->r * sin(fi);
+    Data->v4 = (struct point*)malloc(sizeof(struct point));
+    Data->v4->x = Data->center.x + Data->r * cos(fi);
+    Data->v4->y = Data->center.y + Data->r * sin(fi);
     #undef Data
 }
 
@@ -1849,17 +2179,21 @@ void construct_rectangle(struct fixed_object_structure *Object){
     Data->r = Data->b / (sin(Data->fi02) * 2);
 
     fi = PIpol - Data->ang + Data->fi02;
-    Data->v1.x = Data->center.x + Data->r * cos(fi);
-    Data->v1.y = Data->center.y + Data->r * sin(fi);
+    Data->v1 = (struct point*)malloc(sizeof(struct point));
+    Data->v1->x = Data->center.x + Data->r * cos(fi);
+    Data->v1->y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v3.x = Data->center.x + Data->r * cos(fi);
-    Data->v3.y = Data->center.y + Data->r * sin(fi);
+    Data->v3 = (struct point*)malloc(sizeof(struct point));
+    Data->v3->x = Data->center.x + Data->r * cos(fi);
+    Data->v3->y = Data->center.y + Data->r * sin(fi);
     fi = PIpol - Data->ang - Data->fi02;
-    Data->v2.x = Data->center.x + Data->r * cos(fi);
-    Data->v2.y = Data->center.y + Data->r * sin(fi);
+    Data->v2 = (struct point*)malloc(sizeof(struct point));
+    Data->v2->x = Data->center.x + Data->r * cos(fi);
+    Data->v2->y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v4.x = Data->center.x + Data->r * cos(fi);
-    Data->v4.y = Data->center.y + Data->r * sin(fi);
+    Data->v4 = (struct point*)malloc(sizeof(struct point));
+    Data->v4->x = Data->center.x + Data->r * cos(fi);
+    Data->v4->y = Data->center.y + Data->r * sin(fi);
     #undef Data
 }
 
@@ -2121,16 +2455,19 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
 	al_unlock_bitmap(source);
 }
 
+
+#ifdef TESTS
 extern void RunAllTests(void);
 
 int main(){
-
-#ifdef TESTS
-
     printf("Running in test mode\n\n");
     RunAllTests();
+    return 0;
+}
 
 #else
+int main(){
+
     int i, j;
 
     if(!al_init()){
@@ -2276,7 +2613,7 @@ int main(){
         Creating display
         */
 
-    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //ALLEGRO_WINDOWED
+    al_set_new_display_flags(ALLEGRO_FULLSCREEN); //  ALLEGRO_WINDOWED
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
@@ -2520,7 +2857,7 @@ int main(){
     clear_fixed_object_list(&Data);
     free(Data.Level.FixedObjects);
 
-#endif
-
     return 0;
 }
+
+#endif

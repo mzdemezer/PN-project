@@ -269,6 +269,9 @@ struct ObjectWorkshop{
     struct switchData *NewSwitch;
     struct doorData *NewDoor;
     struct particleData *NewParticle;
+
+    struct point NewPoint1;
+    struct point NewPoint2;
     short int new_zones[4];
 };
 
@@ -298,7 +301,7 @@ struct playerData{
 struct rectangleData{
     struct point center;
     float r, a, b, ang, fi0, fi02, wsp1, wsp2;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
@@ -313,21 +316,21 @@ float squareEquation(float f0, float fi);
 struct squareData{
     struct point center;
     float r, bok, ang;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
 struct entranceData{
     struct point center;
     float r, a, b, ang, fi0, fi02, wsp1, wsp2;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
 struct exitData{
     struct point center;
     float r, a, b, ang, fi0, fi02, wsp1, wsp2;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
@@ -346,7 +349,7 @@ struct connectedData{
 struct switchData{
     struct point center;
     float r, a, b, ang, fi0, fi02, wsp1, wsp2;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
@@ -364,7 +367,7 @@ enum door_type{
 struct doorData{
     struct point center;
     float r, a, b, ang, fi0, fi02, wsp1, wsp2;
-    struct point v1, v2, v3, v4;
+    struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
@@ -617,7 +620,11 @@ void clear_heap(struct collision_heap* heap);
 void get_zone(float x, float y, short int *zone);
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
 void add_primitive_to_zone(struct zone* zone, short int key);
-void initialize_zones_with_primitive(struct GameSharedData *Data, short int *zones, short int index);
+void add_segment(struct GameSharedData *, const struct point *A, const struct point *B);
+void add_point(struct GameSharedData *Data, struct point *A);
+void add_circle(struct GameSharedData *Data, float r, struct point center);
+void add_square(struct GameSharedData *Data, struct squareData *square);
+void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle);
 void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
 void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
 
@@ -633,8 +640,13 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
 
 float vector_product(float x1, float y1, float x2, float y2);
 bool vectors_on_two_sides(float vector_pr1, float vector_pr2);
-bool segment_intersection(const struct point *A1, const struct point *A2,
-                         const struct point *B1, const struct point *B2);
+bool do_segments_intersect(const struct point *A1, const struct point *A2,
+                           const struct point *B1, const struct point *B2);
+bool get_segment_intersection(const struct point *A1, const struct point *A2,
+                              const struct point *B1, const struct point *B2,
+                              struct point *I);
+bool get_outer_zones_of_segment(const struct point *A, const struct point *B, short int *zones);
+
 void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
 void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);

@@ -827,7 +827,7 @@ void draw_game(struct GameSharedData *Data){
         for(i = 0; i < ZONE_FACTOR; ++i){
             for(j = 0; j < ZONE_FACTOR; ++j){
                 for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
-                    highlight_zone(Data, i, j, al_map_rgba(70, 15, 0, 0.01));
+                    highlight_zone(Data, i, j, al_map_rgba(30, 3, 0, 0.01));
                 }
             }
         }
@@ -840,7 +840,6 @@ void draw_game(struct GameSharedData *Data){
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
        DRAW_MOVABLE(Data->Level.MovableObjects[i]);
     }
-
 
 
     draw_stat_bar(Data);

@@ -19,8 +19,6 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     Data->Level.dens = DEFAULT_FLUID_DENSITY;
     Data->Level.wind_vx = 0;
     Data->Level.wind_vy = 0;
-    //crap
-    Data->Level.number_of_primitive_objects = Data->Level.number_of_fixed_objects;
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
@@ -190,8 +188,7 @@ void load_level_from_file(struct GameSharedData *Data){
         read_color(buffer, level, &Factory.NewRectangle->color, op0, "Invalid level input: rectangle#%d color\n", i);
 
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
-        get_zone_for_object(Factory.NewRectangle->center.x, Factory.NewRectangle->center.y, 0, 0, Factory.NewRectangle->r, Factory.new_zones);
-        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        add_rectangle(Data, Factory.NewRectangle);
     }
 
     /**
@@ -211,8 +208,7 @@ void load_level_from_file(struct GameSharedData *Data){
         read_color(buffer, level, &Factory.NewCircle->color, op0, "Invalid level input: circle#%d color\n", i);
 
         construct_circle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
-        get_zone_for_object(Factory.NewCircle->center.x, Factory.NewCircle->center.y, 0, 0, Factory.NewCircle->r, Factory.new_zones);
-        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        add_circle(Data, Factory.NewCircle->r, Factory.NewCircle->center);
     }
 
     /**
@@ -233,8 +229,7 @@ void load_level_from_file(struct GameSharedData *Data){
         read_color(buffer, level, &Factory.NewSquare->color, op0, "Invalid level input: square#%d color\n", i);
 
         construct_square(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
-        get_zone_for_object(Factory.NewSquare->center.x, Factory.NewSquare->center.y, 0, 0, Factory.NewSquare->r, Factory.new_zones);
-        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
+        add_square(Data, Factory.NewSquare);
     }
 
     /**
@@ -256,8 +251,6 @@ void load_level_from_file(struct GameSharedData *Data){
         read_color(buffer, level, &Factory.NewEntrance->color, op0, "Invalid level input: entrance#%d color\n", i);
 
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
-        get_zone_for_object(Factory.NewEntrance->center.x, Factory.NewEntrance->center.y, 0, 0, Factory.NewEntrance->r, Factory.new_zones);
-        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
@@ -279,8 +272,6 @@ void load_level_from_file(struct GameSharedData *Data){
         read_color(buffer, level, &Factory.NewExit->color, op0, "Invalid level input: rectangle#%d color\n", i);
 
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
-        get_zone_for_object(Factory.NewExit->center.x, Factory.NewExit->center.y, 0, 0, Factory.NewExit->r, Factory.new_zones);
-        initialize_zones_with_primitive(Data, Factory.new_zones, Data->Level.number_of_fixed_objects - 1);
     }
 
     /**
