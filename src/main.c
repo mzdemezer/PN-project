@@ -1292,10 +1292,54 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
     }
 }
 
+float check_collision_between_ball_and_segment(float x, float y, float dx, float dy, float r, struct segment *seg){
+    float ang = VectorAngle(dx, dy);
+    x += r * cos(ang);
+    y += r * sin(ang);
+    struct point BC = {x, y},
+                 Bd = {x + dx, y + dy},
+                 I;
+    if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
+        x = I.x - x;
+        y = I.y - y;
+        return sqrt((x * x + y * y) / (dx * dx + dy * dy));
+    }else{
+        return EMPTY_COLLISION_TIME;
+    }
+}
+
 struct collision_data get_collision_with_primitive(struct movable_object_structure *who, struct primitive_object_structure *with_what){
+    #define WHO_PLAYER ((struct playerData*)who->ObjectData)
+    #define WHO_PARTICLE ((struct particleData*)who->ObjectData)
+    #define WITH_POINT ((struct point*)with_what->ObjectData)
+    #define WITH_SEGMENT ((struct segment*)(with_what->ObjectData))
+    #define WITH_CIRCLE ((struct cirlce*)with_what->ObjectData)
     struct collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
-    //BIG SWITCH
+    new_coll.with_movable = false;
+    switch(who->Type){
+        case motPLAYER:
+            switch(with_what->Type){
+                case potPOINT:
+                    break;
+                case potSEGMENT:
+                    new_coll.time = check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
+                                                             who->dx, who->dy, WHO_PLAYER->r, WITH_SEGMENT);
+                    break;
+                case potCIRCLE:
+                    break;
+            }
+            break;
+        case motPARTICLE:
+            break;
+        default:
+            break;
+    }
+    #undef WHO_PLAYER
+    #undef WHO_PARTICLE
+    #undef WITH_POINT
+    #undef WITH_SEGMENT
+    #undef WITH_CIRCLE
     return new_coll;
 }
 
@@ -1377,25 +1421,25 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         movable_done[i] = false;
     }
-    new_coll.who = index;
-    new_coll.with_movable = false;
     Data->Level.MovableObjects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
     for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
             for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
                 if(!primitive_done[Data->Level.zones[i][j].primitives[k]]){
                     primitive_done[Data->Level.zones[i][j].primitives[k]] = true;
-                    new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
-                                                            &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
-                    new_coll.time += time_passed;
-                    if(new_coll.time >= 0 && new_coll.time <= 1){
-                        if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
-                            new_coll.with = Data->Level.zones[i][j].primitives[k];
-                            Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
+                    if(-ommit != Data->Level.zones[i][j].primitives[k]){
+                        new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
+                                                                &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
+                        new_coll.time += time_passed;
+                        if(new_coll.time >= 0 && new_coll.time <= 1){
+                            if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
+                                new_coll.who = index;
+                                new_coll.with = Data->Level.zones[i][j].primitives[k];
+                                Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
+                            }
                         }
                     }
                 }
-
             }
         }
     }
@@ -1674,7 +1718,7 @@ void add_segment(struct GameSharedData *Data, const struct point *A, const struc
         seg->ang = VectorAngle(B->x - A->x, B->y - A->y);
         seg->A = *A;
         seg->B = *B;
-        add_primitive_object(Data, potSEGMENT, &seg);
+        add_primitive_object(Data, potSEGMENT, seg);
         if(zones[0] == zones[2]){//to simplify: vertical
             short int j;
             for(j = zones[1]; j != zones[3]; j += i){
@@ -1706,6 +1750,21 @@ void add_segment(struct GameSharedData *Data, const struct point *A, const struc
             add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[3]], key);
         }
     }
+}
+
+void add_borders(struct GameSharedData *Data){
+    struct point A = {0, 0},
+                 B = {0, SCREEN_BUFFER_HEIGHT};
+    add_segment(Data, &A, &B);
+    B.x = SCREEN_BUFFER_HEIGHT;
+    B.y = 0;
+    add_segment(Data, &A, &B);
+    A.x = SCREEN_BUFFER_HEIGHT;
+    A.y = SCREEN_BUFFER_HEIGHT;
+    add_segment(Data, &A, &B);
+    B.x = 0;
+    B.y = SCREEN_BUFFER_HEIGHT;
+    add_segment(Data, &A, &B);
 }
 
 /**
@@ -1801,6 +1860,16 @@ void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x
 
 }
 
+void get_velocity_after_ball_to_wall_collision(float *vx, float *vy, struct segment *seg, float restitution){
+    double cs = cos(seg->ang),
+           sn = sin(seg->ang),
+           v_into = *vy * cs - *vx * sn, //y
+           v_perp = *vx * cs + *vy * sn; //x
+    v_into *= -restitution;
+    *vx = v_perp * cs - v_into * sn;
+    *vy = v_perp * sn + v_into * cs;
+}
+
 void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
     double dx = (double)*x2 - *x1,
            dy = (double)*y2 - *y1,
@@ -1836,15 +1905,18 @@ void particle_get_dx_dy(struct movable_object_structure *Obj, float dt){
 }
 
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt){
+    #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
+    #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
+    #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+    #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+    #define WITH_SEGMENT ((struct segment*)Data->Level.PrimitiveObjects[with].ObjectData)
     if(with_movable){
         Data->DeCollAngs[0] = VectorAngle(Data->Level.MovableObjects[who].dx, Data->Level.MovableObjects[who].dy);
         Data->DeCollAngs[1] = VectorAngle(Data->Level.MovableObjects[with].dx, Data->Level.MovableObjects[with].dy);
         switch(Data->Level.MovableObjects[who].Type){
-            case motPLAYER://printf("player\n");
-                #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
+            case motPLAYER:
                 switch(Data->Level.MovableObjects[with].Type){
-                    case motPLAYER://printf("with player\n");
-                        #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                    case motPLAYER:
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
                                            WHO_PLAYER->r + WITH_PLAYER->r);
@@ -1856,10 +1928,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                  PLAYER_TO_PLAYER_RESTITUTION);
                         player_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
-                        #undef WITH_PLAYER
+
                         break;
-                    case motPARTICLE://printf("with particle\n");
-                        #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                    case motPARTICLE:
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
                                            WHO_PLAYER->r + WITH_PARTICLE->r);
@@ -1871,18 +1942,14 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         player_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                         particle_get_dx_dy(&Data->Level.MovableObjects[with], dt);
-                        #undef WITH_PARTICLE
                         break;
                     default:
                         break;
                 }
-                #undef WHO_PLAYER
                 break;
-            case motPARTICLE://printf("particle\n");
-                #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
+            case motPARTICLE:
                 switch(Data->Level.MovableObjects[with].Type){
-                    case motPLAYER://printf("with player\n");
-                        #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
+                    case motPLAYER:
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
                                            WHO_PARTICLE->r + WITH_PLAYER->r);
@@ -1894,10 +1961,8 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                         player_get_dx_dy(&Data->Level.MovableObjects[with], dt);
-                        #undef WITH_PLAYER
                         break;
-                    case motPARTICLE://printf("with particle\n");
-                        #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+                    case motPARTICLE:
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
                                            WHO_PARTICLE->r + WITH_PARTICLE->r);
@@ -1909,12 +1974,12 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                         particle_get_dx_dy(&Data->Level.MovableObjects[with], dt);
-                        #undef WITH_PARTICLE
+
                         break;
                     default:
                         break;
                 }
-                #undef WHO_PARTICLE
+
                 break;
             default:
                 break;
@@ -1924,11 +1989,25 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
     }else{
         switch(Data->Level.MovableObjects[who].Type){
             case motPLAYER:
+                switch(Data->Level.PrimitiveObjects[with].Type){
+                    case potPOINT:
+                        break;
+                    case potSEGMENT:
+                        get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy, WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
+                        break;
+                    case potCIRCLE:
+                        break;
+                }
             case motPARTICLE:
             default:
                 break;
         }
     }
+    #undef WHO_PLAYER
+    #undef WHO_PARTICLE
+    #undef WITH_PLAYER
+    #undef WITH_PARTICLE
+    #undef WITH_SEGMENT
 }
 
 /**

@@ -11,6 +11,7 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
 
     // Actual loading
+    add_borders(Data);
     load_level_from_file(Data);
 
     special_call(initialize_level, argument);

@@ -59,6 +59,8 @@
 #define PLAYER_TO_PLAYER_RESTITUTION 1
 #define PLAYER_TO_PARTICLE_RESTITUTION 1
 #define PARTICLE_TO_PARTICLE_RESTITUTION 1
+#define PLAYER_TO_WALL_RESTITUTION 0.8
+
 /**
     Maths
     */
@@ -622,7 +624,8 @@ void clear_heap(struct collision_heap* heap);
 void get_zone(float x, float y, short int *zone);
 void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
 void add_primitive_to_zone(struct zone* zone, short int key);
-void add_segment(struct GameSharedData *, const struct point *A, const struct point *B);
+void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B);
+void add_borders(struct GameSharedData *Data);
 void add_point(struct GameSharedData *Data, struct point *A);
 void add_circle(struct GameSharedData *Data, float r, struct point center);
 void add_square(struct GameSharedData *Data, struct squareData *square);

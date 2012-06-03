@@ -602,6 +602,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                             if(coll.time >= 0 && coll.time <= 1){
                                 if(coll.time < Data->Level.MovableObjects[i].coll_with_fixed.time){
                                     coll.with = Data->Level.zones[j][k].primitives[l];
+                                    coll.who = (short int)i;
                                     Data->Level.MovableObjects[i].coll_with_fixed = coll;
                                 }
                             }
