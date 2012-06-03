@@ -1331,6 +1331,16 @@ struct collision_data get_collision_with_primitive(struct movable_object_structu
             }
             break;
         case motPARTICLE:
+            switch(with_what->Type){
+                case potPOINT:
+                    break;
+                case potSEGMENT:
+                    new_coll.time = check_collision_between_ball_and_segment(WHO_PARTICLE->center.x, WHO_PARTICLE->center.y,
+                                                             who->dx, who->dy, WHO_PARTICLE->r, WITH_SEGMENT);
+                    break;
+                case potCIRCLE:
+                    break;
+            }
             break;
         default:
             break;
@@ -1993,12 +2003,25 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                     case potPOINT:
                         break;
                     case potSEGMENT:
-                        get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy, WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
+                        get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                  WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
                         break;
                     case potCIRCLE:
                         break;
                 }
+                break;
             case motPARTICLE:
+                switch(Data->Level.PrimitiveObjects[with].Type){
+                    case potPOINT:
+                        break;
+                    case potSEGMENT:
+                        get_velocity_after_ball_to_wall_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
+                                                                  WITH_SEGMENT, PARTICLE_TO_WALL_RESTITUTION);
+                        break;
+                    case potCIRCLE:
+                        break;
+                }
+                break;
             default:
                 break;
         }
