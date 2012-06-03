@@ -351,65 +351,59 @@ void insert_node(RB_tree *tree, short int key){
     }
 
     node = (RB_node*)malloc(sizeof(RB_node));
-    if(node){
-        node->left = tree->nil;
-        node->right = tree->nil;
-        node->parent = last;
-        node->key = key;
 
-        if(last == tree->nil){
-            tree->root = node;
-            node->color = BLACK;
+    node->left = tree->nil;
+    node->right = tree->nil;
+    node->parent = last;
+    node->key = key;
+
+    if(last == tree->nil){
+        tree->root = node;
+        node->color = BLACK;
+    }else{
+        if(key < last->key){
+            last->left = node;
         }else{
-            if(key < last->key){
-                last->left = node;
-            }else{
-                last->right = node;
-            }
+            last->right = node;
+        }
 
-            node->color = RED;
-            while(node != tree->root && node->parent->color == RED){
-                if(is_left(node->parent)){
-                    last = node->parent->parent->right;
-                    if(last->color == RED){//1st CASE
-                        node->parent->color = BLACK;
-                        last->color = BLACK;
-                        node->parent->parent->color = RED;
-                        node = node->parent->parent;
-                    }else{
-                        if(node == node->parent->right){//2nd CASE --> 3rd
-                            node = node->parent;
-                            rotate_left(tree, node);
-                        }
-                        node->parent->color = BLACK;//3rd CASE
-                        node->parent->parent->color = RED;
-                        rotate_right(tree, node->parent->parent);
-                    }
+        node->color = RED;
+        while(node != tree->root && node->parent->color == RED){
+            if(is_left(node->parent)){
+                last = node->parent->parent->right;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
                 }else{
-                    last = node->parent->parent->left;
-                    if(last->color == RED){//1st CASE
-                        node->parent->color = BLACK;
-                        last->color = BLACK;
-                        node->parent->parent->color = RED;
-                        node = node->parent->parent;
-                    }else{
-                        if(node == node->parent->left){//2nd CASE --> 3rd
-                            node = node->parent;
-                            rotate_right(tree, node);
-                        }
-                        node->parent->color = BLACK;//3rd CASE
-                        node->parent->parent->color = RED;
-                        rotate_left(tree, node->parent->parent);
+                    if(node == node->parent->right){//2nd CASE --> 3rd
+                        node = node->parent;
+                        rotate_left(tree, node);
                     }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    rotate_right(tree, node->parent->parent);
+                }
+            }else{
+                last = node->parent->parent->left;
+                if(last->color == RED){//1st CASE
+                    node->parent->color = BLACK;
+                    last->color = BLACK;
+                    node->parent->parent->color = RED;
+                    node = node->parent->parent;
+                }else{
+                    if(node == node->parent->left){//2nd CASE --> 3rd
+                        node = node->parent;
+                        rotate_right(tree, node);
+                    }
+                    node->parent->color = BLACK;//3rd CASE
+                    node->parent->parent->color = RED;
+                    rotate_left(tree, node->parent->parent);
                 }
             }
-            tree->root->color = BLACK;
         }
-    }else{
-        printf("ALLOCATION FAILED!!!!! %hd\nin order:\n", key);
-        in_order(tree->root, tree->nil);
-        printf("\n");
-        insert_node(tree, key);
+        tree->root->color = BLACK;
     }
 }
 
@@ -417,54 +411,35 @@ void delete_node(RB_tree *tree, short int key){
     RB_node *node = get_node(tree, key);
     if(node != tree->nil){
         RB_node *y, *x;
-//        printf("in: root %p, nil %p, node %p\n", tree->root, tree->nil, node);
-//        in_order(tree->root, tree->nil);
-//        printf("\n");
         if(node->left == tree->nil || node->right == tree->nil){
-//            printf("nil\t");
             y = node;
         }else{
-//            printf("succ\t");
             y = get_successor(node, tree->nil);
         }
         if(y->left != tree->nil){
-//            printf("left\t");
             x = y->left;
         }else{
-//            printf("right\t");
             x = y->right;
         }
 
         x->parent = y->parent;
 
         if(y->parent == tree->nil){
-//            printf("root\t");
             tree->root = x;
         }else if(is_left(y)){
-//            printf("left\t");
             y->parent->left = x;
         }else{
-//            printf("right\t");
             y->parent->right = x;
         }
         if(y != node){
-//            printf("copy\t");
             node->key = y->key;
         }
 
         if(y->color == BLACK){
-//            printf("fixup\t");
             RB_delete_fixup(tree, x);
         }
 
-        if(y != tree->nil){
-//            printf("free");
-//            printf("\nin: root %p, nil %p, node %p, y %p, x %p\ninorder:\n", tree->root, tree->nil, node, y, x);
-//            in_order(tree->root, tree->nil);
-//            printf("\n");
-            free(y);
-        }
-//        else{printf("\n\nBUG!!!\n\n");}
+        free(y);
     }
 }
 
@@ -489,9 +464,6 @@ void RB_delete_fixup(RB_tree *tree, RB_node *node){
                     sibl->color = RED;
                     rotate_right(tree, sibl);
                     sibl = node->parent->right;
-//                    if(sibl == tree->nil){
-//                        sibl = node->parent->parent;
-//                    }
                 }
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
@@ -516,9 +488,6 @@ void RB_delete_fixup(RB_tree *tree, RB_node *node){
                     sibl->color = RED;
                     rotate_left(tree, sibl);
                     sibl = node->parent->left;
-//                    if(sibl == tree->nil){
-//                        sibl = node->parent->parent;
-//                    }
                 }
                 sibl->color = node->parent->color;//4th CASE
                 node->parent->color = BLACK;
@@ -1165,8 +1134,7 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                         ((struct point*)(Obj->ObjectData))->y,
                         Obj->dx * t, Obj->dy * t, ((struct circleData*)Obj->ObjectData)->r,
                         Obj->zones);
-//    printf("old zones: %hd %hd, %hd %hd\tnew zones: %hd %hd, %hd %hd\n", oldz[0], oldz[1], oldz[2], oldz[3],
-//                                                                         Obj->zones[0], Obj->zones[1], Obj->zones[2], Obj->zones[3]);
+
     #define newz(x) (Obj->zones[x])
     #define Zonez(x, y) (Data->Level.zones[x][y])
     if(newz(2) >= oldz[0] &&
@@ -1328,15 +1296,24 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
     }
 }
 
-float check_collision_between_ball_and_segment(float x, float y, float dx, float dy, float r, struct segment *seg){
-    double ang = VectorAngle(dx, dy);
+float check_collision_between_ball_and_segment(float x, float y, double dx, double dy, float r, struct segment *seg){
+    double cs = cos(seg->ang),
+           sn = sin(seg->ang),
+           d_into = dy * cs - dx * sn;
+    dx = -d_into * sn;
+    dy = d_into * cs;
     struct point BC = {x, y},
-                 Bd = {x + dx + r * cos(ang), y + dy + r * sin(ang)},
-                 I;
+                 Bd = {x + dx * 2 + r * double_abs(sn) * sign(dx), y + dy * 2 + r * double_abs(cs) * sign(dy)},
+                 I = {-10, -10};
+//    printf("%.3f\t%f\t(%f %f)\n", seg->ang * 180 / PI, d_into, dx, dy);
+//    printf("(%f %f) --> (%f %f)  x  (%f %f) - (%f %f)\t=== %d ===>\t", x, y, Bd.x, Bd.y, seg->A.x, seg->A.y, seg->B.x, seg->B.y,
+//                                                            (int)get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I));
+//    printf("(%f %f), dx: %.3f, dy: %.3f\t", x, y, dx, dy);get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I);
+//    printf("I: (%f %f)\t dx,dy: %f, %f\tdo_inter: %d\n", I.x, I.y, dx, dy, do_segments_intersect(&seg->A, &seg->B, &BC, &Bd));
     if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
         x = I.x - x;
         y = I.y - y;
-        return (sqrt(x * x + y * y) - r) / (dx * dx + dy * dy);
+        return (sqrt(x * x + y * y) - r) / sqrt(dx * dx + dy * dy);
     }else{
         return EMPTY_COLLISION_TIME;
     }
@@ -1362,6 +1339,7 @@ struct collision_data get_collision_with_primitive(struct movable_object_structu
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
                                                                              who->dx, who->dy, WHO_PLAYER->r, WITH_SEGMENT);
+//                    printf("%f\n", new_coll.time);
                     break;
                 case potCIRCLE:
                     new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
@@ -1420,7 +1398,6 @@ struct collision_data get_collision_with_movable(struct movable_object_structure
                                                                       WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
                                                                       WITH_PARTICLE->r + WHO_PLAYER->r);
-                    //printf("%f\n", new_coll.time);
                     #undef WITH_PARTICLE
                     break;
                 default:
@@ -1565,10 +1542,10 @@ bool vectors_on_two_sides(float vector_pr1, float vector_pr2){
 
 bool do_segments_intersect(const struct point *A1, const struct point *A2,
                            const struct point *B1, const struct point *B2){
-    float v_x = A2->x - A1->x,
-          v_y = A2->y - A1->y,
-          b_x = B1->x - A1->x,
-          b_y = B1->y - A1->y;
+    double v_x = (double)A2->x - A1->x,
+           v_y = (double)A2->y - A1->y,
+           b_x = (double)B1->x - A1->x,
+           b_y = (double)B1->y - A1->y;
 
     if(vectors_on_two_sides(vector_product(v_x, v_y, B2->x - A1->x, B2->y - A1->y), vector_product(v_x, v_y, b_x, b_y))){
         b_x = -b_x;
@@ -1948,7 +1925,7 @@ void get_velocity_after_ball_to_wall_collision(float *vx, float *vy, struct segm
 void get_velocity_after_ball_to_fixed_ball_collision(float *vx, float *vy, float dx, float dy, float restitution){
     double ang = VectorAngle(dx, dy),
            cs = cos(ang);
-    ang = sin(ang);
+           ang = sin(ang);
     double v_into = *vx * cs + *vy * ang,
            v_perp = *vy * cs - *vx * ang;
     v_into *= -restitution;
@@ -1963,7 +1940,7 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
         d -= dx;
-        d *= 1.01;//experiment - rule out inaccuracies
+        d *= 1.01;//experiment - rule out inaccuracies or create them
         d += 0.01;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
@@ -1985,21 +1962,22 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
 
     Of course works also for fixed points
     */
-void separate_ball_from_fixed_ball(float *x1, float *y1, float x2, float y2, float d){
+void separate_ball_from_fixed_ball(float *x1, float *y1, float x2, float y2, double d){
     double dx = (double)x2 - *x1,
            dy = (double)y2 - *y1,
            ang = VectorAngle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
         d -= dx;
+        //for some reason it doesn't work without:
         d *= 1.01;
-        d += 0.01;
+        d += 1;
         *x1 -= d * cos(ang);
         *y1 -= d * sin(ang);
     }
 }
 
-void separate_ball_from_segment(float *x, float *y, float d, struct segment *seg){
+void separate_ball_from_segment(float *x, float *y, double d, struct segment *seg){
     double dist = point_distance_from_line(*x, *y, &seg->line_equation);
     if(dist == -1){
         separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
@@ -2012,8 +1990,6 @@ void separate_ball_from_segment(float *x, float *y, float d, struct segment *seg
                                   *y + 2 * d * ang},
                          begin = {*x, *y};
             d -= dist;
-            d *= 1.01;
-            d += 0.01;
             if(do_segments_intersect(&seg->A, &seg->B, &helpy, &begin)){
                 *x -= d * cs;
                 *y -= d * ang;
@@ -2162,7 +2138,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
                                                                         WITH_POINT->x - WHO_PARTICLE->center.x,
                                                                         WITH_POINT->y - WHO_PARTICLE->center.y,
-                                                                        PLAYER_TO_WALL_RESTITUTION);
+                                                                        PARTICLE_TO_WALL_RESTITUTION);
                         break;
                     case potSEGMENT:
                         separate_ball_from_segment(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->r, WITH_SEGMENT);
@@ -2176,7 +2152,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                         get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
                                                                         WITH_CIRCLE->center.x - WHO_PARTICLE->center.x,
                                                                         WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
-                                                                        PLAYER_TO_WALL_RESTITUTION);
+                                                                        PARTICLE_TO_WALL_RESTITUTION);
                         break;
                 }
                 particle_get_dx_dy(&Data->Level.MovableObjects[who], dt);
@@ -2732,6 +2708,7 @@ int main(){
 int main(){
 
     int i, j;
+    char buf[20];
 
     if(!al_init()){
         fprintf(stderr, "Problems when initilizing Allegro");
@@ -2743,12 +2720,7 @@ int main(){
     Data.GameState = gsMENU;
     Data.CloseNow = false;
     Data.DrawCall = false;
-    Data.config = al_load_config_file("config.ini");
-    if(!Data.config){
-        Data.config = al_create_config();
-        al_set_config_value(Data.config, "Graphic", "fullscreen", "1");
-    }
-    Data.fullscreen = atoi(al_get_config_value(Data.config, "Graphic", "fullscreen"));
+
     /**
         Menu initialization
         */
@@ -2868,9 +2840,17 @@ int main(){
     /**
         Getting resolution
         */
-
     Data.MaxResolutionIndex = al_get_num_display_modes() - 1;
-    Data.ChosenResolution = Data.MaxResolutionIndex;
+    Data.config = al_load_config_file("config.ini");
+    if(!Data.config){
+        Data.config = al_create_config();
+        al_set_config_value(Data.config, "Graphic", "fullscreen", "1");
+        sprintf(buf, "%d", Data.MaxResolutionIndex);
+        al_set_config_value(Data.config, "Graphic", "resolution", buf);
+    }
+    Data.fullscreen = atoi(al_get_config_value(Data.config, "Graphic", "fullscreen"));
+
+    Data.ChosenResolution = atoi(al_get_config_value(Data.config, "Graphic", "resolution"));
 
     al_get_display_mode(Data.ChosenResolution, &Data.DisplayData);
     Data.InMenuDisplayData = Data.DisplayData;
@@ -2884,6 +2864,7 @@ int main(){
         al_set_new_display_flags(ALLEGRO_FULLSCREEN);
     }else{
         al_set_new_display_flags(ALLEGRO_WINDOWED);
+         al_set_new_window_position(8, 30);
     }
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);

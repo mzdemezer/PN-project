@@ -81,8 +81,11 @@ void rescale_bitmaps(struct GameSharedData *Data){
 }
 
 void change_resolution(struct GameSharedData *Data){
+    char buf[20];
     Data->ChosenResolution = Data->ChosenInMenu;
     Data->DisplayData = Data->InMenuDisplayData;
+    sprintf(buf, "%d", Data->ChosenResolution);
+    al_set_config_value(Data->config, "Graphic", "resolution", buf);
     calculate_scales(Data);
     al_unregister_event_source(Data->MainEventQueue, al_get_display_event_source(Data->Display));
     if(!al_resize_display(Data->Display, Data->DisplayData.width, Data->DisplayData.height)){
@@ -105,7 +108,7 @@ void resolution_activate(void*argument){
 
 
 
-    printf("RESOLUTION activate call with: %d\n", arg->CallType);
+//    printf("RESOLUTION activate call with: %d\n", arg->CallType);
     switch(arg->CallType){
         case meatACCEPT:
             if(arg->Data->ChosenResolution != arg->Data->ChosenInMenu){
@@ -156,10 +159,8 @@ void restore_current_settings(struct GameSharedData *Data){
     arg.Data = Data;
     if((int)Data->Menu.CurrentMenu[0].Type < 0){
         for(i = 1; i <= int_abs((int)Data->Menu.CurrentMenu[0].Type); ++i){
-            printf("I'm trying, master\n");
             if(Data->Menu.CurrentMenu[i].Type == metUPDOWN){
                 Data->Menu.CurrentMenu[i].Activate((void*)&arg);
-                printf("I'm working, master\n");
             }
         }
     }

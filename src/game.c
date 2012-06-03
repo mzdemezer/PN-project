@@ -223,9 +223,9 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             if(get_drag_data(&(Data->Level.MovableObjects[i]), &vx, &vy, &Cx, &S)){
                 Cx = S * Cx * Data->Level.dens;
                 vx = Data->Level.wind_vx - vx;
-                Acc[i].ax[4] = vx * Cx * coefficient_multiplier(vx);
+                Acc[i].ax[4] = vx * 3 * Cx * coefficient_multiplier(vx);
                 vy = Data->Level.wind_vy - vy;
-                Acc[i].ay[4] = vy * Cx * coefficient_multiplier(vy);
+                Acc[i].ay[4] = vy * 3 * Cx * coefficient_multiplier(vy);
             }
             switch(Data->Level.MovableObjects[i].Type){
                 case motPLAYER:
@@ -712,7 +712,6 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
         if(time < 1){
             move_objects(Data, 1 - time);
         }
-
         coll_clear_tree(&Data->Level.dirty_tree);
         /**
             Signal and stop
