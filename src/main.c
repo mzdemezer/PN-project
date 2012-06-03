@@ -351,58 +351,65 @@ void insert_node(RB_tree *tree, short int key){
     }
 
     node = (RB_node*)malloc(sizeof(RB_node));
-    node->left = tree->nil;
-    node->right = tree->nil;
-    node->parent = last;
-    node->key = key;
+    if(node){
+        node->left = tree->nil;
+        node->right = tree->nil;
+        node->parent = last;
+        node->key = key;
 
-    if(last == tree->nil){
-        tree->root = node;
-        node->color = BLACK;
-    }else{
-        if(key < last->key){
-            last->left = node;
+        if(last == tree->nil){
+            tree->root = node;
+            node->color = BLACK;
         }else{
-            last->right = node;
-        }
-
-        node->color = RED;
-        while(node != tree->root && node->parent->color == RED){
-            if(is_left(node->parent)){
-                last = node->parent->parent->right;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->right){//2nd CASE --> 3rd
-                        node = node->parent;
-                        rotate_left(tree, node);
-                    }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    rotate_right(tree, node->parent->parent);
-                }
+            if(key < last->key){
+                last->left = node;
             }else{
-                last = node->parent->parent->left;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->left){//2nd CASE --> 3rd
-                        node = node->parent;
-                        rotate_right(tree, node);
+                last->right = node;
+            }
+
+            node->color = RED;
+            while(node != tree->root && node->parent->color == RED){
+                if(is_left(node->parent)){
+                    last = node->parent->parent->right;
+                    if(last->color == RED){//1st CASE
+                        node->parent->color = BLACK;
+                        last->color = BLACK;
+                        node->parent->parent->color = RED;
+                        node = node->parent->parent;
+                    }else{
+                        if(node == node->parent->right){//2nd CASE --> 3rd
+                            node = node->parent;
+                            rotate_left(tree, node);
+                        }
+                        node->parent->color = BLACK;//3rd CASE
+                        node->parent->parent->color = RED;
+                        rotate_right(tree, node->parent->parent);
                     }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    rotate_left(tree, node->parent->parent);
+                }else{
+                    last = node->parent->parent->left;
+                    if(last->color == RED){//1st CASE
+                        node->parent->color = BLACK;
+                        last->color = BLACK;
+                        node->parent->parent->color = RED;
+                        node = node->parent->parent;
+                    }else{
+                        if(node == node->parent->left){//2nd CASE --> 3rd
+                            node = node->parent;
+                            rotate_right(tree, node);
+                        }
+                        node->parent->color = BLACK;//3rd CASE
+                        node->parent->parent->color = RED;
+                        rotate_left(tree, node->parent->parent);
+                    }
                 }
             }
+            tree->root->color = BLACK;
         }
-        tree->root->color = BLACK;
+    }else{
+        printf("ALLOCATION FAILED!!!!! %hd\nin order:\n", key);
+        in_order(tree->root, tree->nil);
+        printf("\n");
+        insert_node(tree, key);
     }
 }
 
@@ -410,35 +417,54 @@ void delete_node(RB_tree *tree, short int key){
     RB_node *node = get_node(tree, key);
     if(node != tree->nil){
         RB_node *y, *x;
+//        printf("in: root %p, nil %p, node %p\n", tree->root, tree->nil, node);
+//        in_order(tree->root, tree->nil);
+//        printf("\n");
         if(node->left == tree->nil || node->right == tree->nil){
+//            printf("nil\t");
             y = node;
         }else{
+//            printf("succ\t");
             y = get_successor(node, tree->nil);
         }
         if(y->left != tree->nil){
+//            printf("left\t");
             x = y->left;
         }else{
+//            printf("right\t");
             x = y->right;
         }
 
         x->parent = y->parent;
 
         if(y->parent == tree->nil){
+//            printf("root\t");
             tree->root = x;
         }else if(is_left(y)){
+//            printf("left\t");
             y->parent->left = x;
         }else{
+//            printf("right\t");
             y->parent->right = x;
         }
         if(y != node){
+//            printf("copy\t");
             node->key = y->key;
         }
 
         if(y->color == BLACK){
+//            printf("fixup\t");
             RB_delete_fixup(tree, x);
         }
 
-        free(y);
+        if(y != tree->nil){
+//            printf("free");
+//            printf("\nin: root %p, nil %p, node %p, y %p, x %p\ninorder:\n", tree->root, tree->nil, node, y, x);
+//            in_order(tree->root, tree->nil);
+//            printf("\n");
+            free(y);
+        }
+//        else{printf("\n\nBUG!!!\n\n");}
     }
 }
 
@@ -577,7 +603,7 @@ void in_order(RB_node *root, RB_node *nil){
     if(root != nil){
         in_order(root->left, nil);
 
-        printf("%hd\n", root->key);
+        printf("%hd\t", root->key);
 
         in_order(root->right, nil);
     }
@@ -1139,6 +1165,8 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
                         ((struct point*)(Obj->ObjectData))->y,
                         Obj->dx * t, Obj->dy * t, ((struct circleData*)Obj->ObjectData)->r,
                         Obj->zones);
+//    printf("old zones: %hd %hd, %hd %hd\tnew zones: %hd %hd, %hd %hd\n", oldz[0], oldz[1], oldz[2], oldz[3],
+//                                                                         Obj->zones[0], Obj->zones[1], Obj->zones[2], Obj->zones[3]);
     #define newz(x) (Obj->zones[x])
     #define Zonez(x, y) (Data->Level.zones[x][y])
     if(newz(2) >= oldz[0] &&
@@ -1178,28 +1206,28 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
         xright = short_min(newz(2), oldz[2]);
 
         if(newz(1) < oldz[1]){
-            for(i = xleft; i <= xright; ++i){
-                for(j = newz(1); j < oldz[1]; ++j){
+            for(j = newz(1); j < oldz[1]; ++j){
+                for(i = xleft; i <= xright; ++i){
                     insert_node(&Zonez(i, j).movable, index);
                 }
             }
         }else{
-            for(i = xleft; i <= xright; ++i){
-                for(j = oldz[1]; j < newz(1); ++j){
+            for(j = oldz[1]; j < newz(1); ++j){
+                for(i = xleft; i <= xright; ++i){
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }
         }
 
         if(newz(3) > oldz[3]){
-            for(i = xleft; i <= xright; ++i){
-                for(j = oldz[3] + 1; j <= newz(3); ++j){
+            for(j = oldz[3] + 1; j <= newz(3); ++j){
+                for(i = xleft; i <= xright; ++i){
                     insert_node(&Zonez(i, j).movable, index);
                 }
             }
         }else{
-            for(i = xleft; i <= xright; ++i){
-                for(j = newz(3) + 1; j <= oldz[3]; ++j){
+            for(j = newz(3) + 1; j <= oldz[3]; ++j){
+                for(i = xleft; i <= xright; ++i){
                     delete_node(&Zonez(i, j).movable, index);
                 }
             }

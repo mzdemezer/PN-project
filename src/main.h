@@ -21,7 +21,7 @@
 #define SCREEN_BUFFER_WIDTH 1000
 #define SCREEN_BUFFER_HEIGHT 750
 #define MAX_FPS 60
-
+#define MAX_DT 0.1
 /**
     Negatives values are for configuration menus
     */

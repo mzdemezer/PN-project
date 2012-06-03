@@ -102,6 +102,14 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         dt = Data->Level.last_time;
         Data->Level.last_time = al_get_time();
         dt = Data->Level.last_time - dt;
+        if(dt > MAX_DT){
+            /**
+                Security against slowdowns, whatever the reason.
+                dt affects zones, soo when it raises too much
+                each object would demand all zones.
+                */
+            dt = MAX_DT;
+        }
         half_dt = dt / 2;
 
         op = Data->Level.Player->engine_state * THROTTLE * dt;
