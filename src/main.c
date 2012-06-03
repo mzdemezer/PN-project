@@ -1240,6 +1240,14 @@ inline double double_min(double a, double b){
     }
 }
 
+/**
+    Solving quadratic equation
+    x, y - relative present position of second ball
+    dx, dy - relative displacement of first ball (second is immobile in this equation)
+    d - sum of radiuses
+
+    This function is good both for mobile and immobile balls or points :)
+    */
 float check_collision_between_two_balls(double x, double y, float dx, float dy, double d){
     double a = dx * dx + dy * dy,
         b = 2 * (x * dx + y * dy);
@@ -1293,15 +1301,15 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
 }
 
 float check_collision_between_ball_and_segment(float x, float y, float dx, float dy, float r, struct segment *seg){
-    float ang = VectorAngle(dx, dy);
-    x += r * cos(ang);
-    y += r * sin(ang);
+    double ang = VectorAngle(dx, dy),
+           rx = r * cos(ang);
+           ang = r * sin(ang);
     struct point BC = {x, y},
-                 Bd = {x + dx, y + dy},
+                 Bd = {x + dx + rx, y + dy + ang},
                  I;
     if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
-        x = I.x - x;
-        y = I.y - y;
+        x = I.x - x - rx;
+        y = I.y - y - ang;
         return sqrt((x * x + y * y) / (dx * dx + dy * dy));
     }else{
         return EMPTY_COLLISION_TIME;
@@ -1313,7 +1321,7 @@ struct collision_data get_collision_with_primitive(struct movable_object_structu
     #define WHO_PARTICLE ((struct particleData*)who->ObjectData)
     #define WITH_POINT ((struct point*)with_what->ObjectData)
     #define WITH_SEGMENT ((struct segment*)(with_what->ObjectData))
-    #define WITH_CIRCLE ((struct cirlce*)with_what->ObjectData)
+    #define WITH_CIRCLE ((struct circle*)with_what->ObjectData)
     struct collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
     new_coll.with_movable = false;
@@ -1321,24 +1329,36 @@ struct collision_data get_collision_with_primitive(struct movable_object_structu
         case motPLAYER:
             switch(with_what->Type){
                 case potPOINT:
+                    new_coll.time = check_collision_between_two_balls(WITH_POINT->x - WHO_PLAYER->center.x,
+                                                                      WITH_POINT->y - WHO_PLAYER->center.y,
+                                                                      who->dx, who->dy, WHO_PLAYER->r);
                     break;
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
-                                                             who->dx, who->dy, WHO_PLAYER->r, WITH_SEGMENT);
+                                                                             who->dx, who->dy, WHO_PLAYER->r, WITH_SEGMENT);
                     break;
                 case potCIRCLE:
+                    new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
+                                                                      who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r);
                     break;
             }
             break;
         case motPARTICLE:
             switch(with_what->Type){
                 case potPOINT:
+                    new_coll.time = check_collision_between_two_balls(WITH_POINT->x - WHO_PARTICLE->center.x,
+                                                                      WITH_POINT->y - WHO_PARTICLE->center.y,
+                                                                      who->dx, who->dy, WHO_PARTICLE->r);
                     break;
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PARTICLE->center.x, WHO_PARTICLE->center.y,
-                                                             who->dx, who->dy, WHO_PARTICLE->r, WITH_SEGMENT);
+                                                                             who->dx, who->dy, WHO_PARTICLE->r, WITH_SEGMENT);
                     break;
                 case potCIRCLE:
+                    new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PARTICLE->center.x,
+                                                                      WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
+                                                                      who->dx, who->dy, WHO_PARTICLE->r + WITH_CIRCLE->r);
                     break;
             }
             break;
@@ -1473,16 +1493,25 @@ void find_next_collision(struct GameSharedData *Data, short int index, short int
 }
 
 
-void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
+inline void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
     L->A = y1 - y2;
     L->B = x2 - x1;
-    L->C = -x1 * L->A - y1 * L->B;
+    L->C = x1 * y2 - x2 * y1;
+    L->sqrtAB = sqrt((double)L->A * L->A + (double)L->B * L->B);
 }
 
-void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *L){
+inline void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *L){
     L->A = -vy;
     L->B = vx;
     L->C = x * vy - y * vx;
+}
+
+inline double point_distance_from_line(float x0, float y0, struct line *L){
+    if(L->sqrtAB == 0){
+        return -1;
+    }else{
+        return ((double)L->A * x0 + (double)L->B * y0 + L->C) / (double)L->sqrtAB;
+    }
 }
 
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y){
@@ -1712,52 +1741,59 @@ void normalize_segment_zones(short int *zones){
 
 /**
     This function does all the allocating
-    and counting. If segment is outside the map
-    it is not added anywhere
+    and counting.
+    If segment is outside the map
+    it is not added anywhere.
+    If A and B are the same point, then nothing is done;
+    this assures that seg->line_equation->sqrtAB is different from 0.
+    At least it should be...
     */
 void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B){
-    short int zones[4];
-    if(get_outer_zones_of_segment(A, B, zones)){
-        /**
-            When correct zones are set it's time to work
-            */
-        normalize_segment_zones(zones);
-        short int i = sign(zones[3] - zones[1]),
-                  key = Data->Level.number_of_primitive_objects;
-        struct segment *seg = (struct segment*)malloc(sizeof(struct segment));
-        seg->ang = VectorAngle(B->x - A->x, B->y - A->y);
-        seg->A = *A;
-        seg->B = *B;
-        add_primitive_object(Data, potSEGMENT, seg);
-        if(zones[0] == zones[2]){//to simplify: vertical
-            short int j;
-            for(j = zones[1]; j != zones[3]; j += i){
-                add_primitive_to_zone(&Data->Level.zones[zones[0]][j], key);
-            }
-            add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[3]], key);
-        }else if(zones[1] == zones[3]){//horizontal
-            short int j;
-            for(j = zones[0]; j != zones[2]; ++j){
-                add_primitive_to_zone(&Data->Level.zones[j][zones[1]], key);
-            }
-            add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[1]], key);
-        }else{
-            struct point Bord1, Bord2;
-            while(zones[0] < zones[2] ||
-                  sign(zones[3] - zones[1]) == i){
-                add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[1]], key);
-
-                Bord1.x = (zones[0] + 1) * ZONE_SIZE;
-                Bord1.y = zones[1] * ZONE_SIZE;
-                Bord2.x = Bord1.x;
-                Bord2.y = Bord1.y + ZONE_SIZE;
-                if(do_segments_intersect(&Bord1, &Bord2, A, B)){
-                    zones[0] += 1;
-                }else{
-                    zones[1] += i;
+    if(A->x != B->x && A->y != B->y){
+        short int zones[4];
+        if(get_outer_zones_of_segment(A, B, zones)){
+            /**
+                When correct zones are set it's time to work
+                */
+            normalize_segment_zones(zones);
+            short int i = sign(zones[3] - zones[1]),
+                      key = Data->Level.number_of_primitive_objects;
+            struct segment *seg = (struct segment*)malloc(sizeof(struct segment));
+            seg->ang = VectorAngle(B->x - A->x, B->y - A->y);
+            seg->A = *A;
+            seg->B = *B;
+            get_line_from_points(A->x, A->y, B->x, B->y, &seg->line_equation);
+            add_primitive_object(Data, potSEGMENT, seg);
+            if(zones[0] == zones[2]){//to simplify: vertical
+                short int j;
+                for(j = zones[1]; j != zones[3]; j += i){
+                    add_primitive_to_zone(&Data->Level.zones[zones[0]][j], key);
                 }
+                add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[3]], key);
+            }else if(zones[1] == zones[3]){//horizontal
+                short int j;
+                for(j = zones[0]; j != zones[2]; ++j){
+                    add_primitive_to_zone(&Data->Level.zones[j][zones[1]], key);
+                }
+                add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[1]], key);
+            }else{
+                struct point Bord1, Bord2;
+                while(zones[0] < zones[2] ||
+                      sign(zones[3] - zones[1]) == i){
+                    add_primitive_to_zone(&Data->Level.zones[zones[0]][zones[1]], key);
+
+                    Bord1.x = (zones[0] + 1) * ZONE_SIZE;
+                    Bord1.y = zones[1] * ZONE_SIZE;
+                    Bord2.x = Bord1.x;
+                    Bord2.y = Bord1.y + ZONE_SIZE;
+                    if(do_segments_intersect(&Bord1, &Bord2, A, B)){
+                        zones[0] += 1;
+                    }else{
+                        zones[1] += i;
+                    }
+                }
+                add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[3]], key);
             }
-            add_primitive_to_zone(&Data->Level.zones[zones[2]][zones[3]], key);
         }
     }
 }
@@ -1880,6 +1916,20 @@ void get_velocity_after_ball_to_wall_collision(float *vx, float *vy, struct segm
     *vy = v_perp * sn + v_into * cs;
 }
 
+/**
+    I treat fixed points as ininitely small balls
+    */
+void get_velocity_after_ball_to_fixed_ball_collision(float *vx, float *vy, float dx, float dy, float restitution){
+    double ang = VectorAngle(dx, dy),
+           cs = cos(ang);
+    ang = sin(ang);
+    double v_into = *vx * cs + *vy * ang,
+           v_perp = *vy * cs - *vx * ang;
+    v_into *= -restitution;
+    *vx = v_into * cs - v_perp * ang;
+    *vy = v_into * ang + v_perp * cs;
+}
+
 void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
     double dx = (double)*x2 - *x1,
            dy = (double)*y2 - *y1,
@@ -1887,6 +1937,8 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
         d -= dx;
+        d *= 1.01;//experiment - rule out inaccuracies
+        d += 0.01;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
         ang = m1 + m2;
@@ -1897,6 +1949,55 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
         *y1 -= dx * ang;
         *x2 += d * dy;
         *y2 += dx * dy;
+    }
+}
+
+/**
+    x1, y1 - coordinates of movable
+    x2, y2 - coordinates of fixed ball
+    d - sum of radiuses
+
+    Of course works also for fixed points
+    */
+void separate_ball_from_fixed_ball(float *x1, float *y1, float x2, float y2, float d){
+    double dx = (double)x2 - *x1,
+           dy = (double)y2 - *y1,
+           ang = VectorAngle(dx, dy);
+    dx = sqrt(dx * dx + dy * dy);
+    if(dx < d){
+        d -= dx;
+        d *= 1.01;
+        d += 0.01;
+        *x1 -= d * cos(ang);
+        *y1 -= d * sin(ang);
+    }
+}
+
+void separate_ball_from_segment(float *x, float *y, float d, struct segment *seg){
+    double dist = point_distance_from_line(*x, *y, &seg->line_equation);
+    if(dist == -1){
+        separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
+    }else{
+        if(dist < d){
+            double ang = VectorAngle(seg->line_equation.A, seg->line_equation.B),
+                   cs = cos(ang);
+                   ang = sin(ang);
+            struct point helpy = {*x + 2 * d * cs,
+                                  *y + 2 * d * ang},
+                         begin = {*x, *y};
+            d -= dist;
+            d *= 1.01;
+            d += 0.01;
+            if(do_segments_intersect(&seg->A, &seg->B, &helpy, &begin)){
+                *x -= d * cs;
+                *y -= d * ang;
+                //-ang
+            }else{
+                *x += d * cs;
+                *y += d * ang;
+                //ang
+            }
+        }
     }
 }
 
@@ -1919,7 +2020,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
     #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
     #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
     #define WITH_PARTICLE ((struct particleData*)Data->Level.MovableObjects[with].ObjectData)
+    #define WITH_POINT ((struct point*)Data->Level.PrimitiveObjects[with].ObjectData)
     #define WITH_SEGMENT ((struct segment*)Data->Level.PrimitiveObjects[with].ObjectData)
+    #define WITH_CIRCLE ((struct circle*)Data->Level.PrimitiveObjects[with].ObjectData)
     if(with_movable){
         Data->DeCollAngs[0] = VectorAngle(Data->Level.MovableObjects[who].dx, Data->Level.MovableObjects[who].dy);
         Data->DeCollAngs[1] = VectorAngle(Data->Level.MovableObjects[with].dx, Data->Level.MovableObjects[with].dy);
@@ -2001,24 +2104,52 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
             case motPLAYER:
                 switch(Data->Level.PrimitiveObjects[with].Type){
                     case potPOINT:
+                        separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
+                                                      WITH_POINT->x, WITH_POINT->y, WHO_PLAYER->r);
+                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                        WITH_POINT->x - WHO_PLAYER->center.x,
+                                                                        WITH_POINT->y - WHO_PLAYER->center.y,
+                                                                        PLAYER_TO_WALL_RESTITUTION);
                         break;
                     case potSEGMENT:
+                        separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
                         get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
                                                                   WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
                         break;
                     case potCIRCLE:
+                        separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
+                                                      WITH_CIRCLE->center.x, WITH_CIRCLE->center.y,
+                                                      WHO_PLAYER->r + WITH_CIRCLE->r);
+                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                        WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
+                                                                        WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
+                                                                        PLAYER_TO_WALL_RESTITUTION);
                         break;
                 }
                 break;
             case motPARTICLE:
                 switch(Data->Level.PrimitiveObjects[with].Type){
                     case potPOINT:
+                        separate_ball_from_fixed_ball(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y,
+                                                      WITH_POINT->x, WITH_POINT->y, WHO_PARTICLE->r);
+                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
+                                                                        WITH_POINT->x - WHO_PARTICLE->center.x,
+                                                                        WITH_POINT->y - WHO_PARTICLE->center.y,
+                                                                        PLAYER_TO_WALL_RESTITUTION);
                         break;
                     case potSEGMENT:
+                        separate_ball_from_segment(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->r, WITH_SEGMENT);
                         get_velocity_after_ball_to_wall_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
                                                                   WITH_SEGMENT, PARTICLE_TO_WALL_RESTITUTION);
                         break;
                     case potCIRCLE:
+                        separate_ball_from_fixed_ball(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y,
+                                                      WITH_CIRCLE->center.x, WITH_CIRCLE->center.y,
+                                                      WHO_PARTICLE->r + WITH_CIRCLE->r);
+                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
+                                                                        WITH_CIRCLE->center.x - WHO_PARTICLE->center.x,
+                                                                        WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
+                                                                        PLAYER_TO_WALL_RESTITUTION);
                         break;
                 }
                 break;
@@ -2030,7 +2161,9 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
     #undef WHO_PARTICLE
     #undef WITH_PLAYER
     #undef WITH_PARTICLE
+    #undef WITH_POINT
     #undef WITH_SEGMENT
+    #undef WITH_CIRCLE
 }
 
 /**

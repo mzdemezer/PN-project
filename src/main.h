@@ -198,9 +198,15 @@ struct point{
     float x, y;
 };
 
+struct line{
+    float A, B, C,
+          sqrtAB; //cache
+};
+
 struct segment{
     struct point A, B;
     float ang; // direction of AB vector; to make collisions faster
+    struct line line_equation; //for faster separation
 };
 
 struct circle{
@@ -290,7 +296,7 @@ struct ObjectWorkshop{
 #define THROTTLE 3
 #define dANG 0.06981 //4 degrees
 #define PLAYER_MASS 600
-#define PLAYER_RADIUS 30
+#define PLAYER_RADIUS 20
 struct playerData{
     struct point center;
     float r, vx, vy;
@@ -542,10 +548,6 @@ struct GameSharedData{
     bool MouseWorking;
 };
 
-struct line{
-    float A, B, C;
-};
-
 /**
     Functions
     */
@@ -653,8 +655,9 @@ bool get_segment_intersection(const struct point *A1, const struct point *A2,
                               struct point *I);
 bool get_outer_zones_of_segment(const struct point *A, const struct point *B, short int *zones);
 
-void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
-void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
+inline void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
+inline void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
+inline double point_distance_from_line(float x0, float y0, struct line *L);
 void common_point(const struct line* L1, const struct line* L2, float *x, float *y);
 void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt);
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
