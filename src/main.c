@@ -1301,16 +1301,14 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
 }
 
 float check_collision_between_ball_and_segment(float x, float y, float dx, float dy, float r, struct segment *seg){
-    double ang = VectorAngle(dx, dy),
-           rx = r * cos(ang);
-           ang = r * sin(ang);
+    double ang = VectorAngle(dx, dy);
     struct point BC = {x, y},
-                 Bd = {x + dx + rx, y + dy + ang},
+                 Bd = {x + dx + r * cos(ang), y + dy + r * sin(ang)},
                  I;
     if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
-        x = I.x - x - rx;
-        y = I.y - y - ang;
-        return sqrt((x * x + y * y) / (dx * dx + dy * dy));
+        x = I.x - x;
+        y = I.y - y;
+        return (sqrt(x * x + y * y) - r) / (dx * dx + dy * dy);
     }else{
         return EMPTY_COLLISION_TIME;
     }
@@ -1510,7 +1508,7 @@ inline double point_distance_from_line(float x0, float y0, struct line *L){
     if(L->sqrtAB == 0){
         return -1;
     }else{
-        return ((double)L->A * x0 + (double)L->B * y0 + L->C) / (double)L->sqrtAB;
+        return double_abs(((double)L->A * x0 + (double)L->B * y0 + L->C) / (double)L->sqrtAB);
     }
 }
 
@@ -1749,7 +1747,7 @@ void normalize_segment_zones(short int *zones){
     At least it should be...
     */
 void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B){
-    if(A->x != B->x && A->y != B->y){
+    if(A->x != B->x || A->y != B->y){
         short int zones[4];
         if(get_outer_zones_of_segment(A, B, zones)){
             /**
@@ -2126,6 +2124,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                         PLAYER_TO_WALL_RESTITUTION);
                         break;
                 }
+                player_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                 break;
             case motPARTICLE:
                 switch(Data->Level.PrimitiveObjects[with].Type){
@@ -2152,6 +2151,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
                                                                         PLAYER_TO_WALL_RESTITUTION);
                         break;
                 }
+                particle_get_dx_dy(&Data->Level.MovableObjects[who], dt);
                 break;
             default:
                 break;

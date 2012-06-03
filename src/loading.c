@@ -13,7 +13,6 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     // Actual loading
     add_borders(Data);
     load_level_from_file(Data);
-
     special_call(initialize_level, argument);
 
     Data->Level.Acc = (struct move_arrays*)malloc(sizeof(struct move_arrays) * Data->Level.number_of_movable_objects);
