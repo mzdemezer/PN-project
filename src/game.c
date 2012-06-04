@@ -247,28 +247,28 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
-                        Simple bounce
+                        Simple bounce - to delete this I need better separation algorithm
                         */
                     if(ObData->center.x - ObData->r <= 0){
                         ObData->center.x = ObData->r + ObData->r - ObData->center.x;
                         if(ObData->vx < 0){
-                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vx *= -PLAYER_TO_WALL_RESTITUTION;
                         }
                     }else if(ObData->center.x + ObData->r >= SCREEN_BUFFER_HEIGHT){
                         ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r + ObData->r);
                         if(ObData->vx > 0){
-                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vx *= -PLAYER_TO_WALL_RESTITUTION;
                         }
                     }
                     if(ObData->center.y - ObData->r <= 0){
                         ObData->center.y = ObData->r + ObData->r - ObData->center.y;
                         if(ObData->vy < 0){
-                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vy *= -PLAYER_TO_WALL_RESTITUTION;
                         }
                     }else if(ObData->center.y + ObData->r >= SCREEN_BUFFER_HEIGHT){
                         ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r + ObData->r);
                         if(ObData->vy > 0){
-                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vy *= -PLAYER_TO_WALL_RESTITUTION;
                         }
                     }
                     #undef ObData
@@ -292,28 +292,28 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                     ObData->vy += (Acc[i].ay[(int)parity] + Acc[i].ay[(int)imparity]) * half_dt;
 
                     /**
-                        Simple bounce
+                        Simple bounce - just in case, segments are not perfect!
                         */
                     if(ObData->center.x - ObData->r <= 0){
                         ObData->center.x = ObData->r + ObData->r - ObData->center.x;
                         if(ObData->vx < 0){
-                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vx *= -PARTICLE_TO_WALL_RESTITUTION;
                         }
                     }else if(ObData->center.x + ObData->r >= SCREEN_BUFFER_HEIGHT){
                         ObData->center.x = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.x + ObData->r + ObData->r);
                         if(ObData->vx > 0){
-                           ObData->vx *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vx *= -PARTICLE_TO_WALL_RESTITUTION;
                         }
                     }
                     if(ObData->center.y - ObData->r <= 0){
                         ObData->center.y = ObData->r + ObData->r - ObData->center.y;
                         if(ObData->vy < 0){
-                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vy *= -PARTICLE_TO_WALL_RESTITUTION;
                         }
                     }else if(ObData->center.y + ObData->r >= SCREEN_BUFFER_HEIGHT){
                         ObData->center.y = 2 * SCREEN_BUFFER_HEIGHT - (ObData->center.y + ObData->r + ObData->r);
                         if(ObData->vy > 0){
-                           ObData->vy *= -WALL_COLLISION_COEFFICIENT;
+                           ObData->vy *= -PARTICLE_TO_WALL_RESTITUTION;
                         }
                     }
                     #undef ObData
@@ -586,9 +586,12 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     int i, j, k, l;
     struct collision_data coll;
     short int temp;
-    bool primitive_done[Data->Level.number_of_primitive_objects],
-         movable_done[Data->Level.number_of_movable_objects];
+    fast_read_set primitive_done, movable_done;
     int collisions_this_turn;
+
+    initialize_fast_read_set(&primitive_done, Data->Level.number_of_primitive_objects);
+    initialize_fast_read_set(&movable_done, Data->Level.number_of_movable_objects);
+
     StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**
@@ -596,15 +599,12 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             */
         time = 0;
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            for(j = 0; j < Data->Level.number_of_primitive_objects; ++j){
-                primitive_done[j] = false;//this really needs optymalization... use tree instead? or also? maybe also checking O(1), if not many objects then small tree, and only a few nodes
-            }
             Data->Level.MovableObjects[i].coll_with_fixed.time = EMPTY_COLLISION_TIME;
             for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
                 for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
                     for(l = 0; l < Data->Level.zones[j][k].number_of_primitives; ++l){
-                        if(!primitive_done[Data->Level.zones[j][k].primitives[l]]){
-                            primitive_done[Data->Level.zones[j][k].primitives[l]] = true;
+                        if(!is_marked(&primitive_done, Data->Level.zones[j][k].primitives[l])){
+                            set_mark(&primitive_done, Data->Level.zones[j][k].primitives[l]);
                             coll = get_collision_with_primitive(&Data->Level.MovableObjects[i],
                                                                 &Data->Level.PrimitiveObjects[Data->Level.zones[j][k].primitives[l]]);
                             if(coll.time >= 0 && coll.time <= 1){
@@ -619,18 +619,16 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                     }
                 }
             }
+            reset_marks(&primitive_done);
         }
 
 
         for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-            for(j = 0; j < Data->Level.number_of_movable_objects; ++j){
-                movable_done[j] = false;
-            }
             for(j = Data->Level.MovableObjects[i].zones[0]; j <= Data->Level.MovableObjects[i].zones[2]; ++j){
                 for(k = Data->Level.MovableObjects[i].zones[1]; k <= Data->Level.MovableObjects[i].zones[3]; ++k){
-                    for_each_higher_check_collision(Data, movable_done, (short int)i,
+                    for_each_higher_check_collision(Data, &movable_done, (short int)i,
                                                     Data->Level.zones[j][k].movable.root,
-                                                    Data->Level.zones[j][k].movable.nil);
+                                                    Data->Level.zones[j][k].movable.nil, 0);
                 }
             }
             collision_min_for_object(Data, i);
@@ -643,6 +641,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                     heap_insert(&Data->Level.collision_queue, Data->Level.MovableObjects[i].next_collision);
                 }
             }
+            reset_marks(&movable_done);
         }
 
         collisions_this_turn = 0;
@@ -697,10 +696,13 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                 Data->Level.MovableObjects[coll.who].colls_with_mov.root = Data->Level.MovableObjects[coll.who].colls_with_mov.nil;
 
                 //New collisions
-                find_next_collision(Data, coll.with, coll.who, primitive_done, movable_done, time);
-                find_next_collision(Data, coll.who, coll.with, primitive_done, movable_done, time);
+                set_mark(&movable_done, coll.who);
+                find_next_collision(Data, coll.with, &primitive_done, &movable_done, time);
+                set_mark(&movable_done, coll.with);
+                find_next_collision(Data, coll.who, &primitive_done, &movable_done, time);
             }else{
-                find_next_collision(Data, coll.who, -coll.with, primitive_done, movable_done, time);
+                set_mark(&primitive_done, coll.with);
+                find_next_collision(Data, coll.who, &primitive_done, &movable_done, time);
             }
             collisions_this_turn += 1;
             if(collisions_this_turn >= MAX_COLLISIONS_PER_TURN){
@@ -718,6 +720,8 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             */
         StopThread(2, Data, thread);
     }
+    destroy_fast_read_set(&primitive_done);
+    destroy_fast_read_set(&movable_done);
     printf("Closing Thread #2\n");
 
     return NULL;

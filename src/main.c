@@ -338,6 +338,46 @@ RB_node* get_successor(RB_node *node, RB_node *nil){
     }
 }
 
+void RB_insert_fixup(RB_tree *tree, RB_node *node){
+    node->color = RED;
+    RB_node *last;
+    while(node != tree->root && node->parent->color == RED){
+        if(is_left(node->parent)){
+            last = node->parent->parent->right;
+            if(last->color == RED){//1st CASE
+                node->parent->color = BLACK;
+                last->color = BLACK;
+                node->parent->parent->color = RED;
+                node = node->parent->parent;
+            }else{
+                if(node == node->parent->right){//2nd CASE --> 3rd
+                    node = node->parent;
+                    rotate_left(tree, node);
+                }
+                node->parent->color = BLACK;//3rd CASE
+                node->parent->parent->color = RED;
+                rotate_right(tree, node->parent->parent);
+            }
+        }else{
+            last = node->parent->parent->left;
+            if(last->color == RED){//1st CASE
+                node->parent->color = BLACK;
+                last->color = BLACK;
+                node->parent->parent->color = RED;
+                node = node->parent->parent;
+            }else{
+                if(node == node->parent->left){//2nd CASE --> 3rd
+                    node = node->parent;
+                    rotate_right(tree, node);
+                }
+                node->parent->color = BLACK;//3rd CASE
+                node->parent->parent->color = RED;
+                rotate_left(tree, node->parent->parent);
+            }
+        }
+    }
+}
+
 void insert_node(RB_tree *tree, short int key){
     RB_node *node = tree->root,
             *last = tree->nil;
@@ -359,52 +399,15 @@ void insert_node(RB_tree *tree, short int key){
 
     if(last == tree->nil){
         tree->root = node;
-        node->color = BLACK;
     }else{
         if(key < last->key){
             last->left = node;
         }else{
             last->right = node;
         }
-
-        node->color = RED;
-        while(node != tree->root && node->parent->color == RED){
-            if(is_left(node->parent)){
-                last = node->parent->parent->right;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->right){//2nd CASE --> 3rd
-                        node = node->parent;
-                        rotate_left(tree, node);
-                    }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    rotate_right(tree, node->parent->parent);
-                }
-            }else{
-                last = node->parent->parent->left;
-                if(last->color == RED){//1st CASE
-                    node->parent->color = BLACK;
-                    last->color = BLACK;
-                    node->parent->parent->color = RED;
-                    node = node->parent->parent;
-                }else{
-                    if(node == node->parent->left){//2nd CASE --> 3rd
-                        node = node->parent;
-                        rotate_right(tree, node);
-                    }
-                    node->parent->color = BLACK;//3rd CASE
-                    node->parent->parent->color = RED;
-                    rotate_left(tree, node->parent->parent);
-                }
-            }
-        }
-        tree->root->color = BLACK;
+        RB_insert_fixup(tree, node);
     }
+    tree->root->color = BLACK;
 }
 
 void delete_node(RB_tree *tree, short int key){
@@ -568,16 +571,108 @@ void rotate_right(RB_tree *tree, RB_node *node){
     }
 }
 
-void in_order(RB_node *root, RB_node *nil){
-    if(root != nil){
-        in_order(root->left, nil);
+void in_order(RB_node *node, RB_node *nil){
+    if(node != nil){
+        in_order(node->left, nil);
 
-        printf("%hd\t", root->key);
+        printf("%hd\t", node->key);
 
-        in_order(root->right, nil);
+        in_order(node->right, nil);
     }
 }
 
+void RB_display_keys_in_order(RB_tree *tree){
+    printf("In order:\n");
+    in_order(tree->root, tree->nil);
+    printf("\n");
+}
+/**
+    Fast read set - if you need to check
+    a key in array of booleans it is done
+    in O(1), but inserting and deleting single
+    node is O(log(k)), where k is the number
+    of marks set. Reseting is O(k). This should
+    be perfect for large sets with small amount
+    of marks, that have to be initialized every
+    time they need to be reused - as reinitilization
+    is simply reset.
+    */
+
+void unique_insert_node(RB_tree *tree, short int key){
+    RB_node *node = tree->root,
+            *last = tree->nil;
+    while(node != tree->nil){
+        last = node;
+        if(key == node->key){
+            return;
+        }else if(key < node->key){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+
+    node = (RB_node*)malloc(sizeof(RB_node));
+
+    node->left = tree->nil;
+    node->right = tree->nil;
+    node->parent = last;
+    node->key = key;
+
+    if(last == tree->nil){
+        tree->root = node;
+    }else{
+        if(key < last->key){
+            last->left = node;
+        }else{
+            last->right = node;
+        }
+        RB_insert_fixup(tree, node);
+    }
+    tree->root->color = BLACK;
+}
+
+void clear_mark_from_tree(RB_node *node, RB_node *nil, bool *array){
+    if(node != nil){
+        clear_mark_from_tree(node->left, nil, array);
+        clear_mark_from_tree(node->right, nil, array);
+        array[node->key] = false;
+        free(node);
+    }
+}
+
+void initialize_fast_read_set(fast_read_set *set, short int number_of_elements){
+    set->array = (bool*)malloc(sizeof(bool) * number_of_elements);
+    for(number_of_elements -= 1; number_of_elements >= 0; number_of_elements -= 1){
+        set->array[number_of_elements] = false;
+    }
+    set->tree.nil = (RB_node*)malloc(sizeof(RB_node));
+    set->tree.nil->color = BLACK;
+    set->tree.nil->left = set->tree.nil;
+    set->tree.nil->right = set->tree.nil;
+    set->tree.nil->key = -10;
+    set->tree.root = set->tree.nil;
+}
+
+bool is_marked(fast_read_set *set, short int key){
+    return set->array[key];
+}
+
+
+void set_mark(fast_read_set *set, short int key){
+    set->array[key] = true;
+    unique_insert_node(&set->tree, key);
+}
+
+void reset_marks(fast_read_set *set){
+    clear_mark_from_tree(set->tree.root, set->tree.nil, set->array);
+    set->tree.root = set->tree.nil;
+}
+
+void destroy_fast_read_set(fast_read_set *set){
+    free(set->array);
+    clear_tree(&set->tree);
+}
 /**
     First it's important to get fresh collision data
     with fixed objects - that's the limit if the object
@@ -617,7 +712,7 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
 }
 
 /**
-    A DFS that does something like that
+    A DFS that does something like that, according to tree in-order:
     i  <--  some_value
     for(j = i + 1; j < length; ++j){
         DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF_DO_STUFF
@@ -625,51 +720,38 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
     }
     */
 
-void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
+void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
+                                     short int who, RB_node *node, RB_node *nil, float time_passed){
     while(node != nil &&
           node->key < who){
         node = node->right;
     }
     if(node != nil){
         if(who != node->key){
-            for_each_higher_check_collision(Data, movable_done, who, node->left, nil);
-            if(!movable_done[node->key]){
-                movable_done[node->key] = true;
-                get_and_check_mov_coll_if_valid(Data, who, node->key, 0);
-            }
-        }
-        in_order_check_collision(Data, movable_done, who, node->right, nil);
-    }
-}
-
-void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil){
-    if(node != nil){
-        in_order_check_collision(Data, movable_done, who, node->left, nil);
-
-        if(!movable_done[node->key]){
-            movable_done[node->key] = true;
-            get_and_check_mov_coll_if_valid(Data, who, node->key, 0);
-        }
-
-        in_order_check_collision(Data, movable_done, who, node->right, nil);
-    }
-}
-
-void in_order_find_new_collision(struct GameSharedData *Data, bool *movable_done, short int who, short int ommit, RB_node *node, RB_node *nil, float time_passed){
-    if(node != nil){
-        in_order_find_new_collision(Data, movable_done, who, ommit, node->left, nil, time_passed);
-
-        if(!movable_done[node->key]){
-            movable_done[node->key] = true;
-            if(who != node->key &&
-               ommit != node->key){
+            for_each_higher_check_collision(Data, movable_done, who, node->left, nil, time_passed);
+            if(!is_marked(movable_done, node->key)){
+                set_mark(movable_done, node->key);
                 get_and_check_mov_coll_if_valid(Data, who, node->key, time_passed);
             }
         }
-
-        in_order_find_new_collision(Data, movable_done, who, ommit, node->right, nil, time_passed);
+        in_order_check_collision(Data, movable_done, who, node->right, nil, time_passed);
     }
 }
+
+void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
+                              short int who, RB_node *node, RB_node *nil, float time_passed){
+    if(node != nil){
+        in_order_check_collision(Data, movable_done, who, node->left, nil, time_passed);
+
+        if(!is_marked(movable_done, node->key)){
+            set_mark(movable_done, node->key);
+            get_and_check_mov_coll_if_valid(Data, who, node->key, time_passed);
+        }
+
+        in_order_check_collision(Data, movable_done, who, node->right, nil, time_passed);
+    }
+}
+
 /**
     Red-Black Tree for collisions
     */
@@ -1296,24 +1378,24 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
     }
 }
 
+/**
+    Computing the point on the circle that is
+    closest to segment and then if it collides
+    during this quantum of time  dt.
+    */
 float check_collision_between_ball_and_segment(float x, float y, double dx, double dy, float r, struct segment *seg){
     double cs = cos(seg->ang),
            sn = sin(seg->ang),
-           d_into = dy * cs - dx * sn;
-    dx = -d_into * sn;
-    dy = d_into * cs;
-    struct point BC = {x, y},
-                 Bd = {x + dx * 2 + r * double_abs(sn) * sign(dx), y + dy * 2 + r * double_abs(cs) * sign(dy)},
-                 I = {-10, -10};
-//    printf("%.3f\t%f\t(%f %f)\n", seg->ang * 180 / PI, d_into, dx, dy);
-//    printf("(%f %f) --> (%f %f)  x  (%f %f) - (%f %f)\t=== %d ===>\t", x, y, Bd.x, Bd.y, seg->A.x, seg->A.y, seg->B.x, seg->B.y,
-//                                                            (int)get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I));
-//    printf("(%f %f), dx: %.3f, dy: %.3f\t", x, y, dx, dy);get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I);
-//    printf("I: (%f %f)\t dx,dy: %f, %f\tdo_inter: %d\n", I.x, I.y, dx, dy, do_segments_intersect(&seg->A, &seg->B, &BC, &Bd));
+           d_into = sign(dy * cs - dx * sn);
+    struct point BC = {x  - r * sn * d_into,
+                       y  + r * cs * d_into},
+                 Bd = {BC.x + dx * 2,
+                       BC.y + dy * 2},
+                 I;
     if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
-        x = I.x - x;
-        y = I.y - y;
-        return (sqrt(x * x + y * y) - r) / sqrt(dx * dx + dy * dy);
+        x = I.x - BC.x;
+        y = I.y - BC.y;
+        return sqrt((x * x + y * y) / (dx * dx + dy * dy));
     }else{
         return EMPTY_COLLISION_TIME;
     }
@@ -1445,46 +1527,43 @@ void collision_min_for_object(struct GameSharedData *Data, short int who){
     }
 }
 
-void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *primitive_done, bool *movable_done, float time_passed){
+void find_next_collision(struct GameSharedData *Data, short int index,
+                         fast_read_set *primitive_done, fast_read_set *movable_done, float time_passed){
     struct collision_data new_coll;
     int i, j, k;
-    for(i = 0; i < Data->Level.number_of_primitive_objects; ++i){
-        primitive_done[i] = false;
-    }
-    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-        movable_done[i] = false;
-    }
     Data->Level.MovableObjects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
     for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
             for(k = 0; k < Data->Level.zones[i][j].number_of_primitives; ++k){
-                if(!primitive_done[Data->Level.zones[i][j].primitives[k]]){
-                    primitive_done[Data->Level.zones[i][j].primitives[k]] = true;
-                    if(-ommit != Data->Level.zones[i][j].primitives[k]){
-                        new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
-                                                                &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
-                        new_coll.time += time_passed;
-                        if(new_coll.time >= 0 && new_coll.time <= 1){
-                            if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
-                                new_coll.who = index;
-                                new_coll.with = Data->Level.zones[i][j].primitives[k];
-                                Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
-                            }
+                if(!is_marked(primitive_done, Data->Level.zones[i][j].primitives[k])){
+                    set_mark(primitive_done, Data->Level.zones[i][j].primitives[k]);
+                    new_coll = get_collision_with_primitive(&Data->Level.MovableObjects[index],
+                                                            &Data->Level.PrimitiveObjects[Data->Level.zones[i][j].primitives[k]]);
+                    new_coll.time += time_passed;
+                    if(new_coll.time >= 0 && new_coll.time <= 1){
+                        if(new_coll.time < Data->Level.MovableObjects[index].coll_with_fixed.time){
+                            new_coll.who = index;
+                            new_coll.with = Data->Level.zones[i][j].primitives[k];
+                            Data->Level.MovableObjects[index].coll_with_fixed = new_coll;
                         }
                     }
                 }
             }
         }
     }
+    reset_marks(primitive_done);
+
+    set_mark(movable_done, index);
     for(i = Data->Level.MovableObjects[index].zones[0]; i <= Data->Level.MovableObjects[index].zones[2]; ++i){
         for(j = Data->Level.MovableObjects[index].zones[1]; j <= Data->Level.MovableObjects[index].zones[3]; ++j){
-            in_order_find_new_collision(Data, movable_done,
-                                            index, ommit,
+            in_order_check_collision(Data, movable_done,
+                                            index,
                                             Data->Level.zones[i][j].movable.root,
                                             Data->Level.zones[i][j].movable.nil,
                                             time_passed);
         }
     }
+    reset_marks(movable_done);
 
     collision_min_for_object(Data, index);
 

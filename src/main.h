@@ -22,6 +22,7 @@
 #define SCREEN_BUFFER_HEIGHT 750
 #define MAX_FPS 60
 #define MAX_DT 0.1
+
 /**
     Negatives values are for configuration menus
     */
@@ -54,7 +55,6 @@
 #define SPHERE_DRAG_COEFFICENT 0.45
 
 #define MAX_COLLISIONS_PER_TURN 1600
-#define WALL_COLLISION_COEFFICIENT 0.8
 
 #define PLAYER_TO_PLAYER_RESTITUTION 1
 #define PLAYER_TO_PARTICLE_RESTITUTION 1
@@ -244,6 +244,11 @@ typedef struct RB_node{
 typedef struct RB_tree{
     RB_node *root, *nil;
 }RB_tree;
+
+typedef struct fast_read_set{
+    bool *array;
+    RB_tree tree;
+}fast_read_set;
 
 typedef struct coll_node{
     struct collision_data key;
@@ -579,6 +584,7 @@ RB_node* get_node(RB_tree *tree, short int key);
 RB_node* get_minimum(RB_node *node, RB_node *nil);
 RB_node* get_successor(RB_node *node, RB_node *nil);
 void insert_node(RB_tree *tree, short int key);
+void RB_insert_fixup(RB_tree *tree, RB_node *node);
 void delete_node(RB_tree *tree, short int key);
 void RB_delete_fixup(RB_tree *tree, RB_node *node);
 void clear_nodes(RB_node *node, RB_node *nil);
@@ -587,10 +593,23 @@ inline bool is_left(RB_node *node);
 void rotate_left(RB_tree *tree, RB_node *node);
 void rotate_right(RB_tree *tree, RB_node *node);
 
-void in_order(RB_node *root, RB_node *nil);
-void for_each_higher_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
-void in_order_check_collision(struct GameSharedData *Data, bool *movable_done, short int who, RB_node *node, RB_node *nil);
-void in_order_find_new_collision(struct GameSharedData *Data, bool *movable_done, short int who, short int ommit, RB_node *node, RB_node *nil, float time_passed);
+void in_order(RB_node *node, RB_node *nil);
+void RB_display_keys_in_order(RB_tree *tree);
+void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
+                                     short int who, RB_node *node, RB_node *nil, float time_passed);
+void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
+                              short int who, RB_node *node, RB_node *nil, float time_passed);
+
+
+//Fast read set
+
+void unique_insert_node(RB_tree *tree, short int key);
+void clear_mark_from_tree(RB_node *node, RB_node *nil, bool *array);
+void initialize_fast_read_set(fast_read_set *set, short int number_of_elements);
+bool is_marked(fast_read_set *set, short int key);
+void set_mark(fast_read_set *set, short int key);
+void reset_marks(fast_read_set *set);
+void destroy_fast_read_set(fast_read_set *set);
 
 //Red-Black Tree for collisions
 #define LESS -1
@@ -639,12 +658,14 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
 //Colisions
 #define EMPTY_COLLISION_TIME 10
 float check_collision_between_two_balls(double x, double y, float dx, float dy, double d);
+float check_collision_between_ball_and_segment(float x, float y, double dx, double dy, float r, struct segment *seg);
 void move_objects(struct GameSharedData *Data, float t);
 struct collision_data get_collision_with_primitive(struct movable_object_structure *who, struct primitive_object_structure *with_what);
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
 void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, float time_passed);
 void collision_min_for_object(struct GameSharedData *Data, short int who);
-void find_next_collision(struct GameSharedData *Data, short int index, short int ommit, bool *fixed_done, bool *movable_done, float time_passed);
+void find_next_collision(struct GameSharedData *Data, short int index,
+                         fast_read_set *primitive_done, fast_read_set *movable_done, float time_passed);
 
 float vector_product(float x1, float y1, float x2, float y2);
 bool vectors_on_two_sides(float vector_pr1, float vector_pr2);
