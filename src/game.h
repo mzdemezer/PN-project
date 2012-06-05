@@ -5,6 +5,7 @@ void handle_event_game(struct GameSharedData *);
 void draw_game(struct GameSharedData *);
 void draw_stat_bar(struct GameSharedData *);
 void request_game(struct GameSharedData *);
+void request_pause(struct GameSharedData *);
 float VectorAngle(float, float);
 bool get_drag_data(struct movable_object_structure *Obj, double *vx, double *vy, double *Cx, double *S);
 double coefficient_multiplier(double v);

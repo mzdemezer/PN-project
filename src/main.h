@@ -171,6 +171,9 @@ struct menu_structure{
     int Current;
 };
 
+void make_main_menu_unpause(struct GameSharedData *Data);
+void make_main_menu_pause_menu(struct GameSharedData *Data);
+void return_to_main_menu(struct menu_structure *Menu);
 
 enum fixed_object_type{
     fotRECTANGLE,

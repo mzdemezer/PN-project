@@ -23,7 +23,6 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
         Data->RequestChangeState = true;
-        Data->DrawFunction = draw_game;
     al_unlock_mutex(Data->MutexChangeState);
 
     return NULL;
@@ -443,6 +442,7 @@ void request_loading(struct GameSharedData *Data){
     else{
         Data->RequestChangeState = false;
         Data->GameState = gsLOADING;
+        Data->DrawFunction = draw_loading;
         al_start_thread(Data->ThreadLoading);
     }
 }

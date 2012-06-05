@@ -1,4 +1,5 @@
 #include "main.h"
+#include "menu.h"
 #include "game.h"
 #include <allegro5/allegro.h>
 #include <math.h>
@@ -756,7 +757,6 @@ void handle_event_game(struct GameSharedData *Data){
                         }
                     al_unlock_mutex(Data->MutexMainIteration);
                     printf("Synchronized with main iteration that is now waiting\n");
-                    al_rest(2);
                     break;
                 default:
                     al_lock_mutex(Data->Keyboard.MutexKeyboard);
@@ -895,16 +895,37 @@ void draw_stat_bar(struct GameSharedData *Data){
 void request_game(struct GameSharedData *Data){
     int i;
 
-    /**
-        Game init
-        */
-    for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
-        Data->Keyboard.Flags[i] = false;
-    }
-    Data->RequestChangeState = false;
-    Data->GameState = gsGAME;
+    switch(Data->GameState){
+        case gsLOADING:
+            /**
+                Game init
+                */
+            for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
+                Data->Keyboard.Flags[i] = false;
+            }
+            Data->RequestChangeState = false;
+            Data->GameState = gsGAME;
+            Data->DrawFunction = draw_game;
 
-    al_start_thread(Data->ThreadMainIteration);
+            al_start_thread(Data->ThreadMainIteration);
+            break;
+        case gsPAUSE:
+            Data->RequestChangeState = false;
+            Data->GameState = gsGAME;
+            Data->DrawFunction = draw_game;
+            Data->Level.last_time = al_get_time() - 1./MAX_FPS;
+            printf("Unpause!\n\n");
+            break;
+        default:
+            break;
+    }
+}
+
+void request_pause(struct GameSharedData *Data){
+    Data->RequestChangeState = false;
+    Data->GameState = gsPAUSE;
+    Data->DrawFunction = draw_pause;
+    make_main_menu_pause_menu(Data);
 }
 
 float VectorAngle(float x, float y){

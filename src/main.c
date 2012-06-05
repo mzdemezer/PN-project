@@ -50,8 +50,8 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
         }
         switch(Data->GameState){
             case gsGAME: handle_event_game(Data); break;
+            case gsPAUSE:
             case gsMENU: handle_event_menu(Data); break;
-            case gsPAUSE: break;
             case gsLOADING: handle_event_loading(Data); break;
         }
 
@@ -64,7 +64,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
         al_lock_mutex(Data->MutexChangeState);
             if(Data->RequestChangeState){
                 switch(Data->NewState){
-                    case gsPAUSE: /*request_pause(Data);*/break;
+                    case gsPAUSE: request_pause(Data); break;
                     case gsLOADING: request_loading(Data); break;
                     case gsGAME: request_game(Data); break;
                     case gsMENU: break;
@@ -2873,10 +2873,7 @@ int main(){
                      GraphicMenu[1 + int_abs(GRAPHIC_MENU_SIZE)],
                      SoundMenu[1 + int_abs(SOUND_MENU_SIZE)],
                      ControlsMenu[1 + int_abs(CONTROLS_MENU_SIZE)];
-    menu_elem_init(&MainMenu[mmeRETURN],
-                   metACTIVATE,
-                   "RETURN",
-                   (void*) exit_activate);
+
     menu_elem_init(&MainMenu[mmeDESCRIPTOR],
                    MAIN_MENU_SIZE,
                    "MAIN MENU",
@@ -2897,6 +2894,10 @@ int main(){
                    metACTIVATE,
                    "EXIT",
                    (void*) exit_activate);
+    menu_elem_init(&MainMenu[mmeRETURN],
+               metACTIVATE,
+               "RETURN",
+               (void*) return_to_game_activate);
 
     menu_elem_init(&OptionsMenu[omeDESCRIPTOR],
                    OPTIONS_MENU_SIZE,

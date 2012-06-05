@@ -32,13 +32,21 @@ void new_game_activate(void *argument){
     al_lock_mutex(arg->Data->MutexChangeState);
         arg->Data->RequestChangeState = true;
         arg->Data->NewState = gsLOADING;
-        arg->Data->DrawFunction = draw_loading;
     al_unlock_mutex(arg->Data->MutexChangeState);
     arg->Data->Level.LevelNumber = 1;
     arg->Data->ThreadLoading = NULL;
     arg->Data->ThreadLoading = al_create_thread(&load_level, (void*)arg->Data);
     #undef arg
 };
+
+void return_to_game_activate(void *argument){
+    #define arg ((struct activation_argument*)argument)
+    al_lock_mutex(arg->Data->MutexChangeState);
+        arg->Data->RequestChangeState = true;
+        arg->Data->NewState = gsGAME;
+    al_unlock_mutex(arg->Data->MutexChangeState);
+    #undef arg
+}
 
 void exit_activate(void *argument){
     printf("EXIT ACTIVATED\n");
@@ -231,11 +239,23 @@ void handle_event_menu(struct GameSharedData *Data){
     }
 };
 
-void clear_menu(){
-    al_clear_to_color(al_map_rgb(0,0,0));
+void clear_pause(struct GameSharedData *Data){
+    ALLEGRO_TRANSFORM tempT;
+
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);//later maybe even draw_game or sth
+        al_draw_bitmap(Data->Level.ScaledBackground, Data->scales.scale_x, Data->scales.scale_y, 0);
+        al_clear_to_color(al_map_rgba(0, 0, 0, 0.4));
+    al_use_transform(&Data->Transformation);
 }
 
-void draw_menu(struct GameSharedData* Data){
+void clear_menu(){
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+}
+
+void draw_menu_content(struct GameSharedData *Data){
     int i, NumberOfElems, flags;
     float align_x;
     struct activation_argument arg;
@@ -243,8 +263,6 @@ void draw_menu(struct GameSharedData* Data){
     ALLEGRO_TRANSFORM tempT;
     al_identity_transform(&tempT);
     al_use_transform(&tempT);
-
-    clear_menu();
 
     //Normal menu
     if((int)Data->Menu.CurrentMenu[0].Type > 0){
@@ -292,4 +310,14 @@ void draw_menu(struct GameSharedData* Data){
     }
 
     al_use_transform(&Data->Transformation);
+}
+
+void draw_menu(struct GameSharedData* Data){
+    clear_menu();
+    draw_menu_content(Data);
+}
+
+void draw_pause(struct GameSharedData *Data){
+    clear_pause(Data);
+    draw_menu_content(Data);
 }
