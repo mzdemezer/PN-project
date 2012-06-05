@@ -1771,7 +1771,7 @@ inline void get_line_from_points(double x1, double y1, double x2, double y2, str
     L->A = y1 - y2;
     L->B = x2 - x1;
     L->C = x1 * y2 - x2 * y1;
-    L->sqrtAB = sqrt((double)L->A * L->A + (double)L->B * L->B);
+    L->sqrtAB = sqrt(L->A * L->A + L->B * L->B);
 }
 
 inline void get_line_from_point_and_vector(double x, double y, double vx, double vy, struct line *L){
@@ -1784,7 +1784,7 @@ inline double point_distance_from_line(double x0, double y0, struct line *L){
     if(L->sqrtAB == 0){
         return -1;
     }else{
-        return double_abs(((double)L->A * x0 + (double)L->B * y0 + L->C) / (double)L->sqrtAB);
+        return double_abs((L->A * x0 + L->B * y0 + L->C) / L->sqrtAB);
     }
 }
 
@@ -1813,10 +1813,10 @@ bool vectors_on_two_sides(double vector_pr1, double vector_pr2){
 
 bool do_segments_intersect(const struct point *A1, const struct point *A2,
                            const struct point *B1, const struct point *B2){
-    double v_x = (double)A2->x - A1->x,
-           v_y = (double)A2->y - A1->y,
-           b_x = (double)B1->x - A1->x,
-           b_y = (double)B1->y - A1->y;
+    double v_x = A2->x - A1->x,
+           v_y = A2->y - A1->y,
+           b_x = B1->x - A1->x,
+           b_y = B1->y - A1->y;
 
     if(vectors_on_two_sides(vector_product(v_x, v_y, B2->x - A1->x, B2->y - A1->y), vector_product(v_x, v_y, b_x, b_y))){
         b_x = -b_x;
@@ -1840,10 +1840,10 @@ bool get_segment_intersection(const struct point *A1, const struct point *A2,
                               const struct point *B1, const struct point *B2,
                               struct point *I){
     if(do_segments_intersect(A1, A2, B1, B2)){
-        double dxA = (double)A1->x - A2->x,
-               dxB = (double)B1->x - B2->x,
-               dyA = (double)A1->y - A2->y,
-               dyB = (double)B1->y - B2->y,
+        double dxA = A1->x - A2->x,
+               dxB = B1->x - B2->x,
+               dyA = A1->y - A2->y,
+               dyB = B1->y - B2->y,
                denom = dxA * dyB - dyA * dxB,
                dxyA,
                dxyB;
@@ -1854,8 +1854,8 @@ bool get_segment_intersection(const struct point *A1, const struct point *A2,
         if(double_abs(denom) < eps){
             return false;
         }else{
-            dxyA = (double)A1->x * A2->y - (double)A1->y * A2->x;
-            dxyB = (double)B1->x * B2->y - (double)B1->y * B2->x;
+            dxyA = A1->x * A2->y - A1->y * A2->x;
+            dxyB = B1->x * B2->y - B1->y * B2->x;
 
             I->x = (dxyA * dxB - dxA * dxyB) / denom;
             I->y = (dxyA * dyB - dyA * dxyB) / denom;
@@ -2205,8 +2205,8 @@ void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, dou
 }
 
 void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d){
-    double dx = (double)*x2 - *x1,
-           dy = (double)*y2 - *y1,
+    double dx = *x2 - *x1,
+           dy = *y2 - *y1,
            ang = VectorAngle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
@@ -2232,8 +2232,8 @@ void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y
     Of course works also for fixed points
     */
 void separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d){
-    double dx = (double)x2 - *x1,
-           dy = (double)y2 - *y1,
+    double dx = x2 - *x1,
+           dy = y2 - *y1,
            ang = VectorAngle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
@@ -2946,10 +2946,10 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
     source_y = (source_y - 1) / height;
 
 	for (y = 0; y <= height; ++y) {
-		pixy = (double)y * source_y;
+		pixy = y * source_y;
 		pixy_f = floor(pixy);
 		for (x = 0; x <= width; ++x) {
-			pixx = (double)x * source_x;
+			pixx = x * source_x;
 			pixx_f = floor(pixx);
 
 			a = al_get_pixel(source, pixx_f, pixy_f);

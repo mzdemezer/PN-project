@@ -62,7 +62,7 @@
     Physics
     */
 
-#define COULOMB 0.1
+#define COULOMB 10
 #define GRAV 600
 
 #define DEFAULT_FLUID_DENSITY 0.001

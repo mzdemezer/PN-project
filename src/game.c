@@ -107,7 +107,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         }
     al_unlock_mutex(Data->MutexIterations);
 
-    Data->Level.last_time = clock() / (double)CLOCKS_PER_SEC;
+    Data->Level.last_time = al_get_time();
 
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         for(j = 0; j < ACC_2nd_DIM; ++j){
@@ -450,8 +450,8 @@ void* iteration_0(ALLEGRO_THREAD *thread, void *argument){
             if(get_grav_data(&(Data->Level.MovableObjects[i]), &m1, &r1)){
                 for(j = i + 1; j < Data->Level.number_of_movable_objects; ++j){
                     if(get_grav_data(&(Data->Level.MovableObjects[j]), &m2, &r2)){
-                        dx = (double)Acc[j].x - (double)Acc[i].x;
-                        dy = (double)Acc[j].y - (double)Acc[i].y;
+                        dx = Acc[j].x - Acc[i].x;
+                        dy = Acc[j].y - Acc[i].y;
                         d = dx * dx + dy * dy;
                         r = r1 + r2;
                         if(r * r > d){
@@ -531,8 +531,8 @@ void* iteration_1(ALLEGRO_THREAD *thread, void *argument){
                     if(get_elec_data(&(Data->Level.MovableObjects[j]), &q2, &r2)){
                         q2 *= q1;
                         if(q2){
-                            dx = (double)Acc[j].x - (double)Acc[i].x;
-                            dy = (double)Acc[j].y - (double)Acc[i].y;
+                            dx = Acc[j].x - Acc[i].x;
+                            dy = Acc[j].y - Acc[i].y;
                             d = dx * dx + dy * dy;
                             r = r1 + r2;
                             if(r * r > d){
