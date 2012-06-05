@@ -64,7 +64,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
         al_lock_mutex(Data->MutexChangeState);
             if(Data->RequestChangeState){
                 switch(Data->NewState){
-                    case gsPAUSE: break;
+                    case gsPAUSE: /*request_pause(Data);*/break;
                     case gsLOADING: request_loading(Data); break;
                     case gsGAME: request_game(Data); break;
                     case gsMENU: break;
@@ -182,13 +182,75 @@ inline short int short_max(short int a, short int b){
     }
 }
 
-void menu_elem_init(struct menu_elem*Item,
+void menu_elem_init(struct menu_elem *Item,
                     enum menu_elem_type NewType,
                     char *NewName,
                     void *NewActivate){
     Item->Type = NewType;
     Item->Name = NewName;
     Item->Activate = NewActivate;
+}
+
+/**
+        Return to main menu
+        Descriptor - Menu[0] -
+        always has pointer to parent menu
+        in its activate field.
+        Main menu has itself as its parent menu,
+        so everything should be fine
+        The i variable is only a security
+        */
+void return_to_main_menu(struct menu_structure *Menu){
+    short int i;
+    for(i = DEEPEST_MENU_LEVEL; (Menu->CurrentMenu[0].Activate != (void*)Menu->CurrentMenu) && (i > 0); --i){
+        Menu->CurrentMenu = (struct menu_elem*)Menu->CurrentMenu[0].Activate;
+    }
+}
+
+void make_main_menu_pause_menu(struct GameSharedData *Data){
+    short int i;
+    struct menu_elem temp;
+
+    return_to_main_menu(&Data->Menu);
+
+    if((short int)Data->Menu.CurrentMenu->Type != MAIN_MENU_SIZE + 1){
+        /**
+            Put  RETURN  at first position in   main menu
+            */
+        temp = Data->Menu.CurrentMenu[mmeRETURN];
+        for(i = (short int)Data->Menu.CurrentMenu->Type; i > 0; --i){
+            Data->Menu.CurrentMenu[i + 1] = Data->Menu.CurrentMenu[i];
+        }
+        Data->Menu.CurrentMenu[1] = temp;
+
+        /**
+            Change size
+            */
+        Data->Menu.CurrentMenu->Type = MAIN_MENU_SIZE + 1;
+    }
+}
+
+void make_main_menu_unpause(struct GameSharedData *Data){
+    short int i;
+    struct menu_elem temp;
+
+    return_to_main_menu(&Data->Menu);
+
+    if((short int)Data->Menu.CurrentMenu->Type != MAIN_MENU_SIZE){
+        /**
+            RETURN goes at the end
+            */
+        temp = Data->Menu.CurrentMenu[1];
+        for(i = 2; i <= (short int)Data->Menu.CurrentMenu->Type; ++i){
+            Data->Menu.CurrentMenu[i - 1] = Data->Menu.CurrentMenu[i];
+        }
+        Data->Menu.CurrentMenu[mmeRETURN] = temp;
+
+        /**
+            Change size
+            */
+        Data->Menu.CurrentMenu->Type = MAIN_MENU_SIZE;
+    }
 }
 
 int rzad(int a){
@@ -2805,13 +2867,16 @@ int main(){
         */
     //this needs to be somehow compressed... macroes?
 
-    struct menu_elem MainMenu[1 + int_abs(MAIN_MENU_SIZE)],
+    struct menu_elem MainMenu[2 + int_abs(MAIN_MENU_SIZE)],
                      OptionsMenu[1 + int_abs(OPTIONS_MENU_SIZE)],
                      HighScoresMenu[1 + int_abs(HIGH_SCORES_MENU_SIZE)],
                      GraphicMenu[1 + int_abs(GRAPHIC_MENU_SIZE)],
                      SoundMenu[1 + int_abs(SOUND_MENU_SIZE)],
                      ControlsMenu[1 + int_abs(CONTROLS_MENU_SIZE)];
-
+    menu_elem_init(&MainMenu[mmeRETURN],
+                   metACTIVATE,
+                   "RETURN",
+                   (void*) exit_activate);
     menu_elem_init(&MainMenu[mmeDESCRIPTOR],
                    MAIN_MENU_SIZE,
                    "MAIN MENU",
@@ -3053,6 +3118,7 @@ int main(){
     Data.IterationFinished = true;
     Data.CloseLevel = false;
     Data.SpecialMainCall = false;
+    Data.SynchronizeWithMainIteration = false;
 
     Data.Level.LevelNumber = 0;
     Data.Level.number_of_movable_objects = 0;
@@ -3113,6 +3179,8 @@ int main(){
     Data.MutexSpecialMainCall = al_create_mutex();
     Data.CondSpecialMainCall = al_create_cond();
     Data.MutexFPS = al_create_mutex();
+    Data.CondSynchronizeWithMainIteration = al_create_cond();
+
     /**
         First draw
         */

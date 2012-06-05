@@ -346,6 +346,10 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         if(!al_get_thread_should_stop(thread)){
             al_lock_mutex(Data->MutexMainIteration);
                 Data->IterationFinished = true;
+                if(Data->SynchronizeWithMainIteration){
+                    Data->SynchronizeWithMainIteration = false;
+                    al_broadcast_cond(Data->CondSynchronizeWithMainIteration);
+                }
                 while(Data->IterationFinished){
                     al_wait_cond(Data->CondMainIteration, Data->MutexMainIteration);
                 }
@@ -736,19 +740,39 @@ void handle_event_game(struct GameSharedData *Data){
             Data->CloseNow = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
-            al_lock_mutex(Data->Keyboard.MutexKeyboard);
-            if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
-                Data->Keyboard.Flags[ekKEY_UP] = true;
-            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
-                Data->Keyboard.Flags[ekKEY_DOWN] = true;
-            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
-                Data->Keyboard.Flags[ekKEY_LEFT] = true;
-            }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
-                Data->Keyboard.Flags[ekKEY_RIGHT] = true;
-            }else if(Data->LastEvent.keyboard.keycode == ALLEGRO_KEY_TILDE){
-                Data->Debug = !Data->Debug;
+            switch(Data->LastEvent.keyboard.keycode){
+                case ALLEGRO_KEY_ESCAPE:
+                    al_lock_mutex(Data->MutexMainIteration);
+                        al_lock_mutex(Data->MutexChangeState);
+                            Data->NewState = gsPAUSE;
+                            Data->RequestChangeState = true;
+                        al_unlock_mutex(Data->MutexChangeState);
+                        if(!Data->IterationFinished){
+                                Data->SynchronizeWithMainIteration = true;
+                                while(Data->SynchronizeWithMainIteration){
+                                    al_wait_cond(Data->CondSynchronizeWithMainIteration,
+                                                 Data->MutexMainIteration);
+                                }
+                        }
+                    al_unlock_mutex(Data->MutexMainIteration);
+                    printf("Synchronized with main iteration that is now waiting\n");
+                    al_rest(2);
+                    break;
+                default:
+                    al_lock_mutex(Data->Keyboard.MutexKeyboard);
+                    if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyUp){
+                        Data->Keyboard.Flags[ekKEY_UP] = true;
+                    }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyDown){
+                        Data->Keyboard.Flags[ekKEY_DOWN] = true;
+                    }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyLeft){
+                        Data->Keyboard.Flags[ekKEY_LEFT] = true;
+                    }else if(Data->LastEvent.keyboard.keycode == Data->Keyboard.KeyRight){
+                        Data->Keyboard.Flags[ekKEY_RIGHT] = true;
+                    }else if(Data->LastEvent.keyboard.keycode == ALLEGRO_KEY_TILDE){
+                        Data->Debug = !Data->Debug;
+                    }
+                    al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             }
-            al_unlock_mutex(Data->Keyboard.MutexKeyboard);
             break;
         case ALLEGRO_EVENT_KEY_UP:
             al_lock_mutex(Data->Keyboard.MutexKeyboard);

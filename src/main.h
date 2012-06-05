@@ -18,21 +18,32 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 
+/**
+    Display
+    */
 #define SCREEN_BUFFER_WIDTH 1000
 #define SCREEN_BUFFER_HEIGHT 750
 #define MAX_FPS 60
 #define MAX_DT 0.1
 
 /**
+    Menu
     Negatives values are for configuration menus
     */
 
+#define DEEPEST_MENU_LEVEL 2
+
+#define MAIN_MENU_NAME "MAIN MENU"
 #define MAIN_MENU_SIZE 4
 #define OPTIONS_MENU_SIZE 4
 #define GRAPHIC_MENU_SIZE -2
 #define HIGH_SCORES_MENU_SIZE 1
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
+
+/**
+    Game
+    */
 
 #define NUMBER_OF_SIGNIFICANT_KEYS 4
 
@@ -117,7 +128,8 @@ enum main_menu_elems{
     mmeNEWGAME,
     mmeOPTIONS,
     mmeHIGHSCORES,
-    mmeEXIT
+    mmeEXIT,
+    mmeRETURN
 };
 
 enum options_menu_elems{
@@ -536,10 +548,14 @@ struct GameSharedData{
     ALLEGRO_MUTEX *MutexThreadDraw;
     bool ThreadDrawWaiting;
     bool DrawCall;
+
     ALLEGRO_MUTEX *MutexSpecialMainCall;
     ALLEGRO_COND *CondSpecialMainCall;
     bool SpecialMainCall;
     void (*special_main_call_procedure)(struct GameSharedData*);
+
+    ALLEGRO_COND *CondSynchronizeWithMainIteration;
+    bool SynchronizeWithMainIteration;
 
     bool Debug;
     char DeBuffer[1024];
