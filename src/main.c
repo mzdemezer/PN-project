@@ -728,18 +728,12 @@ void initialize_fast_read_set(fast_read_set *set, short int number_of_elements){
     for(number_of_elements -= 1; number_of_elements >= 0; number_of_elements -= 1){
         set->array[number_of_elements] = false;
     }
-    set->tree.nil = (RB_node*)malloc(sizeof(RB_node));
-    set->tree.nil->color = BLACK;
-    set->tree.nil->left = set->tree.nil;
-    set->tree.nil->right = set->tree.nil;
-    set->tree.nil->key = -10;
-    set->tree.root = set->tree.nil;
+    RB_construct_tree(&set->tree);
 }
 
 bool is_marked(fast_read_set *set, short int key){
     return set->array[key];
 }
-
 
 void set_mark(fast_read_set *set, short int key){
     set->array[key] = true;
@@ -753,7 +747,7 @@ void reset_marks(fast_read_set *set){
 
 void destroy_fast_read_set(fast_read_set *set){
     free(set->array);
-    clear_tree(&set->tree);
+    RB_destroy_tree(&set->tree);
 }
 /**
     First it's important to get fresh collision data
