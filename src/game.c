@@ -5,6 +5,31 @@
 #include <math.h>
 #include <stdio.h>
 
+bool initialize_iteration_threads(struct GameSharedData *Data){
+    int i;
+
+    Data->ThreadMainIteration = NULL;
+    Data->ThreadMainIteration = al_create_thread(main_iteration, (void*)Data);
+    if(!Data->ThreadMainIteration){
+        fprintf(stderr, "Failed to initialize main_iteration thread\n");
+        return false;
+    }
+    Data->IterationThreads[0].Job = iteration_0;
+    Data->IterationThreads[1].Job = iteration_1;
+    Data->IterationThreads[2].Job = iteration_2;
+
+    for(i = 0; i < NumOfThreads; ++i){
+        Data->IterationThreads[i].Thread = al_create_thread(Data->IterationThreads[i].Job, (void*)Data);
+        if(!Data->IterationThreads[i].Thread){
+            fprintf(stderr, "Failed to initialize iteration#%d thread\n", i);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
 /**
     This procedure forces termination of all iteration threads
     and is enough to be assured, that they are closed. Also, it
@@ -28,8 +53,6 @@ void terminate_iteration(struct GameSharedData *Data){
     for(i = 0; i < NumOfThreads; ++i){printf("waiting for #%d thread\n", i);
         al_destroy_thread(Data->IterationThreads[i].Thread);
     }
-printf("Small threads closed, waiting for Main-iter-thread\n");
-
     /**
         Terminating MainIteration Thread
         */
@@ -42,7 +65,10 @@ printf("Small threads closed, waiting for Main-iter-thread\n");
         al_broadcast_cond(Data->CondMainIteration);
     al_unlock_mutex(Data->MutexMainIteration);
     al_destroy_thread(Data->ThreadMainIteration);
-
+    /**
+        Clean-up direly needed!!!!
+        */
+    clear_level(&Data->Level);
 }
 
 void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
@@ -907,6 +933,7 @@ void request_game(struct GameSharedData *Data){
             Data->GameState = gsGAME;
             Data->DrawFunction = draw_game;
 
+            al_destroy_thread(Data->ThreadLoading);
             al_start_thread(Data->ThreadMainIteration);
             break;
         case gsPAUSE:

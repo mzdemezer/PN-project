@@ -5,6 +5,7 @@
 #include "main.h"
 #include "menu.h"
 #include "loading.h"
+#include "game.h"
 
 void normalize_menu_selection(struct menu_structure *Menu){
     int NumberOfElems = int_abs(Menu->CurrentMenu->Type);
@@ -17,7 +18,7 @@ void normalize_menu_selection(struct menu_structure *Menu){
 }
 
 void normalize_resolution_selection(int*current, const int max){
-    if(*current<0){
+    if(*current < 0){
         *current = 0;
     }
     else if(*current > max){
@@ -30,9 +31,14 @@ void new_game_activate(void *argument){
     #define arg ((struct activation_argument*)argument)
     //necessary settings
     al_lock_mutex(arg->Data->MutexChangeState);
+        if(arg->Data->GameState == gsPAUSE){
+            terminate_iteration(arg->Data);
+            initialize_iteration_threads(arg->Data);
+        }
         arg->Data->RequestChangeState = true;
         arg->Data->NewState = gsLOADING;
     al_unlock_mutex(arg->Data->MutexChangeState);
+    arg->Data->Menu.Current = 1;
     arg->Data->Level.LevelNumber = 1;
     arg->Data->ThreadLoading = NULL;
     arg->Data->ThreadLoading = al_create_thread(&load_level, (void*)arg->Data);
@@ -232,14 +238,22 @@ void handle_event_menu(struct GameSharedData *Data){
                     }
                     break;
                 case ALLEGRO_KEY_ESCAPE:
-                    return_menu(Data);
+                    al_lock_mutex(Data->MutexChangeState);
+                        void *temp = (void*)Data->Menu.CurrentMenu;
+                        return_menu(Data);
+                        if(Data->GameState == gsPAUSE){
+                            if(temp == (void*)Data->Menu.CurrentMenu){
+                                return_to_game_activate((void*)&arg);
+                            }
+                        }
+                    al_unlock_mutex(Data->MutexChangeState);
                     break;
             }
             break;
     }
 };
 
-void clear_pause(struct GameSharedData *Data){
+void clear_paused_menu(struct GameSharedData *Data){
     ALLEGRO_TRANSFORM tempT;
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -247,7 +261,8 @@ void clear_pause(struct GameSharedData *Data){
     al_identity_transform(&tempT);
     al_use_transform(&tempT);//later maybe even draw_game or sth
         al_draw_bitmap(Data->Level.ScaledBackground, Data->scales.scale_x, Data->scales.scale_y, 0);
-        al_clear_to_color(al_map_rgba(0, 0, 0, 0.4));
+        al_draw_filled_rectangle(0, 0, Data->DisplayData.width, Data->DisplayData.height,
+                                 al_map_rgba(0, 0, 0, 170));
     al_use_transform(&Data->Transformation);
 }
 
@@ -318,6 +333,6 @@ void draw_menu(struct GameSharedData* Data){
 }
 
 void draw_pause(struct GameSharedData *Data){
-    clear_pause(Data);
+    clear_paused_menu(Data);
     draw_menu_content(Data);
 }

@@ -20,7 +20,7 @@ void return_menu(struct GameSharedData *);
 void clear_menu();
 void draw_menu_content(struct GameSharedData *Data);
 void draw_menu(struct GameSharedData* Data);
-void clear_pause(struct GameSharedData *Data);
+void clear_paused_menu(struct GameSharedData *Data);
 void draw_pause(struct GameSharedData *Data);
 
 #endif

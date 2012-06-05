@@ -19,6 +19,11 @@
 #include <allegro5/allegro_primitives.h>
 
 /**
+    Config
+    */
+#define CONFIG_FILE_NAME "config.ini"
+
+/**
     Display
     */
 #define SCREEN_BUFFER_WIDTH 1000
@@ -33,7 +38,6 @@
 
 #define DEEPEST_MENU_LEVEL 2
 
-#define MAIN_MENU_NAME "MAIN MENU"
 #define MAIN_MENU_SIZE 4
 #define OPTIONS_MENU_SIZE 4
 #define GRAPHIC_MENU_SIZE -2
@@ -47,9 +51,9 @@
 
 #define NUMBER_OF_SIGNIFICANT_KEYS 4
 
-#define INITIAL_BOUNDRY_MOVABLE 300
-#define INITIAL_BOUNDRY_FIXED 1024
-#define INITIAL_BOUNDRY_PRIMITIVE 8192
+#define INITIAL_ALLOCATED_MOVABLE 300
+#define INITIAL_ALLOCATED_FIXED 1024
+#define INITIAL_ALLOCATED_PRIMITIVE 8192
 
 #define ERROR_COLOR al_map_rgb(128, 128, 128)
 #define DEFAULT_BACKGROUND_COLOR al_map_rgb(0, 0, 80)
@@ -456,9 +460,9 @@ struct level_structure{
         number_of_movable_objects,
         number_of_fixed_objects,
         number_of_primitive_objects,
-        boundry_movable,
-        boundry_fixed,
-        boundry_primitive;
+        allocated_movable,
+        allocated_fixed,
+        allocated_primitive;
     struct primitive_object_structure *PrimitiveObjects;
     struct fixed_object_structure *FixedObjects;
     struct movable_object_structure *MovableObjects;
@@ -588,15 +592,15 @@ ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
 
 //Arrays for objects
-void add_primitive_object(struct GameSharedData *, enum primitive_object_type, void* NewObjectData);
+void add_primitive_object(struct level_structure *Level, enum primitive_object_type, void* NewObjectData);
 void delete_primitive_object(struct primitive_object_structure *);
-void clear_primitive_object_list(struct GameSharedData *);
-void add_fixed_object(struct GameSharedData *, enum fixed_object_type, void* NewObjectData);
+void clear_primitive_object_list(struct level_structure *Level);
+void add_fixed_object(struct level_structure *Level, enum fixed_object_type, void* NewObjectData);
 void delete_fixed_object(struct fixed_object_structure *);
-void clear_fixed_object_list(struct GameSharedData *);
-void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData);
+void clear_fixed_object_list(struct level_structure *Level);
+void add_movable_object(struct level_structure *LevelData, enum movable_object_type NewObjectType, void* NewObjectData);
 void delete_movable_object(struct movable_object_structure *);
-void clear_movable_object_list(struct GameSharedData *);
+void clear_movable_object_list(struct level_structure *Level);
 
 //Red-Black Tree for zones
 RB_node* get_node(RB_tree *tree, short int key);
@@ -611,6 +615,8 @@ void clear_tree(RB_tree *tree);
 inline bool is_left(RB_node *node);
 void rotate_left(RB_tree *tree, RB_node *node);
 void rotate_right(RB_tree *tree, RB_node *node);
+void RB_destroy_tree(RB_tree *tree);
+void RB_construct_tree(RB_tree *tree);
 
 void in_order(RB_node *node, RB_node *nil);
 void RB_display_keys_in_order(RB_tree *tree);
@@ -649,9 +655,12 @@ inline bool coll_is_left(coll_node *node);
 void coll_rotate_left(coll_tree *tree, coll_node *node);
 void coll_rotate_right(coll_tree *tree, coll_node *node);
 void coll_in_order(coll_node *root, coll_node *nil);
+void coll_construct_tree(coll_tree *tree);
+void coll_destroy_tree(coll_tree *tree);
 
 //Heap for collision
 void construct_heap(struct collision_heap* heap, int size);
+void destroy_heap(struct collision_heap* heap);
 #define heap_left(i) (i << 1)
 #define heap_right(i) ((i << 1 ) | 1)
 #define heap_parent(i) (i >> 1)
@@ -673,6 +682,12 @@ void add_square(struct GameSharedData *Data, struct squareData *square);
 void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle);
 void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
 void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
+
+//Level
+void construct_level(struct level_structure *Level);
+void load_and_initialize_level(struct GameSharedData *Data);
+void destroy_level(struct level_structure *Level);
+void clear_level(struct level_structure *Level);
 
 //Colisions
 #define EMPTY_COLLISION_TIME 10
@@ -728,7 +743,7 @@ void construct_player(struct movable_object_structure *);
 void construct_particle(struct movable_object_structure *);
 void construct_door(struct movable_object_structure *);
 void construct_switch(struct movable_object_structure *);
-void construct_movable(struct GameSharedData *Data, struct movable_object_structure *Object);
+void construct_movable(struct movable_object_structure *Object);
 
 //Math
 int int_abs(int);

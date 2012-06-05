@@ -39,11 +39,11 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
              /**
                 crap
                 */
-            ++sec;
+            sec += 1;
             if(sec == 60){
                 al_lock_mutex(Data->MutexFPS);
                     printf("\n\nSecond passed, FPS: %d\n\n", Data->FPS);
-                    sec=0;
+                    sec = 0;
                     Data->FPS = 0;
                 al_unlock_mutex(Data->MutexFPS);
             }
@@ -290,6 +290,10 @@ void construct_heap(struct collision_heap* heap, int size){
     heap->allocated = size;
     heap->length = 0;
     heap->heap = (struct collision_data*)malloc(sizeof(struct collision_data) * (size + 1));
+}
+
+void destroy_heap(struct collision_heap* heap){
+    free(heap->heap);
 }
 
 void heapify(struct collision_heap* heap, short int i){
@@ -578,6 +582,22 @@ void clear_tree(RB_tree *tree){
         clear_nodes(tree->root, tree->nil);
         tree->root = tree->nil;
     }
+}
+
+void RB_destroy_tree(RB_tree *tree){
+    if(tree->root != tree->nil){
+        clear_nodes(tree->root, tree->nil);
+    }
+    free(tree->nil);
+}
+
+void RB_construct_tree(RB_tree *tree){
+    tree->nil = (RB_node*)malloc(sizeof(RB_node));
+    tree->nil->color = BLACK;
+    tree->nil->left = tree->nil;
+    tree->nil->right = tree->nil;
+    tree->nil->key = -10;
+    tree->root = tree->nil;
 }
 
 /**
@@ -1101,6 +1121,25 @@ void coll_clear_tree(coll_tree *tree){
     }
 }
 
+void coll_destroy_tree(coll_tree *tree){
+    if(tree->root != tree->nil){
+        coll_clear_nodes(tree->root, tree->nil);
+    }
+    free(tree->nil);
+}
+
+void coll_construct_tree(coll_tree *tree){
+    tree->nil = (coll_node*)malloc(sizeof(coll_node));
+    tree->nil->color = BLACK;
+    tree->nil->key.time = EMPTY_COLLISION_TIME;
+    tree->nil->key.who = -10;
+    tree->nil->key.with = -20;
+    tree->nil->key.with_movable = false;
+    tree->nil->left = tree->nil;
+    tree->nil->right = tree->nil;
+    tree->root = tree->nil;
+}
+
 /**
     This does NOT test if node is NULL or
     if its parent is NULL !!!!!!!
@@ -1199,6 +1238,50 @@ void coll_in_order(coll_node *root, coll_node *nil){
 /**
     Zones
     */
+
+void construct_zone(struct zone *zn){
+    RB_construct_tree(&zn->movable);
+    zn->number_of_primitives = 0;
+    zn->allocated = INITIAL_PRIMITIVES_PER_ZONE;
+    zn->primitives = (short int*)malloc(sizeof(short int) * INITIAL_PRIMITIVES_PER_ZONE);
+}
+
+void clear_zone(struct zone *zn){
+    zn->number_of_primitives = 0;
+    clear_tree(&zn->movable);
+}
+
+void destroy_zone(struct zone *zn){
+    free(zn->primitives);
+    RB_destroy_tree(&zn->movable);
+}
+
+void construct_zones(struct level_structure *Level){
+    short int i, j;
+    for(i = 0; i < ZONE_FACTOR; ++i){
+        for(j = 0; j < ZONE_FACTOR; ++j){
+            construct_zone(&Level->zones[i][j]);
+        }
+    }
+}
+
+void clear_zones(struct level_structure *Level){
+    short int i, j;
+    for(i = 0; i < ZONE_FACTOR; ++i){
+        for(j = 0; j < ZONE_FACTOR; ++j){
+            clear_zone(&Level->zones[i][j]);
+        }
+    }
+}
+
+void destroy_zones(struct level_structure *Level){
+    short int i, j;
+    for(i = 0; i < ZONE_FACTOR; ++i){
+        for(j = 0; j < ZONE_FACTOR; ++j){
+            destroy_zone(&Level->zones[i][j]);
+        }
+    }
+}
 
 void get_zone(float x, float y, short int *zone){
     /**
@@ -1360,6 +1443,69 @@ void change_zones_for_movable(struct GameSharedData *Data, short int index, floa
     #undef Zonez
     #undef newz
 }
+
+/**
+    Level structure
+    */
+void construct_level(struct level_structure *Level){
+    Level->LevelNumber = 0;
+    Level->Background = NULL;
+    Level->ScaledBackground = NULL;
+    Level->Acc = NULL;
+
+    Level->number_of_movable_objects = 0;
+    Level->number_of_fixed_objects = 0;
+    Level->number_of_primitive_objects = 0;
+    Level->allocated_movable = INITIAL_ALLOCATED_MOVABLE;
+    Level->allocated_fixed = INITIAL_ALLOCATED_FIXED;
+    Level->allocated_primitive = INITIAL_ALLOCATED_PRIMITIVE;
+    Level->MovableObjects =     (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure)     * Level->allocated_movable);
+    Level->FixedObjects =         (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)       * Level->allocated_fixed);
+    Level->PrimitiveObjects = (struct primitive_object_structure*)malloc(sizeof(struct primitive_object_structure)   * Level->allocated_primitive);
+
+    construct_heap(&Level->collision_queue, INITIAL_OBJECT_COLLISION_QUEUE_SIZE);
+    construct_zones(Level);
+    coll_construct_tree(&Level->dirty_tree);
+}
+
+void load_and_initialize_level(struct GameSharedData *Data){
+    add_borders(Data);
+    load_level_from_file(Data);
+    special_call(draw_level_background, (void*)Data);
+
+    Data->Level.Acc = (struct move_arrays*)malloc(sizeof(struct move_arrays) * Data->Level.number_of_movable_objects);
+    Data->Level.dens = DEFAULT_FLUID_DENSITY;
+    Data->Level.wind_vx = 0;
+    Data->Level.wind_vy = 0;
+}
+
+void destroy_level(struct level_structure *Level){
+    clear_level(Level);
+    al_destroy_bitmap(Level->Background);
+    Level->Background = NULL;
+    al_destroy_bitmap(Level->ScaledBackground);
+    Level->ScaledBackground = NULL;
+
+    free(Level->MovableObjects);
+    free(Level->PrimitiveObjects);
+    free(Level->FixedObjects);
+    destroy_heap(&Level->collision_queue);
+    destroy_zones(Level);
+    coll_destroy_tree(&Level->dirty_tree);
+}
+
+void clear_level(struct level_structure *Level){
+    free(Level->Acc);
+    Level->Acc = NULL;
+
+    clear_primitive_object_list(Level);
+    clear_fixed_object_list(Level);
+    clear_movable_object_list(Level);
+    clear_heap(&Level->collision_queue);
+    coll_clear_tree(&Level->dirty_tree);
+    clear_zones(Level);
+}
+
 /**
     Collisions
     */
@@ -1907,7 +2053,7 @@ void add_segment(struct GameSharedData *Data, const struct point *A, const struc
             seg->A = *A;
             seg->B = *B;
             get_line_from_points(A->x, A->y, B->x, B->y, &seg->line_equation);
-            add_primitive_object(Data, potSEGMENT, seg);
+            add_primitive_object(&Data->Level, potSEGMENT, seg);
             if(zones[0] == zones[2]){//to simplify: vertical
                 short int j;
                 for(j = zones[1]; j != zones[3]; j += i){
@@ -1967,7 +2113,7 @@ void add_point(struct GameSharedData *Data, struct point *A){
     get_zone(A->x, A->y, zone);
     if(zone[0] >= 0 && zone[0] < ZONE_FACTOR &&
        zone[1] >= 0 && zone[1] < ZONE_FACTOR){
-        add_primitive_object(Data, potPOINT, (void*)A);
+        add_primitive_object(&Data->Level, potPOINT, (void*)A);
         add_primitive_to_zone(&Data->Level.zones[zone[0]][zone[1]], Data->Level.number_of_primitive_objects - 1);
     }
 }
@@ -1994,7 +2140,7 @@ void add_circle(struct GameSharedData *Data, float r, struct point center){
         C->center = center;
         C->r = r;
         short int i, j, key = Data->Level.number_of_primitive_objects;
-        add_primitive_object(Data, potCIRCLE, C);
+        add_primitive_object(&Data->Level, potCIRCLE, C);
         float r0 = (SQRT2 / 2) * ZONE_SIZE,
               dx, dy;
         for(i = zones[0]; i <= zones[2]; ++i){
@@ -2628,18 +2774,10 @@ void construct_particle(struct movable_object_structure *Object){
     #undef Data
 }
 
-void construct_movable(struct GameSharedData *Data, struct movable_object_structure *Object){
+void construct_movable(struct movable_object_structure *Object){
     Object->dx = 0;
     Object->dy = 0;
-    Object->colls_with_mov.nil = (coll_node*)malloc(sizeof(coll_node));
-    Object->colls_with_mov.nil->color = BLACK;
-    Object->colls_with_mov.nil->key.time = EMPTY_COLLISION_TIME;
-    Object->colls_with_mov.nil->key.who = -10;
-    Object->colls_with_mov.nil->key.with = -20;
-    Object->colls_with_mov.nil->key.with_movable = false;
-    Object->colls_with_mov.nil->left = Object->colls_with_mov.nil;
-    Object->colls_with_mov.nil->right = Object->colls_with_mov.nil;
-    Object->colls_with_mov.root = Object->colls_with_mov.nil;
+    coll_construct_tree(&Object->colls_with_mov);
     Object->next_collision = &Object->colls_with_mov.nil->key;
 
     switch(Object->Type){
@@ -2661,34 +2799,34 @@ void construct_movable(struct GameSharedData *Data, struct movable_object_struct
     Arrays interface
     */
 
-void add_movable_object(struct GameSharedData *Data, enum movable_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.number_of_movable_objects >= Data->Level.boundry_movable){
-        Data->Level.boundry_movable *= 2;
-        Data->Level.MovableObjects = (struct movable_object_structure*)realloc((void*)Data->Level.MovableObjects, sizeof(struct movable_object_structure) * Data->Level.boundry_movable);
+void add_movable_object(struct level_structure *Level, enum movable_object_type NewObjectType, void* NewObjectData){
+    if(Level->number_of_movable_objects >= Level->allocated_movable){
+        Level->allocated_movable *= 2;
+        Level->MovableObjects = (struct movable_object_structure*)realloc((void*)Level->MovableObjects, sizeof(struct movable_object_structure) * Level->allocated_movable);
     }
-    Data->Level.MovableObjects[Data->Level.number_of_movable_objects].Type = NewObjectType;
-    Data->Level.MovableObjects[Data->Level.number_of_movable_objects].ObjectData = NewObjectData;
-    Data->Level.number_of_movable_objects += 1;
+    Level->MovableObjects[Level->number_of_movable_objects].Type = NewObjectType;
+    Level->MovableObjects[Level->number_of_movable_objects].ObjectData = NewObjectData;
+    Level->number_of_movable_objects += 1;
 }
 
-void add_fixed_object(struct GameSharedData *Data, enum fixed_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.number_of_fixed_objects >= Data->Level.boundry_fixed){
-        Data->Level.boundry_fixed *= 2;
-        Data->Level.FixedObjects = (struct fixed_object_structure*)realloc((void*)Data->Level.FixedObjects, sizeof(struct fixed_object_structure) * Data->Level.boundry_fixed);
+void add_fixed_object(struct level_structure *Level, enum fixed_object_type NewObjectType, void* NewObjectData){
+    if(Level->number_of_fixed_objects >= Level->allocated_fixed){
+        Level->allocated_fixed *= 2;
+        Level->FixedObjects = (struct fixed_object_structure*)realloc((void*)Level->FixedObjects, sizeof(struct fixed_object_structure) * Level->allocated_fixed);
     }
-    Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].Type = NewObjectType;
-    Data->Level.FixedObjects[Data->Level.number_of_fixed_objects].ObjectData = NewObjectData;
-    Data->Level.number_of_fixed_objects += 1;
+    Level->FixedObjects[Level->number_of_fixed_objects].Type = NewObjectType;
+    Level->FixedObjects[Level->number_of_fixed_objects].ObjectData = NewObjectData;
+    Level->number_of_fixed_objects += 1;
 }
 
-void add_primitive_object(struct GameSharedData *Data, enum primitive_object_type NewObjectType, void* NewObjectData){
-    if(Data->Level.number_of_primitive_objects >= Data->Level.boundry_primitive){
-        Data->Level.boundry_primitive *= 2;
-        Data->Level.PrimitiveObjects = (struct primitive_object_structure*)realloc((void*)Data->Level.PrimitiveObjects, sizeof(struct primitive_object_structure) * Data->Level.boundry_primitive);
+void add_primitive_object(struct level_structure *Level, enum primitive_object_type NewObjectType, void* NewObjectData){
+    if(Level->number_of_primitive_objects >= Level->allocated_primitive){
+        Level->allocated_primitive *= 2;
+        Level->PrimitiveObjects = (struct primitive_object_structure*)realloc((void*)Level->PrimitiveObjects, sizeof(struct primitive_object_structure) * Level->allocated_primitive);
     }
-    Data->Level.PrimitiveObjects[Data->Level.number_of_primitive_objects].Type = NewObjectType;
-    Data->Level.PrimitiveObjects[Data->Level.number_of_primitive_objects].ObjectData = NewObjectData;
-    Data->Level.number_of_primitive_objects += 1;
+    Level->PrimitiveObjects[Level->number_of_primitive_objects].Type = NewObjectType;
+    Level->PrimitiveObjects[Level->number_of_primitive_objects].ObjectData = NewObjectData;
+    Level->number_of_primitive_objects += 1;
 }
 
 void delete_fixed_object(struct fixed_object_structure *Object){
@@ -2711,12 +2849,12 @@ void delete_fixed_object(struct fixed_object_structure *Object){
     }
 }
 
-void clear_fixed_object_list(struct GameSharedData *Data){
+void clear_fixed_object_list(struct level_structure *Level){
     int i;
-    for(i = 0; i < Data->Level.number_of_fixed_objects; ++i){
-        delete_fixed_object(&Data->Level.FixedObjects[i]);
+    for(i = 0; i < Level->number_of_fixed_objects; ++i){
+        delete_fixed_object(&Level->FixedObjects[i]);
     }
-    Data->Level.number_of_fixed_objects = 0;
+    Level->number_of_fixed_objects = 0;
 }
 
 void delete_movable_object(struct movable_object_structure *Object){
@@ -2731,17 +2869,26 @@ void delete_movable_object(struct movable_object_structure *Object){
             free((struct doorData*)Object->ObjectData);
             break;
         case motSWITCH:
-            free((struct switchData*)Object->ObjectData);
+            #define SwData ((struct switchData*)Object->ObjectData)
+            if(SwData->connected.number_of_doors > 0){
+                free(SwData->connected.doors);
+            }
+            if(SwData->connected.number_of_switches > 0){
+                free(SwData->connected.switches);
+            }
+            free(SwData);
+            #undef SwData
             break;
     }
+    coll_destroy_tree(&Object->colls_with_mov);
 }
 
-void clear_movable_object_list(struct GameSharedData *Data){
+void clear_movable_object_list(struct level_structure *Level){
     int i;
-    for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
-        delete_movable_object(&Data->Level.MovableObjects[i]);
+    for(i = 0; i < Level->number_of_movable_objects; ++i){
+        delete_movable_object(&Level->MovableObjects[i]);
     }
-    Data->Level.number_of_movable_objects = 0;
+    Level->number_of_movable_objects = 0;
 }
 
 void delete_primitive_object(struct primitive_object_structure *Object){
@@ -2758,13 +2905,17 @@ void delete_primitive_object(struct primitive_object_structure *Object){
     }
 }
 
-void clear_primitive_object_list(struct GameSharedData *Data){
+void clear_primitive_object_list(struct level_structure *Level){
     int i;
-    for(i = 0; i < Data->Level.number_of_primitive_objects; ++i){
-        delete_primitive_object(&Data->Level.PrimitiveObjects[i]);
+    for(i = 0; i < Level->number_of_primitive_objects; ++i){
+        delete_primitive_object(&Level->PrimitiveObjects[i]);
     }
-    Data->Level.number_of_primitive_objects = 0;
+    Level->number_of_primitive_objects = 0;
 }
+
+/**
+    Display
+    */
 
 void calculate_transformation(struct GameSharedData *Data){
     al_identity_transform(&Data->Transformation);
@@ -2848,7 +2999,7 @@ int main(){
 #else
 int main(){
 
-    int i, j;
+    int i;
     char buf[20];
 
     if(!al_init()){
@@ -2895,9 +3046,9 @@ int main(){
                    "EXIT",
                    (void*) exit_activate);
     menu_elem_init(&MainMenu[mmeRETURN],
-               metACTIVATE,
-               "RETURN",
-               (void*) return_to_game_activate);
+                   metACTIVATE,
+                   "RETURN",
+                   (void*) return_to_game_activate);
 
     menu_elem_init(&OptionsMenu[omeDESCRIPTOR],
                    OPTIONS_MENU_SIZE,
@@ -2986,7 +3137,7 @@ int main(){
         Getting resolution
         */
     Data.MaxResolutionIndex = al_get_num_display_modes() - 1;
-    Data.config = al_load_config_file("config.ini");
+    Data.config = al_load_config_file(CONFIG_FILE_NAME);
     if(!Data.config){
         Data.config = al_create_config();
         al_set_config_value(Data.config, "Graphic", "fullscreen", "1");
@@ -3088,21 +3239,11 @@ int main(){
         al_destroy_timer(Data.DrawTimer);
         return -1;
     }
-    Data.ThreadMainIteration = NULL;
-    Data.ThreadMainIteration = al_create_thread(main_iteration, (void*)&Data);
-    if(!Data.ThreadMainIteration){
-        fprintf(stderr, "Failed to initialize main_iteration thread");
+    if(!initialize_iteration_threads(&Data)){
         al_destroy_display(Data.Display);
         al_destroy_event_queue(Data.MainEventQueue);
         al_destroy_timer(Data.DrawTimer);
         return -1;
-    }
-    Data.IterationThreads[0].Job = iteration_0;
-    Data.IterationThreads[1].Job = iteration_1;
-    Data.IterationThreads[2].Job = iteration_2;
-
-    for(i = 0; i < NumOfThreads; ++i){
-        Data.IterationThreads[i].Thread = al_create_thread(Data.IterationThreads[i].Job, (void*)&Data);
     }
     /**
         Initializing data
@@ -3121,45 +3262,7 @@ int main(){
     Data.SpecialMainCall = false;
     Data.SynchronizeWithMainIteration = false;
 
-    Data.Level.LevelNumber = 0;
-    Data.Level.number_of_movable_objects = 0;
-    Data.Level.number_of_fixed_objects = 0;
-    Data.Level.number_of_primitive_objects = 0;
-    Data.Level.boundry_movable = INITIAL_BOUNDRY_MOVABLE;
-    Data.Level.boundry_fixed = INITIAL_BOUNDRY_FIXED;
-    Data.Level.boundry_primitive = INITIAL_BOUNDRY_PRIMITIVE;
-    Data.Level.MovableObjects =     (struct movable_object_structure*)malloc(sizeof(struct movable_object_structure)     * Data.Level.boundry_movable);
-    Data.Level.FixedObjects =         (struct fixed_object_structure*)malloc(sizeof(struct fixed_object_structure)       * Data.Level.boundry_fixed);
-    Data.Level.PrimitiveObjects = (struct primitive_object_structure*)malloc(sizeof(struct primitive_object_structure)   * Data.Level.boundry_primitive);
-    Data.Level.Background = NULL;
-    Data.Level.ScaledBackground = NULL;
-    Data.Level.Acc = NULL;
-
-    construct_heap(&Data.Level.collision_queue, INITIAL_OBJECT_COLLISION_QUEUE_SIZE);
-
-    for(i = 0; i < ZONE_FACTOR; ++i){
-        for(j = 0; j < ZONE_FACTOR; ++j){
-            Data.Level.zones[i][j].movable.nil = (RB_node*)malloc(sizeof(RB_node));
-            Data.Level.zones[i][j].movable.nil->color = BLACK;
-            Data.Level.zones[i][j].movable.nil->left = Data.Level.zones[i][j].movable.nil;
-            Data.Level.zones[i][j].movable.nil->right = Data.Level.zones[i][j].movable.nil;
-            Data.Level.zones[i][j].movable.nil->key = -10;
-            Data.Level.zones[i][j].movable.root = Data.Level.zones[i][j].movable.nil;
-            Data.Level.zones[i][j].number_of_primitives = 0;
-            Data.Level.zones[i][j].allocated = INITIAL_PRIMITIVES_PER_ZONE;
-            Data.Level.zones[i][j].primitives = (short int*)malloc(sizeof(short int) * INITIAL_PRIMITIVES_PER_ZONE);
-        }
-    }
-
-    Data.Level.dirty_tree.nil = (coll_node*)malloc(sizeof(coll_node));
-    Data.Level.dirty_tree.nil->color = BLACK;
-    Data.Level.dirty_tree.nil->key.time = EMPTY_COLLISION_TIME;
-    Data.Level.dirty_tree.nil->key.who = -10;
-    Data.Level.dirty_tree.nil->key.with = -20;
-    Data.Level.dirty_tree.nil->key.with_movable = false;
-    Data.Level.dirty_tree.nil->left = Data.Level.dirty_tree.nil;
-    Data.Level.dirty_tree.nil->right = Data.Level.dirty_tree.nil;
-    Data.Level.dirty_tree.root = Data.Level.dirty_tree.nil;
+    construct_level(&Data.Level);
 
     Data.Keyboard.KeyUp = ALLEGRO_KEY_UP;
     Data.Keyboard.KeyDown = ALLEGRO_KEY_DOWN;
@@ -3249,15 +3352,12 @@ int main(){
     al_destroy_event_queue(Data.MainEventQueue);
     al_destroy_timer(Data.DrawTimer);
 
-    al_save_config_file("config.ini", Data.config);
+    al_save_config_file(CONFIG_FILE_NAME, Data.config);
 
     if(Data.Level.Acc){
         free(Data.Level.Acc);
     }
-    clear_movable_object_list(&Data);
-    free(Data.Level.MovableObjects);
-    clear_fixed_object_list(&Data);
-    free(Data.Level.FixedObjects);
+    destroy_level(&Data.Level);
 
     return 0;
 }

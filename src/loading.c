@@ -11,14 +11,8 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
 
     // Actual loading
-    add_borders(Data);
-    load_level_from_file(Data);
-    special_call(initialize_level, argument);
+    load_and_initialize_level(Data);
 
-    Data->Level.Acc = (struct move_arrays*)malloc(sizeof(struct move_arrays) * Data->Level.number_of_movable_objects);
-    Data->Level.dens = DEFAULT_FLUID_DENSITY;
-    Data->Level.wind_vx = 0;
-    Data->Level.wind_vy = 0;
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
         Data->NewState = gsGAME;
@@ -46,12 +40,15 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     Don't mess with the resolution too much! -.=
     */
 
-void initialize_level(struct GameSharedData *Data){
+void draw_level_background(struct GameSharedData *Data){
     ALLEGRO_BITMAP *tempBitmap;
     ALLEGRO_TRANSFORM tempT;
 
     /**
         Preparing bitmaps and loading the file
+        This is the place to destroy bitmaps - swap them
+        quickly for new ones when DrawThread is
+        busy helping... doing this :D
         */
     al_destroy_bitmap(Data->Level.Background);
     Data->Level.Background = al_create_bitmap(SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT);
@@ -157,14 +154,14 @@ void load_level_from_file(struct GameSharedData *Data){
 
     for(i = 0; i < n; ++i){
         Data->Level.Player = (struct playerData*)malloc(sizeof(struct playerData));
-        add_movable_object(Data, motPLAYER, (void*)Data->Level.Player);
+        add_movable_object(&Data->Level, motPLAYER, (void*)Data->Level.Player);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f", &Data->Level.Player->center.x,
                                    &Data->Level.Player->center.y,
                                    &Data->Level.Player->ang);
 
-        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -174,7 +171,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewRectangle = (struct rectangleData*)malloc(sizeof(struct rectangleData));
-        add_fixed_object(Data, fotRECTANGLE, (void*)Factory.NewRectangle);
+        add_fixed_object(&Data->Level, fotRECTANGLE, (void*)Factory.NewRectangle);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewRectangle->center.x,
@@ -197,7 +194,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewCircle = (struct circleData*)malloc(sizeof(struct circleData));
-        add_fixed_object(Data, fotCIRCLE, (void*)Factory.NewCircle);
+        add_fixed_object(&Data->Level, fotCIRCLE, (void*)Factory.NewCircle);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %d",   &Factory.NewCircle->center.x,
@@ -217,7 +214,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewSquare = (struct squareData*)malloc(sizeof(struct squareData));
-        add_fixed_object(Data, fotSQUARE, (void*)Factory.NewSquare);
+        add_fixed_object(&Data->Level, fotSQUARE, (void*)Factory.NewSquare);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %d",    &Factory.NewSquare->center.x,
@@ -238,7 +235,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewEntrance = (struct entranceData*)malloc(sizeof(struct entranceData));
-        add_fixed_object(Data, fotENTRANCE, (void*)Factory.NewEntrance);
+        add_fixed_object(&Data->Level, fotENTRANCE, (void*)Factory.NewEntrance);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewEntrance->center.x,
@@ -259,7 +256,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewExit = (struct exitData*)malloc(sizeof(struct exitData));
-        add_fixed_object(Data, fotEXIT, (void*)Factory.NewExit);
+        add_fixed_object(&Data->Level, fotEXIT, (void*)Factory.NewExit);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewExit->center.x,
@@ -280,7 +277,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewSwitch = (struct switchData*)malloc(sizeof(struct switchData));
-        add_movable_object(Data, motSWITCH, (void*)Factory.NewSwitch);
+        add_movable_object(&Data->Level, motSWITCH, (void*)Factory.NewSwitch);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f %d %d %d",   &Factory.NewSwitch->center.x,
@@ -327,7 +324,7 @@ void load_level_from_file(struct GameSharedData *Data){
                                 &op0);
         read_color(buffer, level, &Factory.NewSwitch->color, op0, "Invalid level input: switch#%d color\n", i);
 
-        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -337,7 +334,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewDoor = (struct doorData*)malloc(sizeof(struct doorData));
-        add_movable_object(Data, motDOOR, (void*)Factory.NewDoor);
+        add_movable_object(&Data->Level, motDOOR, (void*)Factory.NewDoor);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f %d %d %f %d",    &Factory.NewDoor->center.x,
@@ -352,7 +349,7 @@ void load_level_from_file(struct GameSharedData *Data){
         Factory.NewDoor->doorType = (enum switch_type) op1;
         read_color(buffer, level, &Factory.NewDoor->color, op0, "Invalid level input: door#%d color\n", i);
 
-        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     /**
@@ -362,7 +359,7 @@ void load_level_from_file(struct GameSharedData *Data){
     sscanf(buffer, "%d", &n);
     for(i = 0; i < n; ++i){
         Factory.NewParticle = (struct particleData*)malloc(sizeof(struct particleData));
-        add_movable_object(Data, motPARTICLE, (void*)Factory.NewParticle);
+        add_movable_object(&Data->Level, motPARTICLE, (void*)Factory.NewParticle);
 
         read_line(buffer, level);
         sscanf(buffer, "%f %f %f %f %f",    &Factory.NewParticle->center.x,
@@ -371,7 +368,7 @@ void load_level_from_file(struct GameSharedData *Data){
                                             &Factory.NewParticle->mass,
                                             &Factory.NewParticle->charge);
 
-        construct_movable(Data, &Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
+        construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
     al_fclose(level);
