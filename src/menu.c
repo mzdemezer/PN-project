@@ -62,10 +62,14 @@ void exit_activate(void *argument){
 };
 
 void scale_fonts(struct GameSharedData *Data){
-    Data->MenuBigFont = NULL;
+    al_destroy_font(Data->MenuBigFont);
+    al_destroy_font(Data->MenuRegularFont);
+    al_destroy_font(Data->MenuConfigFont);
+    al_destroy_font(Data->MenuConfigSelectedFont);
+    al_destroy_font(Data->TimeFont);
+    al_destroy_font(Data->DeFont);
+
     Data->MenuBigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->scales.scale_h / 10), 0);
-
-
     if (!Data->MenuBigFont){
         fprintf(stderr, "Could not load 'pirulen.ttf'.\n");
         exit(-1);
@@ -75,6 +79,8 @@ void scale_fonts(struct GameSharedData *Data){
     Data->MenuSelectedFont = al_load_ttf_font("pirulen.ttf", (int)((Data->MenuBigFont->height +  Data->MenuRegularFont->height) / 2), 0);
     Data->MenuConfigFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuRegularFont->height * 0.45), 0);
     Data->MenuConfigSelectedFont = al_load_ttf_font("pirulen.ttf", (int)(Data->MenuSelectedFont->height * 0.45), 0);
+    Data->TimeFont = al_load_ttf_font("Oloron.ttf", (int)(Data->scales.scale_h / 20), 0);
+    Data->DeFont = al_load_ttf_font("DejaVuSans.ttf", (int)(Data->scales.scale_h / 36), 0);
 }
 
 void stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData, char *target){

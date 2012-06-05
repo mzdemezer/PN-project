@@ -120,6 +120,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     float half_dt;
 
     printf("In game: after main-iter-init, starting to operate\n");
+    Data->Level.start_time = al_get_time();
 
     while(!al_get_thread_should_stop(thread)){
         /**
@@ -782,6 +783,7 @@ void handle_event_game(struct GameSharedData *Data){
                                 }
                         }
                     al_unlock_mutex(Data->MutexMainIteration);
+                    Data->Level.sum_time += al_get_time() - Data->Level.start_time;
                     printf("Synchronized with main iteration that is now waiting\n");
                     break;
                 default:
@@ -912,10 +914,42 @@ void draw_game(struct GameSharedData *Data){
     }
 }
 
-void draw_stat_bar(struct GameSharedData *Data){
+void clear_stat_bar(struct GameSharedData *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x, Data->scales.trans_y,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT + Data->scales.trans_y,
                              al_map_rgb(45,0,0));
+}
+
+void print_time(char *buffer, double time){
+    int help = ((int)time) / 3600;
+
+    time -= help * 3600;
+    sprintf(buffer, "%02d:", help % 100);
+
+    help = ((int)time) / 60;
+    time -= help * 60;
+    sprintf(buffer + 3, "%02d:%04.1lf", help, time);
+    buffer[8] = '`'; //depending on the font
+}
+
+void draw_time(struct GameSharedData *Data){
+    char buffer[11];
+    double actual_time = al_get_time() - Data->Level.start_time + Data->Level.sum_time;
+    ALLEGRO_TRANSFORM tempT;
+
+    print_time(buffer, actual_time);
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+    al_draw_text(Data->TimeFont, al_map_rgb(255, 255, 255),
+                 Data->scales.scale_w * 0.99 + Data->scales.scale_x,
+                 Data->scales.scale_h / 25 + Data->scales.scale_y,
+                 ALLEGRO_ALIGN_RIGHT, buffer);
+    al_use_transform(&Data->Transformation);
+}
+
+void draw_stat_bar(struct GameSharedData *Data){
+    clear_stat_bar(Data);
+    draw_time(Data);
 }
 
 void request_game(struct GameSharedData *Data){
@@ -941,6 +975,7 @@ void request_game(struct GameSharedData *Data){
             Data->GameState = gsGAME;
             Data->DrawFunction = draw_game;
             Data->Level.last_time = al_get_time() - 1./MAX_FPS;
+            Data->Level.start_time = al_get_time();
             printf("Unpause!\n\n");
             break;
         default:

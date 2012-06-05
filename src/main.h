@@ -476,7 +476,8 @@ struct level_structure{
     ALLEGRO_BITMAP *Background;
     ALLEGRO_BITMAP *ScaledBackground;
     char filename[256];
-    double last_time, dt;
+    double start_time, sum_time,
+           last_time, dt;
     struct move_arrays *Acc;
     float dens, wind_vx, wind_vy;
 };
@@ -542,6 +543,8 @@ struct GameSharedData{
     ALLEGRO_FONT *MenuSelectedFont;
     ALLEGRO_FONT *MenuConfigFont;
     ALLEGRO_FONT *MenuConfigSelectedFont;
+
+    ALLEGRO_FONT *TimeFont;
 
     struct keyboard_structure Keyboard;
 

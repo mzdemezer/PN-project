@@ -1471,6 +1471,8 @@ void load_and_initialize_level(struct GameSharedData *Data){
     Data->Level.dens = DEFAULT_FLUID_DENSITY;
     Data->Level.wind_vx = 0;
     Data->Level.wind_vy = 0;
+    Data->Level.start_time = al_get_time();
+    Data->Level.sum_time = 0;
 }
 
 void destroy_level(struct level_structure *Level){
@@ -3176,6 +3178,13 @@ int main(){
     /**
         Setting font size accordingly to resolution
         */
+    Data.MenuBigFont = NULL;
+    Data.MenuRegularFont = NULL;
+    Data.MenuSelectedFont = NULL;
+    Data.MenuConfigFont = NULL;
+    Data.MenuConfigSelectedFont = NULL;
+    Data.TimeFont = NULL;
+    Data.DeFont = NULL;
     scale_fonts(&Data);
 
     /**
@@ -3244,12 +3253,13 @@ int main(){
         */
 
     Data.Debug = false;
-    Data.DeFont = NULL;
     Data.DeBuffer[0] = '\0';
-    Data.DeFont = al_load_ttf_font("DejaVuSans.ttf", 16, 0);
     for(i = 0; i < 4; ++i){
         Data.DeCollAngs[i] = 0;
     }
+
+    Data.TimeFont = NULL;
+    Data.TimeFont = al_load_ttf_font("Oloron.ttf", 30, 0);
 
     Data.IterationFinished = true;
     Data.CloseLevel = false;
