@@ -278,7 +278,7 @@ void clear_menu(){
 
 void draw_menu_content(struct GameSharedData *Data){
     int i, NumberOfElems, flags;
-    float align_x;
+    double align_x;
     struct activation_argument arg;
     ALLEGRO_FONT *RegFont, *SelectFont;
     ALLEGRO_TRANSFORM tempT;

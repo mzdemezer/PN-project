@@ -184,7 +184,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(&Data->Level, motPLAYER, (void*)Data->Level.Player);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f", &Data->Level.Player->center.x,
+        sscanf(buffer, "%lf %lf %lf", &Data->Level.Player->center.x,
                                    &Data->Level.Player->center.y,
                                    &Data->Level.Player->ang);
 
@@ -202,7 +202,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(&Data->Level, fotRECTANGLE, (void*)Factory.NewRectangle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewRectangle->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.NewRectangle->center.x,
                                             &Factory.NewRectangle->center.y,
                                             &Factory.NewRectangle->a,
                                             &Factory.NewRectangle->b,
@@ -226,7 +226,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(&Data->Level, fotCIRCLE, (void*)Factory.NewCircle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %d",   &Factory.NewCircle->center.x,
+        sscanf(buffer, "%lf %lf %lf %d",   &Factory.NewCircle->center.x,
                                         &Factory.NewCircle->center.y,
                                         &Factory.NewCircle->r,
                                         &op0);
@@ -247,7 +247,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(&Data->Level, fotSQUARE, (void*)Factory.NewSquare);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %d",    &Factory.NewSquare->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %d",    &Factory.NewSquare->center.x,
                                             &Factory.NewSquare->center.y,
                                             &Factory.NewSquare->bok,
                                             &Factory.NewSquare->ang,
@@ -269,7 +269,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(&Data->Level, fotENTRANCE, (void*)Factory.NewEntrance);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewEntrance->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.NewEntrance->center.x,
                                             &Factory.NewEntrance->center.y,
                                             &Factory.NewEntrance->a,
                                             &Factory.NewEntrance->b,
@@ -291,7 +291,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_fixed_object(&Data->Level, fotEXIT, (void*)Factory.NewExit);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d", &Factory.NewExit->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.NewExit->center.x,
                                             &Factory.NewExit->center.y,
                                             &Factory.NewExit->a,
                                             &Factory.NewExit->b,
@@ -313,7 +313,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(&Data->Level, motSWITCH, (void*)Factory.NewSwitch);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d %d %d",   &Factory.NewSwitch->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf %d %d %d",   &Factory.NewSwitch->center.x,
                                                     &Factory.NewSwitch->center.y,
                                                     &Factory.NewSwitch->a,
                                                     &Factory.NewSwitch->b,
@@ -353,7 +353,7 @@ void load_level_from_file(struct GameSharedData *Data){
             Reading mass and color
             */
         read_line(buffer, level);
-        sscanf(buffer, "%f %d", &Factory.NewSwitch->mass,
+        sscanf(buffer, "%lf %d", &Factory.NewSwitch->mass,
                                 &op0);
         read_color(buffer, level, &Factory.NewSwitch->color, op0, "Invalid level input: switch#%d color\n", i);
 
@@ -371,7 +371,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(&Data->Level, motDOOR, (void*)Factory.NewDoor);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f %d %d %f %d",    &Factory.NewDoor->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf %d %d %lf %d",    &Factory.NewDoor->center.x,
                                                         &Factory.NewDoor->center.y,
                                                         &Factory.NewDoor->a,
                                                         &Factory.NewDoor->b,
@@ -397,7 +397,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_movable_object(&Data->Level, motPARTICLE, (void*)Factory.NewParticle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%f %f %f %f %f",    &Factory.NewParticle->center.x,
+        sscanf(buffer, "%lf %lf %lf %lf %lf",    &Factory.NewParticle->center.x,
                                             &Factory.NewParticle->center.y,
                                             &Factory.NewParticle->r,
                                             &Factory.NewParticle->mass,

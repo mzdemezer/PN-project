@@ -214,35 +214,35 @@ struct primitive_object_structure{
 };
 
 struct point{
-    float x, y;
+    double x, y;
 };
 
 struct line{
-    float A, B, C,
+    double A, B, C,
           sqrtAB; //cache
 };
 
 struct segment{
     struct point A, B;
-    float ang; // direction of AB vector; to make collisions faster
+    double ang; // direction of AB vector; to make collisions faster
     struct line line_equation; //for faster separation
 };
 
 struct circle{
     struct point center;
-    float r;
+    double r;
 };
 
 struct fixed_object_structure{
     enum fixed_object_type Type;
     void* ObjectData;
     void (*draw)(void*);
-    float (*r)(void*, float);
+    double (*r)(void*, double);
     short int zones[4];
 };
 
 struct collision_data{
-    float time;
+    double time;
     short int who, with;
     bool with_movable;
 };
@@ -283,9 +283,9 @@ typedef struct coll_tree{
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
-    void (*draw)(void*, float dx, float dy);
-    float (*r)(void*, float);
-    float dx, dy;
+    void (*draw)(void*, double dx, double dy);
+    double (*r)(void*, double);
+    double dx, dy;
     short int zones[4];
     struct collision_data *next_collision,
                            coll_with_fixed;
@@ -323,46 +323,46 @@ struct ObjectWorkshop{
 #define PLAYER_RADIUS 20
 struct playerData{
     struct point center;
-    float r, vx, vy;
-    float ang;
+    double r, vx, vy;
+    double ang;
     int engine_state;
-    float mass,
+    double mass,
           charge,
           r0;
 };
 
 struct rectangleData{
     struct point center;
-    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
 struct circleData{
     struct point center;
-    float r, ang;
+    double r, ang;
     ALLEGRO_COLOR color;
 };
 
-float squareEquation(float f0, float fi);
+double squareEquation(double f0, double fi);
 
 struct squareData{
     struct point center;
-    float r, bok, ang;
+    double r, bok, ang;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
 struct entranceData{
     struct point center;
-    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
 
 struct exitData{
     struct point center;
-    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 };
@@ -381,16 +381,16 @@ struct connectedData{
 
 struct switchData{
     struct point center;
-    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
-    float mass;
+    double mass;
     enum switch_type swType;
     struct connectedData connected;
 
-    float vx, vy;
+    double vx, vy;
 };
 
 enum door_type{
@@ -399,24 +399,24 @@ enum door_type{
 
 struct doorData{
     struct point center;
-    float r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     struct point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
-    float openingTime, mass;
+    double openingTime, mass;
     enum door_type doorType;
 
-    float vx, vy;
+    double vx, vy;
 };
 
 struct particleData{
     struct point center;
-    float r, mass, charge;
+    double r, mass, charge;
     ALLEGRO_COLOR color;
 
-    float vx, vy;
-    float surface_field;
+    double vx, vy;
+    double surface_field;
 };
 
 enum enum_keys{
@@ -444,7 +444,7 @@ struct zone{
 #define NumOfThreads 3
 #define ACC_2nd_DIM NumOfThreads + 2
 struct move_arrays{
-    float x, y,
+    double x, y,
           vx, vy,
           ax[ACC_2nd_DIM],
           ay[ACC_2nd_DIM];
@@ -479,11 +479,11 @@ struct level_structure{
     double start_time, sum_time,
            last_time, dt;
     struct move_arrays *Acc;
-    float dens, wind_vx, wind_vy;
+    double dens, wind_vx, wind_vy;
 };
 
 struct scale_structure{
-    float scale_x, scale_y,
+    double scale_x, scale_y,
           scale_w, scale_h,
           trans_x, trans_y,
           scale;
@@ -571,7 +571,7 @@ struct GameSharedData{
     bool Debug;
     char DeBuffer[1024];
     ALLEGRO_FONT *DeFont;
-    float DeCollAngs[4];
+    double DeCollAngs[4];
 
     bool CloseNow;
 
@@ -592,7 +592,7 @@ void* main_iteration(ALLEGRO_THREAD *, void *);
 void* thread_event_queue_procedure(ALLEGRO_THREAD *, void *);
 void* load_level(ALLEGRO_THREAD *, void *);
 
-ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac);
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac);
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height);
 
 //Arrays for objects
@@ -625,9 +625,9 @@ void RB_construct_tree(RB_tree *tree);
 void in_order(RB_node *node, RB_node *nil);
 void RB_display_keys_in_order(RB_tree *tree);
 void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
-                                     short int who, RB_node *node, RB_node *nil, float time_passed);
+                                     short int who, RB_node *node, RB_node *nil, double time_passed);
 void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
-                              short int who, RB_node *node, RB_node *nil, float time_passed);
+                              short int who, RB_node *node, RB_node *nil, double time_passed);
 
 
 //Fast read set
@@ -675,17 +675,17 @@ void heap_insert(struct collision_heap* heap, struct collision_data *collision);
 void clear_heap(struct collision_heap* heap);
 
 //Zones
-void get_zone(float x, float y, short int *zone);
-void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone);
+void get_zone(double x, double y, short int *zone);
+void get_zone_for_object(double x, double y, double dx, double dy, double r0, short int *zone);
 void add_primitive_to_zone(struct zone* zone, short int key);
 void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B);
 void add_borders(struct GameSharedData *Data);
 void add_point(struct GameSharedData *Data, struct point *A);
-void add_circle(struct GameSharedData *Data, float r, struct point center);
+void add_circle(struct GameSharedData *Data, double r, struct point center);
 void add_square(struct GameSharedData *Data, struct squareData *square);
 void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle);
 void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
-void change_zones_for_movable(struct GameSharedData *Data, short int index, float t);
+void change_zones_for_movable(struct GameSharedData *Data, short int index, double t);
 
 //Level
 void construct_level(struct level_structure *Level);
@@ -695,18 +695,18 @@ void clear_level(struct level_structure *Level);
 
 //Colisions
 #define EMPTY_COLLISION_TIME 10
-float check_collision_between_two_balls(double x, double y, float dx, float dy, double d);
-float check_collision_between_ball_and_segment(float x, float y, double dx, double dy, float r, struct segment *seg);
-void move_objects(struct GameSharedData *Data, float t);
+double check_collision_between_two_balls(double x, double y, double dx, double dy, double d);
+double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, struct segment *seg);
+void move_objects(struct GameSharedData *Data, double t);
 struct collision_data get_collision_with_primitive(struct movable_object_structure *who, struct primitive_object_structure *with_what);
 struct collision_data get_collision_with_movable(struct movable_object_structure *who, struct movable_object_structure *with_whom);
-void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, float time_passed);
+void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, double time_passed);
 void collision_min_for_object(struct GameSharedData *Data, short int who);
 void find_next_collision(struct GameSharedData *Data, short int index,
-                         fast_read_set *primitive_done, fast_read_set *movable_done, float time_passed);
+                         fast_read_set *primitive_done, fast_read_set *movable_done, double time_passed);
 
-float vector_product(float x1, float y1, float x2, float y2);
-bool vectors_on_two_sides(float vector_pr1, float vector_pr2);
+double vector_product(double x1, double y1, double x2, double y2);
+bool vectors_on_two_sides(double vector_pr1, double vector_pr2);
 bool do_segments_intersect(const struct point *A1, const struct point *A2,
                            const struct point *B1, const struct point *B2);
 bool get_segment_intersection(const struct point *A1, const struct point *A2,
@@ -714,13 +714,13 @@ bool get_segment_intersection(const struct point *A1, const struct point *A2,
                               struct point *I);
 bool get_outer_zones_of_segment(const struct point *A, const struct point *B, short int *zones);
 
-inline void get_line_from_points(float x1, float y1, float x2, float y2, struct line *);
-inline void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *);
-inline double point_distance_from_line(float x0, float y0, struct line *L);
-void common_point(const struct line* L1, const struct line* L2, float *x, float *y);
-void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt);
-void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
-                                              double dx, double dy, float m1, float m2, float restitution);
+inline void get_line_from_points(double x1, double y1, double x2, double y2, struct line *);
+inline void get_line_from_point_and_vector(double x, double y, double vx, double vy, struct line *);
+inline double point_distance_from_line(double x0, double y0, struct line *L);
+void common_point(const struct line* L1, const struct line* L2, double *x, double *y);
+void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, double dt);
+void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *v2x, double *v2y,
+                                              double dx, double dy, double m1, double m2, double restitution);
 //Draw
 void draw(void (*func)(struct GameSharedData *), struct GameSharedData *Data);
 
@@ -733,10 +733,10 @@ void draw_circle(void *ObjectData);
 void draw_rectangle(void *ObjectData);
 void draw_all_fixed_objects(struct GameSharedData*);
 
-void draw_player(void *ObjectData, float dx, float dy);
-void draw_particle(void *ObjectData, float dx, float dy);
-void draw_door(void *ObjectData, float dx, float dy);
-void draw_switch(void *ObjectData, float dx, float dy);
+void draw_player(void *ObjectData, double dx, double dy);
+void draw_particle(void *ObjectData, double dx, double dy);
+void draw_door(void *ObjectData, double dx, double dy);
+void draw_switch(void *ObjectData, double dx, double dy);
 
 //Constructors
 
@@ -751,20 +751,19 @@ void construct_switch(struct movable_object_structure *);
 void construct_movable(struct movable_object_structure *Object);
 
 //Math
-int int_abs(int);
-float float_abs(float);
-double double_abs(double);
-float float_min(float, float);
+inline int int_abs(int);
+inline double double_abs(double);
+inline double double_min(double, double);
 inline double double_min(double a, double b);
-int sign(float);
-float norm(float fi);
+inline int sign(double);
+double norm(double fi);
 
-float squareEquation(float r0, float fi);
-float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, float wsp2);
-float rSquare(void *ObjectData, float fi);
-float rCircle(void *ObjectData, float fi);
-float rRectangle(void *ObjectData, float fi);
-float rPlayer(void *ObjectData, float fi);
+double squareEquation(double r0, double fi);
+double rectangleEquation(double r0, double fi, double fi0, double fi02, double wsp1, double wsp2);
+double rSquare(void *ObjectData, double fi);
+double rCircle(void *ObjectData, double fi);
+double rRectangle(void *ObjectData, double fi);
+double rPlayer(void *ObjectData, double fi);
 
 
 int rzad(int);

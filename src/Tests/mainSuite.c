@@ -444,7 +444,7 @@ void test_heap01(CuTest *tc){
     heap.length = 20;
     build_heap(&heap);
 
-    CuAssertTrue(tc, float_abs(heap.heap[1].time - 0.01) < eps);
+    CuAssertTrue(tc, double_abs(heap.heap[1].time - 0.01) < eps);
 
     free(heap.heap);
 }
@@ -480,7 +480,7 @@ void test_heap02(CuTest *tc){
 
 
     min = pop_min(&heap);
-    CuAssertTrue(tc, float_abs(min.time - 0.01) < eps);
+    CuAssertTrue(tc, double_abs(min.time - 0.01) < eps);
 
     free(heap.heap);
 }
@@ -515,7 +515,7 @@ void test_heap03(CuTest *tc){
 
 
     pop_min(&heap);
-    CuAssertTrue(tc, float_abs(heap.heap[1].time - 0.031) < eps);
+    CuAssertTrue(tc, double_abs(heap.heap[1].time - 0.031) < eps);
 
     free(heap.heap);
 }
@@ -553,7 +553,7 @@ void test_heap04(CuTest *tc){
     for(i = 0; i < 20; ++i){
         max = pop_min(&heap);
     }
-    CuAssertTrue(tc, float_abs(max.time - 2.9) < eps);
+    CuAssertTrue(tc, double_abs(max.time - 2.9) < eps);
 
     free(heap.heap);
 }
@@ -591,7 +591,7 @@ void test_heap05(CuTest *tc){
     heap_insert(&heap, &min);
     min = pop_min(&heap);
 
-    CuAssertTrue(tc, float_abs(min.time - 0.009) < eps);
+    CuAssertTrue(tc, double_abs(min.time - 0.009) < eps);
 
     free(heap.heap);
 }
@@ -631,7 +631,7 @@ void test_heap06(CuTest *tc){
     for(i = 0; i < 11; ++i){
         min = pop_min(&heap);
     }
-    CuAssertTrue(tc, float_abs(min.time - 1) < eps);
+    CuAssertTrue(tc, double_abs(min.time - 1) < eps);
 
     free(heap.heap);
 }
@@ -690,8 +690,8 @@ void test_get_segment_intersection01(CuTest *tc){
     bool f;
     f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
     CuAssertTrue(tc, f &&
-                 float_abs(I.x - 2.5) < eps &&
-                 float_abs(I.y - 2.5) < eps);
+                 double_abs(I.x - 2.5) < eps &&
+                 double_abs(I.y - 2.5) < eps);
 }
 
 void test_get_segment_intersection02(CuTest *tc){
@@ -714,8 +714,8 @@ void test_get_segment_intersection03(CuTest *tc){
     bool f;
     f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
     CuAssertTrue(tc, f &&
-                 float_abs(I.x - 2.5) < eps &&
-                 float_abs(I.y - 2.5) < eps);
+                 double_abs(I.x - 2.5) < eps &&
+                 double_abs(I.y - 2.5) < eps);
 }
 
 void test_get_segment_intersection04(CuTest *tc){
@@ -727,8 +727,8 @@ void test_get_segment_intersection04(CuTest *tc){
     bool f;
     f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
     CuAssertTrue(tc, f &&
-                 float_abs(I.x) < eps &&
-                 float_abs(I.y - 5) < eps);
+                 double_abs(I.x) < eps &&
+                 double_abs(I.y - 5) < eps);
 }
 
 void test_get_segment_intersection05(CuTest *tc){
@@ -740,8 +740,8 @@ void test_get_segment_intersection05(CuTest *tc){
     bool f;
     f = get_segment_intersection(&A1, &A2, &B1, &B2, &I);
     CuAssertTrue(tc, f &&
-                 float_abs(I.x - 4.07354709) < eps &&
-                 float_abs(I.y - 0.85991983) < eps);
+                 double_abs(I.x - 4.07354709) < eps &&
+                 double_abs(I.y - 0.85991983) < eps);
 }
 
 /**
@@ -860,10 +860,10 @@ void test_get_outer_zones_of_segment12(CuTest *tc){
     bool f;
     short int zones[4];
     f = get_outer_zones_of_segment(&A, &B, zones);
-    CuAssertTrue(tc, f && zones[0] == (short int)(((float)(ZONE_FACTOR * 2)) / 3) &&
-                          zones[1] == (short int)(((float)(ZONE_FACTOR * 2)) / 3) &&
+    CuAssertTrue(tc, f && zones[0] == (short int)(((double)(ZONE_FACTOR * 2)) / 3) &&
+                          zones[1] == (short int)(((double)(ZONE_FACTOR * 2)) / 3) &&
                           zones[2] == ZONE_FACTOR - 1 &&
-                          zones[3] == (short int)(((float)(ZONE_FACTOR * 4)) / 9));
+                          zones[3] == (short int)(((double)(ZONE_FACTOR * 4)) / 9));
 }
 
 void test_get_outer_zones_of_segment13(CuTest *tc){
@@ -872,15 +872,15 @@ void test_get_outer_zones_of_segment13(CuTest *tc){
     bool f;
     short int zones[4];
     f = get_outer_zones_of_segment(&A, &B, zones);
-    CuAssertTrue(tc, f && zones[0] == (short int)((float)(ZONE_FACTOR / 2)) &&
+    CuAssertTrue(tc, f && zones[0] == (short int)((double)(ZONE_FACTOR / 2)) &&
                           zones[1] == ZONE_FACTOR - 1 &&
-                          zones[2] == (short int)((float)(ZONE_FACTOR / 2)) &&
+                          zones[2] == (short int)((double)(ZONE_FACTOR / 2)) &&
                           zones[3] == 0);
 }
 
 void test_check_collision_between_ball_and_segment01(CuTest *tc){
     struct segment seg = {{0, 0}, {50, 0}, 0, {0, 0, 0, 0}};
-    float  x = 25, y = 25,
+    double  x = 25, y = 25,
            dx = 0, dy = -20,
            r = 15;
     CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, &seg) - 0.5) < eps);
@@ -888,7 +888,7 @@ void test_check_collision_between_ball_and_segment01(CuTest *tc){
 
 void test_check_collision_between_ball_and_segment02(CuTest *tc){
     struct segment seg = {{0, 0}, {50, 0}, 0, {0, 0, 0, 0}};
-    float  x = 25, y = 25,
+    double  x = 25, y = 25,
            dx = 60, dy = -20,
            r = 15;
     CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, &seg) - EMPTY_COLLISION_TIME) < eps);

@@ -134,14 +134,6 @@ inline int int_abs(int a){
     }
 }
 
-inline float float_abs(float a){
-    if(a < 0){
-        return -a;
-    }else{
-        return a;
-    }
-}
-
 inline double double_abs(double a){
     if(a < 0){
         return -a;
@@ -150,7 +142,8 @@ inline double double_abs(double a){
     }
 }
 
-inline float float_min(float a, float b){
+
+inline double double_min(double a, double b){
     if(a < b){
         return a;
     }else{
@@ -158,7 +151,7 @@ inline float float_min(float a, float b){
     }
 }
 
-inline float float_max(float a, float b){
+inline double double_max(double a, double b){
     if(a > b){
         return a;
     }else{
@@ -754,7 +747,7 @@ void destroy_fast_read_set(fast_read_set *set){
     with fixed objects - that's the limit if the object
     doesn't collide with other movable one.
     */
-void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, float time_passed){
+void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who, short int with, double time_passed){
     struct collision_data coll = get_collision_with_movable(&Data->Level.MovableObjects[who], &Data->Level.MovableObjects[with]);
     coll.time += time_passed;
     if(coll.time >= 0 && coll.time <= 1){
@@ -797,7 +790,7 @@ void get_and_check_mov_coll_if_valid(struct GameSharedData *Data, short int who,
     */
 
 void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
-                                     short int who, RB_node *node, RB_node *nil, float time_passed){
+                                     short int who, RB_node *node, RB_node *nil, double time_passed){
     while(node != nil &&
           node->key < who){
         node = node->right;
@@ -815,7 +808,7 @@ void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set 
 }
 
 void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
-                              short int who, RB_node *node, RB_node *nil, float time_passed){
+                              short int who, RB_node *node, RB_node *nil, double time_passed){
     if(node != nil){
         in_order_check_collision(Data, movable_done, who, node->left, nil, time_passed);
 
@@ -1277,11 +1270,11 @@ void destroy_zones(struct level_structure *Level){
     }
 }
 
-void get_zone(float x, float y, short int *zone){
+void get_zone(double x, double y, short int *zone){
     /**
         Closure: [0 ; SCREEN_BUFFER_HEIGHT) ---> [0 ; SCREEN_BUFFER_HEIGHT]
         */
-    if(float_abs(x - SCREEN_BUFFER_HEIGHT) < eps){
+    if(double_abs(x - SCREEN_BUFFER_HEIGHT) < eps){
         zone[0] = ZONE_FACTOR - 1;
     }else{
         zone[0] = (short int)((int)x / ZONE_SIZE);
@@ -1289,7 +1282,7 @@ void get_zone(float x, float y, short int *zone){
             zone[0] -= 1;
         }
     }
-    if(float_abs(y - SCREEN_BUFFER_HEIGHT) < eps){
+    if(double_abs(y - SCREEN_BUFFER_HEIGHT) < eps){
         zone[1] = ZONE_FACTOR - 1;
     }else{
         zone[1] = (short int)((int)y / ZONE_SIZE);
@@ -1299,9 +1292,9 @@ void get_zone(float x, float y, short int *zone){
     }
 }
 
-void get_zone_for_object(float x, float y, float dx, float dy, float r0, short int *zone){
-    dx = float_abs(dx) + r0;
-    dy = float_abs(dy) + r0;
+void get_zone_for_object(double x, double y, double dx, double dy, double r0, short int *zone){
+    dx = double_abs(dx) + r0;
+    dy = double_abs(dy) + r0;
     get_zone(x - dx, y - dy, zone);
     get_zone(x + dx, y + dy, zone + 2);
     if(zone[0] < 0){
@@ -1344,7 +1337,7 @@ void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones
     It only looks bad, but it seems quite optimal
     actually :P
     */
-void change_zones_for_movable(struct GameSharedData *Data, short int index, float t){
+void change_zones_for_movable(struct GameSharedData *Data, short int index, double t){
     short int oldz[4], xleft, xright;
     int i, j;
     struct movable_object_structure *Obj = &Data->Level.MovableObjects[index];
@@ -1508,7 +1501,7 @@ void clear_level(struct level_structure *Level){
     Collisions
     */
 
-void move_objects(struct GameSharedData *Data, float t){
+void move_objects(struct GameSharedData *Data, double t){
     int i;
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         ((struct point*)Data->Level.MovableObjects[i].ObjectData)->x += Data->Level.MovableObjects[i].dx * t;
@@ -1516,13 +1509,6 @@ void move_objects(struct GameSharedData *Data, float t){
     }
 }
 
-inline double double_min(double a, double b){
-    if(a < b){
-        return a;
-    }else{
-        return b;
-    }
-}
 
 /**
     Solving quadratic equation
@@ -1532,7 +1518,7 @@ inline double double_min(double a, double b){
 
     This function is good both for mobile and immobile balls or points :)
     */
-float check_collision_between_two_balls(double x, double y, float dx, float dy, double d){
+double check_collision_between_two_balls(double x, double y, double dx, double dy, double d){
     double a = dx * dx + dy * dy,
         b = 2 * (x * dx + y * dy);
     if(a == 0){//linear
@@ -1589,7 +1575,7 @@ float check_collision_between_two_balls(double x, double y, float dx, float dy, 
     closest to segment and then if it collides
     during this quantum of time  dt.
     */
-float check_collision_between_ball_and_segment(float x, float y, double dx, double dy, float r, struct segment *seg){
+double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, struct segment *seg){
     double cs = cos(seg->ang),
            sn = sin(seg->ang),
            d_into = sign(dy * cs - dx * sn);
@@ -1734,7 +1720,7 @@ void collision_min_for_object(struct GameSharedData *Data, short int who){
 }
 
 void find_next_collision(struct GameSharedData *Data, short int index,
-                         fast_read_set *primitive_done, fast_read_set *movable_done, float time_passed){
+                         fast_read_set *primitive_done, fast_read_set *movable_done, double time_passed){
     struct collision_data new_coll;
     int i, j, k;
     Data->Level.MovableObjects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
@@ -1781,20 +1767,20 @@ void find_next_collision(struct GameSharedData *Data, short int index,
 }
 
 
-inline void get_line_from_points(float x1, float y1, float x2, float y2, struct line *L){
+inline void get_line_from_points(double x1, double y1, double x2, double y2, struct line *L){
     L->A = y1 - y2;
     L->B = x2 - x1;
     L->C = x1 * y2 - x2 * y1;
     L->sqrtAB = sqrt((double)L->A * L->A + (double)L->B * L->B);
 }
 
-inline void get_line_from_point_and_vector(float x, float y, float vx, float vy, struct line *L){
+inline void get_line_from_point_and_vector(double x, double y, double vx, double vy, struct line *L){
     L->A = -vy;
     L->B = vx;
     L->C = x * vy - y * vx;
 }
 
-inline double point_distance_from_line(float x0, float y0, struct line *L){
+inline double point_distance_from_line(double x0, double y0, struct line *L){
     if(L->sqrtAB == 0){
         return -1;
     }else{
@@ -1802,7 +1788,7 @@ inline double point_distance_from_line(float x0, float y0, struct line *L){
     }
 }
 
-void common_point(const struct line* L1, const struct line* L2, float *x, float *y){
+void common_point(const struct line* L1, const struct line* L2, double *x, double *y){
     *y = (L1->C * L2->A - L1->A * L2->C) / (L2->B * L1->A - L1->B * L2->A);
     *x = -(L1->C + L1->B * *y) / L1->A;
 }
@@ -1810,11 +1796,11 @@ void common_point(const struct line* L1, const struct line* L2, float *x, float 
 /**
     for vectors [x1, y1] and [x2, y2]
     */
-float vector_product(float x1, float y1, float x2, float y2){
+double vector_product(double x1, double y1, double x2, double y2){
     return x1 * y2 - x2 * y1;
 }
 
-bool vectors_on_two_sides(float vector_pr1, float vector_pr2){
+bool vectors_on_two_sides(double vector_pr1, double vector_pr2){
     if(vector_pr1 == 0 || vector_pr2 == 0){
         return true;
     }else if((vector_pr1 > 0 && vector_pr2 < 0) ||
@@ -2116,7 +2102,7 @@ void add_point(struct GameSharedData *Data, struct point *A){
     }
 }
 
-void add_circle(struct GameSharedData *Data, float r, struct point center){
+void add_circle(struct GameSharedData *Data, double r, struct point center){
     short int zones[4];
     get_zone(center.x - r, center.y - r, zones);
     get_zone(center.x + r, center.y + r, zones + 2);
@@ -2139,7 +2125,7 @@ void add_circle(struct GameSharedData *Data, float r, struct point center){
         C->r = r;
         short int i, j, key = Data->Level.number_of_primitive_objects;
         add_primitive_object(&Data->Level, potCIRCLE, C);
-        float r0 = (SQRT2 / 2) * ZONE_SIZE,
+        double r0 = (SQRT2 / 2) * ZONE_SIZE,
               dx, dy;
         for(i = zones[0]; i <= zones[2]; ++i){
             for(j = zones[1]; j <= zones[3]; ++j){
@@ -2175,8 +2161,8 @@ void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle)
     add_segment(Data, rectangle->v4, rectangle->v1);
 }
 
-void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
-                                              double dx, double dy, float m1, float m2, float restitution){
+void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *v2x, double *v2y,
+                                              double dx, double dy, double m1, double m2, double restitution){
     *v1x -= *v2x;
     *v1y -= *v2y;
     dy = VectorAngle(dx, dy);
@@ -2194,7 +2180,7 @@ void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x
 
 }
 
-void get_velocity_after_ball_to_wall_collision(float *vx, float *vy, struct segment *seg, float restitution){
+void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, struct segment *seg, double restitution){
     double cs = cos(seg->ang),
            sn = sin(seg->ang),
            v_into = *vy * cs - *vx * sn, //y
@@ -2207,7 +2193,7 @@ void get_velocity_after_ball_to_wall_collision(float *vx, float *vy, struct segm
 /**
     I treat fixed points as ininitely small balls
     */
-void get_velocity_after_ball_to_fixed_ball_collision(float *vx, float *vy, float dx, float dy, float restitution){
+void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double restitution){
     double ang = VectorAngle(dx, dy),
            cs = cos(ang);
            ang = sin(ang);
@@ -2218,15 +2204,13 @@ void get_velocity_after_ball_to_fixed_ball_collision(float *vx, float *vy, float
     *vy = v_into * ang + v_perp * cs;
 }
 
-void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, float m2, double d){
+void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d){
     double dx = (double)*x2 - *x1,
            dy = (double)*y2 - *y1,
            ang = VectorAngle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
     if(dx < d){
         d -= dx;
-        d *= 1.01;//experiment - rule out inaccuracies or create them
-        d += 0.01;
         dx = d * sin(ang); //y
         d *= cos(ang); //x
         ang = m1 + m2;
@@ -2247,7 +2231,7 @@ void separate_two_balls(float *x1, float *y1, float m1, float *x2, float *y2, fl
 
     Of course works also for fixed points
     */
-void separate_ball_from_fixed_ball(float *x1, float *y1, float x2, float y2, double d){
+void separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d){
     double dx = (double)x2 - *x1,
            dy = (double)y2 - *y1,
            ang = VectorAngle(dx, dy);
@@ -2262,7 +2246,7 @@ void separate_ball_from_fixed_ball(float *x1, float *y1, float x2, float y2, dou
     }
 }
 
-void separate_ball_from_segment(float *x, float *y, double d, struct segment *seg){
+void separate_ball_from_segment(double *x, double *y, double d, struct segment *seg){
     double dist = point_distance_from_line(*x, *y, &seg->line_equation);
     if(dist == -1){
         separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
@@ -2288,21 +2272,21 @@ void separate_ball_from_segment(float *x, float *y, double d, struct segment *se
     }
 }
 
-void player_get_dx_dy(struct movable_object_structure *Obj, float dt){
+void player_get_dx_dy(struct movable_object_structure *Obj, double dt){
     #define Data ((struct playerData*)Obj->ObjectData)
     Obj->dx = Data->vx * dt;
     Obj->dy = Data->vy * dt;
     #undef Data
 }
 
-void particle_get_dx_dy(struct movable_object_structure *Obj, float dt){
+void particle_get_dx_dy(struct movable_object_structure *Obj, double dt){
     #define Data ((struct particleData*)Obj->ObjectData)
     Obj->dx = Data->vx * dt;
     Obj->dy = Data->vy * dt;
     #undef Data
 }
 
-void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, float dt){
+void collide(struct GameSharedData *Data, short int who, short int with, bool with_movable, double dt){
     #define WHO_PLAYER ((struct playerData*)Data->Level.MovableObjects[who].ObjectData)
     #define WHO_PARTICLE ((struct particleData*)Data->Level.MovableObjects[who].ObjectData)
     #define WITH_PLAYER ((struct playerData*)Data->Level.MovableObjects[with].ObjectData)
@@ -2459,7 +2443,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
     Maths
     */
 
-int sign(float a){
+inline int sign(double a){
     if(a == 0){
         return 0;
     }else if(a > 0){
@@ -2473,7 +2457,7 @@ int sign(float a){
     Ensures that  fi  angle is in [0, dwaPI)
     */
 
-float norm(float fi){
+double norm(double fi){
 	if(fi > 0){
 		while(fi - dwaPI > eps){
 			fi -= dwaPI;
@@ -2482,21 +2466,21 @@ float norm(float fi){
 		while(fi < 0){
 			fi += dwaPI;
 		}
-    if(float_abs(fi - dwaPI) < eps){
+    if(double_abs(fi - dwaPI) < eps){
         fi = 0;
     }
 	return fi;
 }
 
-float squareEquation(float r0, float fi){
+double squareEquation(double r0, double fi){
 	fi -= PI4;
-	float s = sin(fi),
+	double s = sin(fi),
           c = cos(fi);
 	s = (s + sign(s * c) * c);
 	if(s == 0){
 		s = 1;
 	}
-	return float_abs(r0 / s);
+	return double_abs(r0 / s);
 }
 
 /**
@@ -2506,7 +2490,7 @@ float squareEquation(float r0, float fi){
     fi0 - angle between two closer verticies and center of the rectangle
     */
 
-bool rectangleWsp(float fi, float fi0){
+bool rectangleWsp(double fi, double fi0){
     fi = norm(fi);
     if( ((fi >= PIpol) && (fi <= PIpol + fi0)) ||
         ((fi >= PI32)  && (fi <= PI32  + fi0)) ){
@@ -2516,9 +2500,9 @@ bool rectangleWsp(float fi, float fi0){
     }
 }
 
-float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, float wsp2){
+double rectangleEquation(double r0, double fi, double fi0, double fi02, double wsp1, double wsp2){
     fi += fi02;
-    float res = sin(fi);
+    double res = sin(fi);
 
     if(rectangleWsp(fi, fi0)){
         res -= wsp1 * cos(fi);
@@ -2526,27 +2510,27 @@ float rectangleEquation(float r0, float fi, float fi0, float fi02, float wsp1, f
         res -= wsp2 * cos(fi);
     }
     if(res != 0){
-        res = float_abs(r0 / res);
+        res = double_abs(r0 / res);
     }
 
     return res;
 }
 
-float rSquare(void *ObjectData, float fi){
+double rSquare(void *ObjectData, double fi){
     #define Data ((struct squareData*)ObjectData)
     return squareEquation(Data->r, fi - Data->ang);
     #undef Data
 }
 
-float rCircle(void *ObjectData, float fi){
+double rCircle(void *ObjectData, double fi){
     return ((struct circleData*)ObjectData)->r;
 }
 
-float rPlayer(void *ObjectData, float fi){
+double rPlayer(void *ObjectData, double fi){
     return 40;
 }
 
-float rRectangle(void *ObjectData, float fi){
+double rRectangle(void *ObjectData, double fi){
     #define Data ((struct rectangleData*)ObjectData)
     return rectangleEquation(Data->r, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
     #undef Data
@@ -2586,7 +2570,7 @@ void draw_all_fixed_objects(struct GameSharedData *Data){
     }
 }
 
-void draw_player(void *ObjectData, float dx, float dy){
+void draw_player(void *ObjectData, double dx, double dy){
     #define Data ((struct playerData*)ObjectData)
     al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
     al_draw_filled_circle(Data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(Data->ang),
@@ -2595,13 +2579,13 @@ void draw_player(void *ObjectData, float dx, float dy){
     #undef Data
 }
 
-void draw_particle(void *ObjectData, float dx, float dy){
+void draw_particle(void *ObjectData, double dx, double dy){
     #define Data ((struct particleData*)ObjectData)
     al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r, al_map_rgb(255, 0, 255));
     #undef Data
 }
 
-void draw_door(void *ObjectData, float dx, float dy){
+void draw_door(void *ObjectData, double dx, double dy){
     #define Data ((struct doorData*)ObjectData)
     struct point dv1 = *Data->v1,
                  dv2 = *Data->v2,
@@ -2619,7 +2603,7 @@ void draw_door(void *ObjectData, float dx, float dy){
     #undef Data
 }
 
-void draw_switch(void *ObjectData, float dx, float dy){
+void draw_switch(void *ObjectData, double dx, double dy){
     #define Data ((struct switchData*)ObjectData)
     struct point dv1 = *Data->v1,
                  dv2 = *Data->v2,
@@ -2655,7 +2639,7 @@ void construct_square(struct fixed_object_structure *Object){
     Object->draw = draw_square;
     Object->r = rSquare;
     Data->r = Data->bok * SQRT2 / 2;
-    float fi = PI4 + Data->ang;
+    double fi = PI4 + Data->ang;
     Data->v1 = (struct point*)malloc(sizeof(struct point));
     Data->v1->x = Data->center.x + Data->r * cos(fi);
     Data->v1->y = Data->center.y + Data->r * sin(fi);
@@ -2684,7 +2668,7 @@ void construct_square(struct fixed_object_structure *Object){
 
 void construct_rectangle(struct fixed_object_structure *Object){
     #define Data ((struct rectangleData*)Object->ObjectData)
-    float fi;
+    double fi;
     Object->draw = draw_rectangle;
     Object->r = rRectangle;
 
@@ -2695,7 +2679,7 @@ void construct_rectangle(struct fixed_object_structure *Object){
         Data->ang = norm(Data->ang + PIpol);
     }
 
-    Data->fi0 = float_abs(2 * atan(Data->b / Data->a));
+    Data->fi0 = double_abs(2 * atan(Data->b / Data->a));
     Data->fi02 = Data->fi0 * 0.5;
     Data->wsp1 = tan(PIpol + Data->fi02);
     Data->wsp2 = tan(Data->fi02);
@@ -2922,7 +2906,7 @@ void calculate_transformation(struct GameSharedData *Data){
 }
 
 void calculate_scales(struct GameSharedData *Data){
-    Data->scales.scale = float_min(Data->DisplayData.width / (float)SCREEN_BUFFER_WIDTH, Data->DisplayData.height / (float)SCREEN_BUFFER_HEIGHT);
+    Data->scales.scale = double_min(Data->DisplayData.width / (double)SCREEN_BUFFER_WIDTH, Data->DisplayData.height / (double)SCREEN_BUFFER_HEIGHT);
 
     Data->scales.scale_w = SCREEN_BUFFER_WIDTH * Data->scales.scale;//?
     Data->scales.scale_h = SCREEN_BUFFER_HEIGHT * Data->scales.scale;//?
@@ -2932,7 +2916,7 @@ void calculate_scales(struct GameSharedData *Data){
     Data->scales.trans_y = Data->scales.scale_y / Data->scales.scale;
 }
 
-ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac){
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac){
     return al_map_rgba_f(c1.r + frac * (c2.r - c1.r),
                          c1.g + frac * (c2.g - c1.g),
                          c1.b + frac * (c2.b - c1.b),
@@ -2940,7 +2924,7 @@ ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, float frac){
 }
 
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
-    float source_x = al_get_bitmap_width(source),
+    double source_x = al_get_bitmap_width(source),
           source_y = al_get_bitmap_height(source);
 	if (((int)source_x == width) && ((int)source_y == height)) {
 		al_draw_bitmap(source, 0, 0, 0);
@@ -2952,7 +2936,7 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
 
 	/* linear filtering code written by SiegeLord */
 
-    float pixy, pixy_f,
+    double pixy, pixy_f,
           pixx, pixx_f;
     ALLEGRO_COLOR a, b, c, d,
                   ab, cd, result;
@@ -2962,10 +2946,10 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
     source_y = (source_y - 1) / height;
 
 	for (y = 0; y <= height; ++y) {
-		pixy = (float)y * source_y;
+		pixy = (double)y * source_y;
 		pixy_f = floor(pixy);
 		for (x = 0; x <= width; ++x) {
-			pixx = (float)x * source_x;
+			pixx = (double)x * source_x;
 			pixx_f = floor(pixx);
 
 			a = al_get_pixel(source, pixx_f, pixy_f);

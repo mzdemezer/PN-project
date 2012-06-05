@@ -79,7 +79,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     int i, j;
     bool f;
     double Cx, S, vx, vy;
-    float op;
+    double op;
 
     /**
         Initialization
@@ -107,7 +107,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         }
     al_unlock_mutex(Data->MutexIterations);
 
-    Data->Level.last_time = clock() / (float)CLOCKS_PER_SEC;
+    Data->Level.last_time = clock() / (double)CLOCKS_PER_SEC;
 
     for(i = 0; i < Data->Level.number_of_movable_objects; ++i){
         for(j = 0; j < ACC_2nd_DIM; ++j){
@@ -117,7 +117,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     }
     bool parity = false,
          imparity = true;
-    float half_dt;
+    double half_dt;
 
     printf("In game: after main-iter-init, starting to operate\n");
     Data->Level.start_time = al_get_time();
@@ -614,7 +614,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((struct GameSharedData*)argument)
     #define Acc Data->Level.Acc
 
-    float time;
+    double time;
     int i, j, k, l;
     struct collision_data coll;
     short int temp;
@@ -848,8 +848,8 @@ void draw_grid(struct GameSharedData *Data){
     #undef OFFSET
 }
 
-void draw_arrow(struct GameSharedData *Data, float cx, float cy, float ang, int size, ALLEGRO_COLOR color){
-    float fx = cx + size * 0.5 * cos(ang),
+void draw_arrow(struct GameSharedData *Data, double cx, double cy, double ang, int size, ALLEGRO_COLOR color){
+    double fx = cx + size * 0.5 * cos(ang),
           fy = cy + size * 0.5 * sin(ang);
 
     size *= 0.5;
@@ -990,10 +990,10 @@ void request_pause(struct GameSharedData *Data){
     make_main_menu_pause_menu(Data);
 }
 
-float VectorAngle(float x, float y){
+double VectorAngle(double x, double y){
    if(x != 0){
-		float b;
-		b = atan(float_abs(y / x));
+		double b;
+		b = atan(double_abs(y / x));
 		if(y == 0){
 			if(x < 0){
 				b = PI;
