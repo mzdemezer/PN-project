@@ -6,12 +6,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+void first_loading_screen(struct GameSharedData *Data){
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+    draw_loading(Data);
+    al_flip_display();
+}
+
 void* load_level(ALLEGRO_THREAD *thread, void *argument){
     printf("Loading... level\n");
     #define Data ((struct GameSharedData*)argument)
 
+    Data->loading_state = 0;
+    special_call(first_loading_screen, Data);
+
     // Actual loading
     load_and_initialize_level(Data);
+
+    Data->loading_state = 15;
 
     printf("Loading finished\n");
     al_lock_mutex(Data->MutexChangeState);
@@ -64,20 +75,32 @@ void draw_level_background(struct GameSharedData *Data){
         Scaling and drawing
         */
     al_lock_mutex(Data->DrawMutex);
+        Data->loading_state = 11;
+        draw(draw_loading, Data);
         al_identity_transform(&tempT);
         al_use_transform(&tempT);
 
+        al_set_target_bitmap(Data->Level.Background);
         if(tempBitmap){
-            al_set_target_bitmap(Data->Level.Background);
             scale_bitmap(tempBitmap, SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_HEIGHT);
+
+            al_use_transform(&Data->Transformation);
+            al_set_target_backbuffer(Data->Display);
+            Data->loading_state = 12;
+            draw(draw_loading, Data);
+            al_use_transform(&tempT);
 
             al_set_target_bitmap(Data->Level.ScaledBackground);
             scale_bitmap(tempBitmap, Data->scales.scale_h, Data->scales.scale_h);
-
             al_destroy_bitmap(tempBitmap);
         }else{
-            al_set_target_bitmap(Data->Level.Background);
             al_clear_to_color(DEFAULT_BACKGROUND_COLOR);
+
+            al_use_transform(&Data->Transformation);
+            al_set_target_backbuffer(Data->Display);
+            Data->loading_state = 12;
+            draw(draw_loading, Data);
+            al_use_transform(&tempT);
 
             al_set_target_bitmap(Data->Level.ScaledBackground);
             al_clear_to_color(DEFAULT_BACKGROUND_COLOR);
@@ -86,11 +109,13 @@ void draw_level_background(struct GameSharedData *Data){
 
         tempBitmap = al_get_backbuffer(Data->Display);
 
-
         al_set_target_bitmap(tempBitmap);
+        al_use_transform(&Data->Transformation);
+        Data->loading_state = 13;
+        draw(draw_loading, Data);
+
         al_draw_bitmap(Data->Level.ScaledBackground, 0, 0, 0);
 
-        al_use_transform(&Data->Transformation);
         draw_all_fixed_objects(Data);
         al_use_transform(&tempT);
 
@@ -113,6 +138,8 @@ void draw_level_background(struct GameSharedData *Data){
 
         al_set_target_bitmap(tempBitmap);
         al_use_transform(&Data->Transformation);
+        Data->loading_state = 14;
+        draw(draw_loading, Data);
     al_unlock_mutex(Data->DrawMutex);
 }
 
@@ -163,6 +190,7 @@ void load_level_from_file(struct GameSharedData *Data){
 
         construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
+    Data->loading_state = 1;
 
     /**
         Rectangles
@@ -186,6 +214,7 @@ void load_level_from_file(struct GameSharedData *Data){
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
         add_rectangle(Data, Factory.NewRectangle);
     }
+    Data->loading_state = 2;
 
     /**
         Circles
@@ -207,6 +236,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_circle(Data, Factory.NewCircle->r, Factory.NewCircle->center);
     }
 
+    Data->loading_state = 3;
     /**
         Squares
         */
@@ -228,6 +258,7 @@ void load_level_from_file(struct GameSharedData *Data){
         add_square(Data, Factory.NewSquare);
     }
 
+    Data->loading_state = 4;
     /**
         Entrances
         */
@@ -249,6 +280,7 @@ void load_level_from_file(struct GameSharedData *Data){
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
+    Data->loading_state = 5;
     /**
         Exits
         */
@@ -270,6 +302,7 @@ void load_level_from_file(struct GameSharedData *Data){
         construct_rectangle(&Data->Level.FixedObjects[Data->Level.number_of_fixed_objects - 1]);
     }
 
+    Data->loading_state = 6;
     /**
         Switches
         */
@@ -327,6 +360,7 @@ void load_level_from_file(struct GameSharedData *Data){
         construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
+    Data->loading_state = 7;
     /**
         Doors
         */
@@ -352,6 +386,7 @@ void load_level_from_file(struct GameSharedData *Data){
         construct_movable(&Data->Level.MovableObjects[Data->Level.number_of_movable_objects - 1]);
     }
 
+    Data->loading_state = 8;
     /**
         Particles
         */
@@ -372,6 +407,7 @@ void load_level_from_file(struct GameSharedData *Data){
     }
 
     al_fclose(level);
+    Data->loading_state = 9;
 }
 
 /**
@@ -407,18 +443,21 @@ void read_color(char *buffer, ALLEGRO_FILE *level, ALLEGRO_COLOR *color, int col
 
 void draw_loading(struct GameSharedData *Data){
     ALLEGRO_TRANSFORM tempT;
-
+    char buffer[11];
+    strcpy(buffer, "LOADING........");
+    int i;
+    for(i = 0; i < 15 - Data->loading_state; ++i){
+        buffer[15 - i] = ' ';
+    }
     al_identity_transform(&tempT);
     al_use_transform(&tempT);
 
-    al_clear_to_color(al_map_rgb(0,0,0));
-
     al_draw_text(Data->MenuBigFont,
-                 al_map_rgb(255,255,255),
+                 al_map_rgb(255, 255, 255),
                  Data->DisplayData.width / 2,
                  Data->DisplayData.height / 2,
                  ALLEGRO_ALIGN_CENTRE,
-                 "LOADING...");
+                 buffer);
 
     al_use_transform(&Data->Transformation);
 }

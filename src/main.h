@@ -513,6 +513,7 @@ struct GameSharedData{
     ALLEGRO_TIMER *DrawTimer;
     void (*DrawFunction)(struct GameSharedData *);
 
+    int loading_state;
     ALLEGRO_THREAD *ThreadLoading;
     ALLEGRO_THREAD *ThreadEventQueue;
     ALLEGRO_THREAD *ThreadMainIteration;
@@ -721,6 +722,7 @@ void collide(struct GameSharedData *Data, short int who, short int with, bool wi
 void get_velocities_after_two_balls_collision(float *v1x, float *v1y, float *v2x, float *v2y,
                                               double dx, double dy, float m1, float m2, float restitution);
 //Draw
+void draw(void (*func)(struct GameSharedData *), struct GameSharedData *Data);
 
 #define DRAW_FIXED(OBJECT) OBJECT.draw(OBJECT.ObjectData)
 #define DRAW_MOVABLE(OBJECT) OBJECT.draw(OBJECT.ObjectData, Data->scales.trans_x, Data->scales.trans_y)

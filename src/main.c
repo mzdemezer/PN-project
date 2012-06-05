@@ -1467,6 +1467,8 @@ void load_and_initialize_level(struct GameSharedData *Data){
     load_level_from_file(Data);
     special_call(draw_level_background, (void*)Data);
 
+    Data->loading_state = 10;
+
     Data->Level.Acc = (struct move_arrays*)malloc(sizeof(struct move_arrays) * Data->Level.number_of_movable_objects);
     Data->Level.dens = DEFAULT_FLUID_DENSITY;
     Data->Level.wind_vx = 0;
@@ -2982,6 +2984,11 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
 	al_unlock_bitmap(source);
 }
 
+void draw(void (*func)(struct GameSharedData *), struct GameSharedData *Data){
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+    func(Data);
+    al_flip_display();
+}
 
 #ifdef TESTS
 extern void RunAllTests(void);
@@ -3333,9 +3340,7 @@ int main(){
                 al_unlock_mutex(Data.MutexThreadDraw);
 
                 al_lock_mutex(Data.DrawMutex);
-                    al_clear_to_color(al_map_rgb(0, 0, 0));
-                    Data.DrawFunction(&Data);
-                    al_flip_display();
+                    draw(Data.DrawFunction, &Data);
                 al_unlock_mutex(Data.DrawMutex);
                 al_lock_mutex(Data.MutexFPS);
                     Data.FPS += 1;
