@@ -49,6 +49,10 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     for no anti-aliasing will be visible in the background.
 
     Don't mess with the resolution too much! -.=
+
+    Update: decided to use this procedure every time
+    when changing resolution, so if there's antialiasing
+    then everytime objects will be pretty
     */
 
 void draw_level_background(struct GameSharedData *Data){
@@ -113,9 +117,11 @@ void draw_level_background(struct GameSharedData *Data){
         al_use_transform(&Data->Transformation);
         Data->loading_state = 13;
         draw(draw_loading, Data);
+        al_use_transform(&tempT);
 
         al_draw_bitmap(Data->Level.ScaledBackground, 0, 0, 0);
 
+        al_use_transform(&Data->Transformation);
         draw_all_fixed_objects(Data);
         al_use_transform(&tempT);
 

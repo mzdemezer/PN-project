@@ -5,18 +5,7 @@
 #ifndef _INCLUDE_MAIN_H
 #define _INCLUDE_MAIN_H
 
-
 //#define TESTS
-
-#ifdef TESTS
-#include "Tests/CuTest.h"
-#endif
-
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_ttf.h>
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_primitives.h>
 
 /**
     Config
@@ -62,7 +51,7 @@
     Physics
     */
 
-#define COULOMB 10
+#define COULOMB 0.1
 #define GRAV 600
 
 #define DEFAULT_FLUID_DENSITY 0.001
@@ -93,6 +82,19 @@
 #define SQRT2 1.41421356
 
 #define eps 0.000001
+
+#ifdef TESTS
+#include "Tests/CuTest.h"
+#endif
+
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_image.h>
+#include <allegro5/allegro_primitives.h>
+
+#include "structures.h"
+
 
 enum game_state{
     gsMENU,
@@ -254,15 +256,6 @@ struct collision_heap{
 
 #define RED true
 #define BLACK false
-typedef struct RB_node{
-    short int key;
-    bool color;
-    struct RB_node *left, *right, *parent;
-}RB_node;
-
-typedef struct RB_tree{
-    RB_node *root, *nil;
-}RB_tree;
 
 typedef struct fast_read_set{
     bool *array;
@@ -606,24 +599,7 @@ void add_movable_object(struct level_structure *LevelData, enum movable_object_t
 void delete_movable_object(struct movable_object_structure *);
 void clear_movable_object_list(struct level_structure *Level);
 
-//Red-Black Tree for zones
-RB_node* get_node(RB_tree *tree, short int key);
-RB_node* get_minimum(RB_node *node, RB_node *nil);
-RB_node* get_successor(RB_node *node, RB_node *nil);
-void insert_node(RB_tree *tree, short int key);
-void RB_insert_fixup(RB_tree *tree, RB_node *node);
-void delete_node(RB_tree *tree, short int key);
-void RB_delete_fixup(RB_tree *tree, RB_node *node);
-void clear_nodes(RB_node *node, RB_node *nil);
-void clear_tree(RB_tree *tree);
-inline bool is_left(RB_node *node);
-void rotate_left(RB_tree *tree, RB_node *node);
-void rotate_right(RB_tree *tree, RB_node *node);
-void RB_destroy_tree(RB_tree *tree);
-void RB_construct_tree(RB_tree *tree);
-
-void in_order(RB_node *node, RB_node *nil);
-void RB_display_keys_in_order(RB_tree *tree);
+//Red-Black Tree functions
 void for_each_higher_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,
                                      short int who, RB_node *node, RB_node *nil, double time_passed);
 void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movable_done,

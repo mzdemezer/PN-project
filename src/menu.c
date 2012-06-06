@@ -92,11 +92,13 @@ void stringify_resolution(const ALLEGRO_DISPLAY_MODE *DispData, char *target){
 
 void rescale_bitmaps(struct GameSharedData *Data){
     if(Data->Level.ScaledBackground){
-        al_destroy_bitmap(Data->Level.ScaledBackground);
-        Data->Level.ScaledBackground = al_create_bitmap(Data->scales.scale_h, Data->scales.scale_h);
-        al_set_target_bitmap(Data->Level.ScaledBackground);
-        scale_bitmap(Data->Level.Background, Data->scales.scale_h, Data->scales.scale_h);
+        ALLEGRO_TRANSFORM tempT;
+        al_identity_transform(&tempT);
+        al_use_transform(&tempT);
+        draw_level_background(Data);
         al_set_target_backbuffer(Data->Display);
+
+        al_use_transform(&Data->Transformation);
     }
 }
 
@@ -116,7 +118,7 @@ void change_resolution(struct GameSharedData *Data){
         calculate_transformation(Data);
         rescale_bitmaps(Data);
         scale_fonts(Data);
-        printf("Resolution changed: %d x %d\n", al_get_display_width(Data->Display), al_get_display_height(Data->Display));
+        printf("Resolution changed: %d x %d\n", Data->DisplayData.width, Data->DisplayData.height);
     }
 }
 
@@ -126,16 +128,10 @@ void resolution_activate(void*argument){
     ALLEGRO_COLOR Color;
     char CurrentResolution[20];
 
-
-
-//    printf("RESOLUTION activate call with: %d\n", arg->CallType);
     switch(arg->CallType){
         case meatACCEPT:
             if(arg->Data->ChosenResolution != arg->Data->ChosenInMenu){
                 special_call(change_resolution, arg->Data);
-                /*al_lock_mutex(arg->Data->DrawMutex);
-
-                al_unlock_mutex(arg->Data->DrawMutex);*/
             }
             break;
         case meatUP:
