@@ -116,8 +116,8 @@ void change_resolution(struct GameSharedData *Data){
     }else{
         al_register_event_source(Data->MainEventQueue, al_get_display_event_source(Data->Display));
         calculate_transformation(Data);
-        rescale_bitmaps(Data);
         scale_fonts(Data);
+        rescale_bitmaps(Data);
         printf("Resolution changed: %d x %d\n", Data->DisplayData.width, Data->DisplayData.height);
     }
 }

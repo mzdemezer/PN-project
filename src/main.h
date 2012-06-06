@@ -15,8 +15,6 @@
 /**
     Display
     */
-#define SCREEN_BUFFER_WIDTH 1000
-#define SCREEN_BUFFER_HEIGHT 750
 #define MAX_FPS 60
 #define MAX_DT 0.1
 
@@ -66,22 +64,7 @@
 #define PLAYER_TO_WALL_RESTITUTION 0.8
 #define PARTICLE_TO_WALL_RESTITUTION 0.8
 
-/**
-    Maths
-    */
 
-#define dwaPI 6.28318531
-#define PI74 5.49778714
-#define PI32 4.71238898
-#define PI54 3.92699081
-#define PI 3.14159265
-#define PI34 2.35619449
-#define PIpol 1.57079633
-#define PI4 0.78539816
-
-#define SQRT2 1.41421356
-
-#define eps 0.000001
 
 #ifdef TESTS
 #include "Tests/CuTest.h"
@@ -94,7 +77,10 @@
 #include <allegro5/allegro_primitives.h>
 
 #include "structures.h"
+#include "mathematics.h"
 
+#define RED true
+#define BLACK false
 
 enum game_state{
     gsMENU,
@@ -243,36 +229,6 @@ struct fixed_object_structure{
     short int zones[4];
 };
 
-struct collision_data{
-    double time;
-    short int who, with;
-    bool with_movable;
-};
-
-struct collision_heap{
-    int allocated, length;
-    struct collision_data *heap;
-};
-
-#define RED true
-#define BLACK false
-
-typedef struct fast_read_set{
-    bool *array;
-    RB_tree tree;
-}fast_read_set;
-
-typedef struct coll_node{
-    struct collision_data key;
-    bool color;
-    short int counter;
-    struct coll_node *left, *right, *parent;
-}coll_node;
-
-typedef struct coll_tree{
-    coll_node *root, *nil;
-}coll_tree;
-
 struct movable_object_structure{
     enum movable_object_type Type;
     void* ObjectData;
@@ -336,8 +292,6 @@ struct circleData{
     double r, ang;
     ALLEGRO_COLOR color;
 };
-
-double squareEquation(double f0, double fi);
 
 struct squareData{
     struct point center;
@@ -428,12 +382,6 @@ struct keyboard_structure{
     ALLEGRO_MUTEX *MutexKeyboard;
 };
 
-struct zone{
-    RB_tree movable;
-    int number_of_primitives, allocated;
-    short int *primitives;
-};
-
 #define NumOfThreads 3
 #define ACC_2nd_DIM NumOfThreads + 2
 struct move_arrays{
@@ -443,9 +391,6 @@ struct move_arrays{
           ay[ACC_2nd_DIM];
 };
 
-#define ZONE_FACTOR 50
-#define ZONE_SIZE (SCREEN_BUFFER_HEIGHT / ZONE_FACTOR)
-#define INITIAL_PRIMITIVES_PER_ZONE 64
 #define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 
 struct level_structure{
@@ -608,69 +553,32 @@ void in_order_check_collision(struct GameSharedData *Data, fast_read_set *movabl
 
 //Fast read set
 
-void unique_insert_node(RB_tree *tree, short int key);
-void clear_mark_from_tree(RB_node *node, RB_node *nil, bool *array);
-void initialize_fast_read_set(fast_read_set *set, short int number_of_elements);
-bool is_marked(fast_read_set *set, short int key);
-void set_mark(fast_read_set *set, short int key);
-void reset_marks(fast_read_set *set);
-void destroy_fast_read_set(fast_read_set *set);
 
 //Red-Black Tree for collisions
-#define LESS -1
-#define MORE 1
-#define EQUAL 0
-short int coll_comp(struct collision_data *a, struct collision_data *b);
-short int coll_rev_comp(struct collision_data *a, struct collision_data *b);
-coll_node* coll_get_node(coll_tree *tree, struct collision_data *key);
-coll_node* coll_get_minimum(coll_node *node, coll_node *nil);
-coll_node* coll_get_successor(coll_node *node, coll_node *nil);
-void coll_insert_node(coll_tree *tree, struct collision_data *key);
-bool coll_delete_node(coll_tree *tree, struct collision_data *key);
-void coll_delete_fixup(coll_tree *tree, coll_node *node);
-void coll_clear_nodes(coll_node *node, coll_node *nil);
-void coll_clear_tree(coll_tree *tree);
 void coll_clear_trash(struct GameSharedData *Data, coll_node *node, coll_node *nil);
-inline bool coll_is_left(coll_node *node);
-void coll_rotate_left(coll_tree *tree, coll_node *node);
-void coll_rotate_right(coll_tree *tree, coll_node *node);
-void coll_in_order(coll_node *root, coll_node *nil);
-void coll_construct_tree(coll_tree *tree);
-void coll_destroy_tree(coll_tree *tree);
 
 //Heap for collision
-void construct_heap(struct collision_heap* heap, int size);
-void destroy_heap(struct collision_heap* heap);
-#define heap_left(i) (i << 1)
-#define heap_right(i) ((i << 1 ) | 1)
-#define heap_parent(i) (i >> 1)
-void heapify(struct collision_heap* heap, short int i);
-void build_heap(struct collision_heap* heap);
-struct collision_data pop_min(struct collision_heap* heap);
-void heap_insert(struct collision_heap* heap, struct collision_data *collision);
-void clear_heap(struct collision_heap* heap);
+
 
 //Zones
-void get_zone(double x, double y, short int *zone);
-void get_zone_for_object(double x, double y, double dx, double dy, double r0, short int *zone);
-void add_primitive_to_zone(struct zone* zone, short int key);
 void add_segment(struct GameSharedData *Data, const struct point *A, const struct point *B);
 void add_borders(struct GameSharedData *Data);
 void add_point(struct GameSharedData *Data, struct point *A);
 void add_circle(struct GameSharedData *Data, double r, struct point center);
 void add_square(struct GameSharedData *Data, struct squareData *square);
 void add_rectangle(struct GameSharedData *Data, struct rectangleData *rectangle);
-void initialize_zones_with_movable(struct GameSharedData *Data, short int *zones, short int index);
-void change_zones_for_movable(struct GameSharedData *Data, short int index, double t);
+void initialize_zones_with_movable(struct level_structure *Level, short int *zones, short int index);
+void change_zones_for_movable(struct level_structure *Level, short int index, double t);
 
 //Level
+void construct_zones(struct level_structure *Level);
+
 void construct_level(struct level_structure *Level);
 void load_and_initialize_level(struct GameSharedData *Data);
 void destroy_level(struct level_structure *Level);
 void clear_level(struct level_structure *Level);
 
 //Colisions
-#define EMPTY_COLLISION_TIME 10
 double check_collision_between_two_balls(double x, double y, double dx, double dy, double d);
 double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, struct segment *seg);
 void move_objects(struct GameSharedData *Data, double t);
@@ -724,13 +632,9 @@ void construct_player(struct movable_object_structure *);
 void construct_particle(struct movable_object_structure *);
 void construct_door(struct movable_object_structure *);
 void construct_switch(struct movable_object_structure *);
-void construct_movable(struct movable_object_structure *Object);
+void construct_movable(struct movable_object_structure *);
 
 //Math
-inline int int_abs(int);
-inline double double_abs(double);
-inline double double_min(double, double);
-inline double double_min(double a, double b);
 inline int sign(double);
 double norm(double fi);
 

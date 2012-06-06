@@ -6,8 +6,23 @@
 #define BLACK false
 
 /**
-    Red-Black Tree for zones
+    Private methods
     */
+
+RB_node* get_node(RB_tree *tree, short int key);
+RB_node* get_successor(RB_node *node, RB_node *nil);
+inline bool is_left(RB_node *node);
+void rotate_left(RB_tree *tree, RB_node *node);
+void rotate_right(RB_tree *tree, RB_node *node);
+void RB_insert_fixup(RB_tree *tree, RB_node *node);
+void RB_delete_fixup(RB_tree *tree, RB_node *node);
+void clear_nodes(RB_node *node, RB_node *nil);
+void in_order(RB_node *node, RB_node *nil);
+
+/**
+    Code
+    */
+
 RB_node* get_node(RB_tree *tree, short int key){
     RB_node *node = tree->root;
     while((node != tree->nil) && (node->key != key)){
@@ -20,10 +35,6 @@ RB_node* get_node(RB_tree *tree, short int key){
     return node;
 }
 
-/**
-    No anti-NULL protection
-    BEWARE
-    */
 RB_node* get_minimum(RB_node *node, RB_node *nil){
     while(node->left != nil){
         node = node->left;
@@ -90,6 +101,40 @@ void insert_node(RB_tree *tree, short int key){
     while(node != tree->nil){
         last = node;
         if(key < node->key){
+            node = node->left;
+        }else{
+            node = node->right;
+        }
+    }
+
+    node = (RB_node*)malloc(sizeof(RB_node));
+
+    node->left = tree->nil;
+    node->right = tree->nil;
+    node->parent = last;
+    node->key = key;
+
+    if(last == tree->nil){
+        tree->root = node;
+    }else{
+        if(key < last->key){
+            last->left = node;
+        }else{
+            last->right = node;
+        }
+        RB_insert_fixup(tree, node);
+    }
+    tree->root->color = BLACK;
+}
+
+void unique_insert_node(RB_tree *tree, short int key){
+    RB_node *node = tree->root,
+            *last = tree->nil;
+    while(node != tree->nil){
+        last = node;
+        if(key == node->key){
+            return;
+        }else if(key < node->key){
             node = node->left;
         }else{
             node = node->right;

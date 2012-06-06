@@ -151,12 +151,12 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 case motPLAYER:
                     Data->Level.MovableObjects[i].dx = ((struct playerData*)Data->Level.MovableObjects[i].ObjectData)->vx * dt;
                     Data->Level.MovableObjects[i].dy = ((struct playerData*)Data->Level.MovableObjects[i].ObjectData)->vy * dt;
-                    change_zones_for_movable(Data, i, 1.);
+                    change_zones_for_movable(&Data->Level, i, 1.);
                     break;
                 case motPARTICLE:
                     Data->Level.MovableObjects[i].dx = ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vx * dt;
                     Data->Level.MovableObjects[i].dy = ((struct particleData*)Data->Level.MovableObjects[i].ObjectData)->vy * dt;
-                    change_zones_for_movable(Data, i, 1.);
+                    change_zones_for_movable(&Data->Level, i, 1.);
                     break;
                 default:
                     ;
@@ -621,8 +621,8 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
     fast_read_set primitive_done, movable_done;
     int collisions_this_turn;
 
-    initialize_fast_read_set(&primitive_done, Data->Level.number_of_primitive_objects);
-    initialize_fast_read_set(&movable_done, Data->Level.number_of_movable_objects);
+    construct_fast_read_set(&primitive_done, Data->Level.number_of_primitive_objects);
+    construct_fast_read_set(&movable_done, Data->Level.number_of_movable_objects);
 
     StopThread(2, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -707,7 +707,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
             //Collide  avec:
             //new dx,dy
             collide(Data, coll.who, coll.with, coll.with_movable, Data->Level.dt);
-            change_zones_for_movable(Data, coll.who, 1 - time);
+            change_zones_for_movable(&Data->Level, coll.who, 1 - time);
 
             //clear collision tree
             coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
@@ -721,7 +721,7 @@ void* iteration_2(ALLEGRO_THREAD *thread, void *argument){
                 temp = coll.with;
                 coll.with = coll.who;
                 coll.who = temp;
-                change_zones_for_movable(Data, coll.who, 1 - time);
+                change_zones_for_movable(&Data->Level, coll.who, 1 - time);
                 coll_delete_node(&Data->Level.MovableObjects[coll.who].colls_with_mov, &coll);
                 coll_clear_trash(Data, Data->Level.MovableObjects[coll.who].colls_with_mov.root,
                                        Data->Level.MovableObjects[coll.who].colls_with_mov.nil);

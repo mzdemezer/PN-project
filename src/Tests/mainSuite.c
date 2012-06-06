@@ -201,6 +201,7 @@ void testnormTrue08(CuTest *tc){
     CuAssertTrue(tc, abs(norm(-dwaPI * 300 + PI34) - PI34) < eps);
 }
 
+extern void in_order(RB_node *node, RB_node *nil);
 
 void testRBtree_in_order(CuTest *tc){
     RB_tree tree;
@@ -379,6 +380,10 @@ void testRBtree_massive_absurd_delete(CuTest *tc){
     CuAssertTrue(tc, tree.root->key == 100);
     free(tree.nil);
 }
+
+#define heap_left(i) (i << 1)
+#define heap_right(i) ((i << 1 ) | 1)
+#define heap_parent(i) (i >> 1)
 
 void test_heap_left01(CuTest *tc){
     CuAssertTrue(tc, heap_left(1) == 2);
@@ -898,7 +903,7 @@ void test_fast_read_set01(CuTest *tc){
     short int i;
     fast_read_set set;
     printf("\nFast-read-set test#01 - elements 0-19: set_mark\nmarked: 0, 2, 5, 12, 19\n\tarray read directly:\n");
-    initialize_fast_read_set(&set, 20);
+    construct_fast_read_set(&set, 20);
     set_mark(&set, 5);
     set_mark(&set, 0);
     set_mark(&set, 2);
@@ -916,7 +921,7 @@ void test_fast_read_set02(CuTest *tc){
     short int i;
     fast_read_set set;
     printf("\nFast-read-set test#02 - elements 0-19: is_marked\nmarked: 3, 4, 8, 14, 18\n\tarray read by is_marked:\n");
-    initialize_fast_read_set(&set, 20);
+    construct_fast_read_set(&set, 20);
     set_mark(&set, 18);
     set_mark(&set, 3);
     set_mark(&set, 8);
@@ -934,7 +939,7 @@ void test_fast_read_set03(CuTest *tc){
     short int i;
     fast_read_set set;
     printf("\nFast-read-set test#03 - elements 0-19: reset\nmarked: 0-9, 12, 15, 17, 19\narray read by is_marked:\n");
-    initialize_fast_read_set(&set, 20);
+    construct_fast_read_set(&set, 20);
     for(i = 0; i < 10; ++i){
         set_mark(&set, i);
     }
@@ -965,7 +970,7 @@ void test_fast_read_set04(CuTest *tc){
     short int i, j;
     fast_read_set set;
     printf("\nFast-read-set test#04 - elements 0-19: unique_insert\nmarked: 0-14 repeated 50 times\narray read by is_marked:\n");
-    initialize_fast_read_set(&set, 20);
+    construct_fast_read_set(&set, 20);
     for(j = 0; j < 50; ++j){
         for(i = 0; i < 15; ++i){
             set_mark(&set, i);
