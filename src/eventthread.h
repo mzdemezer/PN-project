@@ -1,0 +1,11 @@
+#ifndef _INCLUDE_EVENTTHREAD_H
+#define _INCLUDE_EVENTTHREAD_H
+
+#include <allegro5/allegro.h>
+
+void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg);
+void new_game_activate(void *argument);
+void exit_activate(void *argument);
+void return_to_game_activate(void *argument);
+
+#endif

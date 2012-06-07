@@ -2,9 +2,13 @@
 
 #include "CuTest.h"
 
-extern CuSuite* mainGetSuite(void);
-extern CuSuite* menuGetSuite(void);
-extern CuSuite* gameGetSuite(void);
+extern CuSuite* RBtreeGetSuite(void);
+extern CuSuite* stringprocessingGetSuite(void);
+extern CuSuite* mathematicsGetSuite(void);
+extern CuSuite* heapGetSuite(void);
+extern CuSuite* fastreadsetGetSuite(void);
+extern CuSuite* levelGetSuite(void);
+extern CuSuite* collisionsGetSuite(void);
 
 void RunAllTests(void)
 {
@@ -12,11 +16,13 @@ void RunAllTests(void)
 	CuSuite* suite = CuSuiteNew();
 
 	//suites adding
-    CuSuiteAddSuite(suite, mainGetSuite());
-    CuSuiteAddSuite(suite, menuGetSuite());
-    CuSuiteAddSuite(suite, gameGetSuite());
-
-
+    CuSuiteAddSuite(suite, RBtreeGetSuite());
+    CuSuiteAddSuite(suite, stringprocessingGetSuite());
+    CuSuiteAddSuite(suite, mathematicsGetSuite());
+    CuSuiteAddSuite(suite, heapGetSuite());
+    CuSuiteAddSuite(suite, fastreadsetGetSuite());
+    CuSuiteAddSuite(suite, levelGetSuite());
+    CuSuiteAddSuite(suite, collisionsGetSuite());
 
 	CuSuiteRun(suite);
 	CuSuiteSummary(suite, output);

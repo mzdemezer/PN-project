@@ -1,13 +1,15 @@
 #ifndef _INCLUDE_LOADING_H
 #define _INCLUDE_LOADING_H
 
-void read_line(char *, ALLEGRO_FILE *);
-void read_color(char *, ALLEGRO_FILE *, ALLEGRO_COLOR *, int, const char *, int);
+#define ERROR_COLOR al_map_rgb(128, 128, 128)
+#define DEFAULT_BACKGROUND_COLOR al_map_rgb(0, 0, 80)
+
+#define DEFAULT_FLUID_DENSITY 0.001
+
 void* load_level(ALLEGRO_THREAD *, void *);
-void draw_level_background(struct GameSharedData *);
-void load_level_from_file(struct GameSharedData *);
-void draw_loading(struct GameSharedData *);
-void handle_event_loading(struct GameSharedData *);
-void request_loading(struct GameSharedData *);
+void draw_level_background(game_shared_data *);
+void load_level_from_file(game_shared_data *);
+void draw_loading(game_shared_data *);
+void load_and_initialize_level(game_shared_data *Data);
 
 #endif

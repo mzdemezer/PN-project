@@ -8,10 +8,10 @@
 /**
     Collision structure comparisons
     reverse compare is when the collision
-    data is in different trees - who and with
+    Data is in different trees - who and with
     fields have swapped values then
     */
-short int coll_comp(struct collision_data *a, struct collision_data *b){
+short int coll_comp(collision_data *a, collision_data *b){
     if(a->time < b->time){
         return LESS;
     }else if(a->time > b->time){
@@ -39,7 +39,7 @@ short int coll_comp(struct collision_data *a, struct collision_data *b){
     }
 }
 
-short int coll_rev_comp(struct collision_data *a, struct collision_data *b){
+short int coll_rev_comp(collision_data *a, collision_data *b){
     if(a->time < b->time){
         return LESS;
     }else if(a->time > b->time){
@@ -74,25 +74,22 @@ short int coll_rev_comp(struct collision_data *a, struct collision_data *b){
 /**
     Private methods
     */
-#define heap_left(i) (i << 1)
-#define heap_right(i) ((i << 1 ) | 1)
-#define heap_parent(i) (i >> 1)
-void heapify(struct collision_heap* heap, short int i);
+void heapify(collision_heap* heap, short int i);
 
 /**
     Code
     */
-void construct_heap(struct collision_heap* heap, int size){
+void construct_heap(collision_heap* heap, int size){
     heap->allocated = size;
     heap->length = 0;
-    heap->heap = (struct collision_data*)malloc(sizeof(struct collision_data) * (size + 1));
+    heap->heap = (collision_data*)malloc(sizeof(collision_data) * (size + 1));
 }
 
-void destroy_heap(struct collision_heap* heap){
+void destroy_heap(collision_heap* heap){
     free(heap->heap);
 }
 
-void heapify(struct collision_heap* heap, short int i){
+void heapify(collision_heap* heap, short int i){
     short int l = heap_left(i),
               r = heap_right(i),
               largest;
@@ -105,7 +102,7 @@ void heapify(struct collision_heap* heap, short int i){
         largest = r;
     }
     if(largest != i){
-        struct collision_data temp;
+        collision_data temp;
         temp = heap->heap[i];
         heap->heap[i] = heap->heap[largest];
         heap->heap[largest] = temp;
@@ -113,15 +110,15 @@ void heapify(struct collision_heap* heap, short int i){
     }
 }
 
-void build_heap(struct collision_heap* heap){
+void build_heap(collision_heap* heap){
     int i;
     for(i = heap->length >> 1; i >= 1; --i){
         heapify(heap, i);
     }
 }
 
-struct collision_data pop_min(struct collision_heap* heap){
-    struct collision_data min;
+collision_data pop_min(collision_heap* heap){
+    collision_data min;
     if(heap->length < 1){//error
         min.time = 10;
         return min;
@@ -133,11 +130,11 @@ struct collision_data pop_min(struct collision_heap* heap){
     return min;
 }
 
-void heap_insert(struct collision_heap* heap, struct collision_data *collision){
+void heap_insert(collision_heap* heap, collision_data *collision){
     heap->length += 1;
     if(heap->length > heap->allocated){
         heap->allocated *= 2;
-        heap->heap = (struct collision_data*)realloc(heap->heap, sizeof(struct collision_data) * (heap->allocated + 1));
+        heap->heap = (collision_data*)realloc(heap->heap, sizeof(collision_data) * (heap->allocated + 1));
     }
     int i = heap->length;
     while(i > 1 && heap->heap[heap_parent(i)].time > collision->time){
@@ -157,7 +154,31 @@ void heap_insert(struct collision_heap* heap, struct collision_data *collision){
     }
 }
 
-void clear_heap(struct collision_heap* heap){
+/**
+    Just put into array, without caring about heap structure.
+    Later it's possible to fire  build_heap
+    */
+void heap_add(collision_heap *heap, collision_data *collision){
+    heap->length += 1;
+    int i = heap->length;
+    if(heap->length > heap->allocated){
+        heap->allocated *= 2;
+        heap->heap = (collision_data*)realloc(heap->heap, sizeof(collision_data) * (heap->allocated + 1));
+    }
+    heap->heap[i] = *collision;
+    /**
+        Keeping who > with order for movables
+        */
+    if(heap->heap[i].with_movable){
+        if(heap->heap[i].with < heap->heap[i].who){
+            short int temp = heap->heap[i].who;
+            heap->heap[i].who = heap->heap[i].with;
+            heap->heap[i].with = temp;
+        }
+    }
+}
+
+void clear_heap(collision_heap* heap){
     heap->length = 0;
 }
 
@@ -168,7 +189,7 @@ void clear_heap(struct collision_heap* heap){
 /**
     Private methods
     */
-coll_node* coll_get_node(coll_tree *tree, struct collision_data *key);
+coll_node* coll_get_node(coll_tree *tree, collision_data *key);
 coll_node* coll_get_successor(coll_node *node, coll_node *nil);
 inline bool coll_is_left(coll_node *node);
 void coll_delete_fixup(coll_tree *tree, coll_node *node);
@@ -180,7 +201,7 @@ void coll_rotate_right(coll_tree *tree, coll_node *node);
     Code
     */
 
-coll_node* coll_get_node(coll_tree *tree, struct collision_data *key){
+coll_node* coll_get_node(coll_tree *tree, collision_data *key){
     coll_node *node = tree->root;
     short int comp;
     while(node != tree->nil){
@@ -218,7 +239,7 @@ coll_node* coll_get_successor(coll_node *node, coll_node *nil){
     }
 }
 
-void coll_insert_node(coll_tree *tree, struct collision_data *key){
+void coll_insert_node(coll_tree *tree, collision_data *key){
     coll_node *node = tree->root,
               *last = tree->nil;
     short int comp = LESS;
@@ -294,7 +315,7 @@ void coll_insert_node(coll_tree *tree, struct collision_data *key){
     }
 }
 
-bool coll_delete_node(coll_tree *tree, struct collision_data *key){
+bool coll_delete_node(coll_tree *tree, collision_data *key){
     coll_node *node = coll_get_node(tree, key);
     if(node == tree->nil){
         return false;

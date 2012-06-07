@@ -1,26 +1,89 @@
 #ifndef _INCLUDE_MENU_H
 #define _INCLUDE_MENU_H
 
-void normalize_menu_selection(struct menu_structure *);
-void handle_event_menu(struct GameSharedData*);
+/**
+    Negatives values are for configuration menus
+    */
 
-void new_game_activate(void *argument);
-void exit_activate(void *argument);
-void return_to_game_activate(void *argument);
+#define DEEPEST_MENU_LEVEL 2
 
-void scale_fonts(struct GameSharedData*);
-void rescale_bitmaps(struct GameSharedData *);
-void change_resolution(struct GameSharedData *);
-void resolution_activate(void*);
-void stringify_resolution(const ALLEGRO_DISPLAY_MODE *, char*);
+#define MAIN_MENU_SIZE 4
+#define OPTIONS_MENU_SIZE 4
+#define GRAPHIC_MENU_SIZE -2
+#define HIGH_SCORES_MENU_SIZE 1
+#define SOUND_MENU_SIZE -1
+#define CONTROLS_MENU_SIZE -1
 
-void restore_current_settings(struct GameSharedData *);
-void change_menu(struct GameSharedData *, struct menu_elem *, int);
-void return_menu(struct GameSharedData *);
-void clear_menu();
-void draw_menu_content(struct GameSharedData *Data);
-void draw_menu(struct GameSharedData* Data);
-void clear_paused_menu(struct GameSharedData *Data);
-void draw_pause(struct GameSharedData *Data);
+typedef enum menu_elem_type{
+    metSUBMENU,
+    metACTIVATE,
+    metUPDOWN
+}menu_elem_type;
+
+/**
+    For descriptor the first byte - type -
+    is the number of elements in array,
+    for the rest is the information how to
+    cast activate pointer - on function or
+    on other menu for submenu.
+    */
+typedef struct menu_elem{
+    menu_elem_type type;
+    char *name;
+    void (*activate)(void*);
+}menu_elem;
+
+enum main_menu_elems{
+    mmeDESCRIPTOR,
+    mmeNEWGAME,
+    mmeOPTIONS,
+    mmeHIGHSCORES,
+    mmeEXIT,
+    mmeRETURN
+};
+
+enum options_menu_elems{
+    omeDESCRIPTOR,
+    omeGRAPHIC,
+    omeSOUND,
+    omeCONTROLS,
+    omeRETURN
+};
+
+enum graphic_menu_elems{
+    gmeDESCRIPTOR,
+    gmeRESOLUTION,
+    gmeRETURN
+};
+
+enum sound_menu_elems{
+    smeDESCRIPTOR,
+    smeRETURN
+};
+
+enum controls_menu_elems{
+    cmeDESCRIPTOR,
+    cmeRETURN
+};
+
+enum high_scores_menu_elems{
+    hsmeDESCRIPTOR,
+    hsmeRETURN
+};
+
+typedef struct menu_structure{
+    menu_elem *current_menu;
+    int current_elem;
+}menu_structure;
+
+/**
+    Public methods
+    */
+menu_elem *create_menu();
+void destroy_menu(menu_structure *menu);
+void make_main_menu_unpause(menu_structure *menu);
+void make_main_menu_pause_menu(menu_structure *menu);
+
+void normalize_menu_selection(menu_structure *);
 
 #endif
