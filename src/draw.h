@@ -3,6 +3,8 @@
 
 #include "structures/gameshareddata.h"
 
+#define DEFAULT_BACKGROUND_COLOR al_map_rgb(0, 0, 80)
+
 /**
     Drawing game states
     */
@@ -13,20 +15,18 @@ void draw(void (*func)(game_shared_data *), game_shared_data *Data);
 void synchronized_draw(void (*func)(game_shared_data *), game_shared_data *Data);
 
 /**
-    Draw menu
+    Draw functions in varius game states
     */
 void draw_menu(game_shared_data* Data);
 void draw_pause(game_shared_data *Data);
-void clear_menu();
-void clear_paused_menu(game_shared_data *Data);
-void draw_menu_content(game_shared_data *Data);
+void draw_score(game_shared_data *Data);
+void draw_end_level(game_shared_data *Data);
+void draw_loading(game_shared_data *Data);
+void draw_game(game_shared_data *Data);
 
-/**
-    Draw game
-    */
-void draw_game(game_shared_data *);
+void draw_content_to_background(void (*draw_func)(game_shared_data *), game_shared_data *Data);
 
-
+void draw_level_background(game_shared_data *Data);
 /**
     Scalling with linear filtering
     */

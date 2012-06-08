@@ -25,7 +25,8 @@
 typedef enum primitive_object_type{
     potSEGMENT,
     potPOINT,
-    potCIRCLE
+    potCIRCLE,
+    potEXIT
 }primitive_object_type;
 
 typedef struct primitive_object_structure{
@@ -81,6 +82,7 @@ typedef struct movable_object{
 #define dANG 0.06981 //4 degrees
 #define PLAYER_MASS 600
 #define PLAYER_RADIUS 20
+#define PLAYER_HP 1000
 typedef struct movable_player{
     point center;
     double r, vx, vy;
@@ -89,6 +91,7 @@ typedef struct movable_player{
     double mass,
           charge,
           r0;
+    double HP;
 }movable_player;
 
 typedef enum switch_type{
@@ -197,6 +200,10 @@ typedef struct fixed_exit{
     ALLEGRO_COLOR color;
 }fixed_exit;
 
+typedef struct prim_exit{
+    fixed_exit *fixed_data;
+    bool done;
+}prim_exit;
 
 typedef struct object_workshop{
     movable_player *new_player;
@@ -213,6 +220,10 @@ typedef struct object_workshop{
 /**
     Constructing
     */
+point* construct_point();
+segment* construct_segment(const point *A, const point *B);
+prim_exit* construct_prim_exit(fixed_exit *);
+
 void construct_circle(fixed_object *);
 void construct_square(fixed_object *);
 void construct_rectangle(fixed_object *);

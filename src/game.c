@@ -92,8 +92,9 @@ void terminate_iteration(game_shared_data *Data){
         al_broadcast_cond(Data->cond_main_iteration);
     al_unlock_mutex(Data->mutex_main_iteration);
     al_destroy_thread(Data->thread_main_iteration);
+
     /**
-        Clean-up direly needed!!!!
+        Clean-up
         */
     clear_level(&Data->level);
 }
@@ -279,113 +280,126 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         /**
             Main iteration thread after-work
             */
+        al_lock_mutex(Data->mutex_main_iteration);
+        if(Data->level.player->HP <= 0){
+                Data->level.victory = false;
+                Data->level.at_exit = true;
+                Data->level.score.level_number += 1;
+            al_unlock_mutex(Data->mutex_main_iteration);
+            Data->level.sum_time += al_get_time() - Data->level.start_time;
+        }else if(Data->level.at_exit){
+                Data->level.victory = true;
+                Data->level.score.score += Data->level.player->HP;
+            al_unlock_mutex(Data->mutex_main_iteration);
+            Data->level.sum_time += al_get_time() - Data->level.start_time;
+        }else{
+            al_unlock_mutex(Data->mutex_main_iteration);
+            for(i = 0; i < Data->level.number_of_movable_objects; ++i){
+                if(get_drag_data(&(Data->level.movable_objects[i]), &vx, &vy, &Cx, &S)){
+                    Cx = S * Cx * Data->level.dens;
+                    vx = Data->level.wind_vx - vx;
+                    acc[i].ax[4] = vx * 3 * Cx * coefficient_multiplier(vx);
+                    vy = Data->level.wind_vy - vy;
+                    acc[i].ay[4] = vy * 3 * Cx * coefficient_multiplier(vy);
+                }
+                switch(Data->level.movable_objects[i].type){
+                    case motPLAYER:
+                        #define obj_data ((movable_player*)(Data->level.movable_objects[i].object_data))
+                        op = obj_data->mass;
+                        acc[i].ax[(int)parity] = acc[i].ax[2];
+                        for(j = 3; j < ACC_2nd_DIM; ++j){
+                            acc[i].ax[(int)parity] += acc[i].ax[j];
+                        }
+                        acc[i].ax[(int)parity] /= op;
 
-        for(i = 0; i < Data->level.number_of_movable_objects; ++i){
-            if(get_drag_data(&(Data->level.movable_objects[i]), &vx, &vy, &Cx, &S)){
-                Cx = S * Cx * Data->level.dens;
-                vx = Data->level.wind_vx - vx;
-                acc[i].ax[4] = vx * 3 * Cx * coefficient_multiplier(vx);
-                vy = Data->level.wind_vy - vy;
-                acc[i].ay[4] = vy * 3 * Cx * coefficient_multiplier(vy);
-            }
-            switch(Data->level.movable_objects[i].type){
-                case motPLAYER:
-                    #define obj_data ((movable_player*)(Data->level.movable_objects[i].object_data))
-                    op = obj_data->mass;
-                    acc[i].ax[(int)parity] = acc[i].ax[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        acc[i].ax[(int)parity] += acc[i].ax[j];
-                    }
-                    acc[i].ax[(int)parity] /= op;
+                        acc[i].ay[(int)parity] = acc[i].ay[2];
+                        for(j = 3; j < ACC_2nd_DIM; ++j){
+                            acc[i].ay[(int)parity] += acc[i].ay[j];
+                        }
+                        acc[i].ay[(int)parity] /= op;
 
-                    acc[i].ay[(int)parity] = acc[i].ay[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        acc[i].ay[(int)parity] += acc[i].ay[j];
-                    }
-                    acc[i].ay[(int)parity] /= op;
+                        obj_data->vx += (acc[i].ax[(int)parity] + acc[i].ax[(int)imparity]) * half_dt;
+                        obj_data->vy += (acc[i].ay[(int)parity] + acc[i].ay[(int)imparity]) * half_dt;
 
-                    obj_data->vx += (acc[i].ax[(int)parity] + acc[i].ax[(int)imparity]) * half_dt;
-                    obj_data->vy += (acc[i].ay[(int)parity] + acc[i].ay[(int)imparity]) * half_dt;
+                        /**
+                            Simple bounce - to delete this I need better separation algorithm
+                            */
+                        if(obj_data->center.x - obj_data->r <= 0){
+                            obj_data->center.x = obj_data->r + obj_data->r - obj_data->center.x;
+                            if(obj_data->vx < 0){
+                               obj_data->vx *= -PLAYER_TO_WALL_RESTITUTION;
+                            }
+                        }else if(obj_data->center.x + obj_data->r >= SCREEN_BUFFER_HEIGHT){
+                            obj_data->center.x = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.x + obj_data->r + obj_data->r);
+                            if(obj_data->vx > 0){
+                               obj_data->vx *= -PLAYER_TO_WALL_RESTITUTION;
+                            }
+                        }
+                        if(obj_data->center.y - obj_data->r <= 0){
+                            obj_data->center.y = obj_data->r + obj_data->r - obj_data->center.y;
+                            if(obj_data->vy < 0){
+                               obj_data->vy *= -PLAYER_TO_WALL_RESTITUTION;
+                            }
+                        }else if(obj_data->center.y + obj_data->r >= SCREEN_BUFFER_HEIGHT){
+                            obj_data->center.y = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.y + obj_data->r + obj_data->r);
+                            if(obj_data->vy > 0){
+                               obj_data->vy *= -PLAYER_TO_WALL_RESTITUTION;
+                            }
+                        }
+                        #undef obj_data
+                        break;
+                    case motPARTICLE:
+                        #define obj_data ((movable_particle*)(Data->level.movable_objects[i].object_data))
+                        op = obj_data->mass;
+                        acc[i].ax[(int)parity] = acc[i].ax[2];
+                        for(j = 3; j < ACC_2nd_DIM; ++j){
+                            acc[i].ax[(int)parity] += acc[i].ax[j];
+                        }
+                        acc[i].ax[(int)parity] /= op;
 
-                    /**
-                        Simple bounce - to delete this I need better separation algorithm
-                        */
-                    if(obj_data->center.x - obj_data->r <= 0){
-                        obj_data->center.x = obj_data->r + obj_data->r - obj_data->center.x;
-                        if(obj_data->vx < 0){
-                           obj_data->vx *= -PLAYER_TO_WALL_RESTITUTION;
+                        acc[i].ay[(int)parity] = acc[i].ay[2];
+                        for(j = 3; j < ACC_2nd_DIM; ++j){
+                            acc[i].ay[(int)parity] += acc[i].ay[j];
                         }
-                    }else if(obj_data->center.x + obj_data->r >= SCREEN_BUFFER_HEIGHT){
-                        obj_data->center.x = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.x + obj_data->r + obj_data->r);
-                        if(obj_data->vx > 0){
-                           obj_data->vx *= -PLAYER_TO_WALL_RESTITUTION;
-                        }
-                    }
-                    if(obj_data->center.y - obj_data->r <= 0){
-                        obj_data->center.y = obj_data->r + obj_data->r - obj_data->center.y;
-                        if(obj_data->vy < 0){
-                           obj_data->vy *= -PLAYER_TO_WALL_RESTITUTION;
-                        }
-                    }else if(obj_data->center.y + obj_data->r >= SCREEN_BUFFER_HEIGHT){
-                        obj_data->center.y = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.y + obj_data->r + obj_data->r);
-                        if(obj_data->vy > 0){
-                           obj_data->vy *= -PLAYER_TO_WALL_RESTITUTION;
-                        }
-                    }
-                    #undef obj_data
-                    break;
-                case motPARTICLE:
-                    #define obj_data ((movable_particle*)(Data->level.movable_objects[i].object_data))
-                    op = obj_data->mass;
-                    acc[i].ax[(int)parity] = acc[i].ax[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        acc[i].ax[(int)parity] += acc[i].ax[j];
-                    }
-                    acc[i].ax[(int)parity] /= op;
+                        acc[i].ay[(int)parity] /= op;
 
-                    acc[i].ay[(int)parity] = acc[i].ay[2];
-                    for(j = 3; j < ACC_2nd_DIM; ++j){
-                        acc[i].ay[(int)parity] += acc[i].ay[j];
-                    }
-                    acc[i].ay[(int)parity] /= op;
+                        obj_data->vx += (acc[i].ax[(int)parity] + acc[i].ax[(int)imparity]) * half_dt;
+                        obj_data->vy += (acc[i].ay[(int)parity] + acc[i].ay[(int)imparity]) * half_dt;
 
-                    obj_data->vx += (acc[i].ax[(int)parity] + acc[i].ax[(int)imparity]) * half_dt;
-                    obj_data->vy += (acc[i].ay[(int)parity] + acc[i].ay[(int)imparity]) * half_dt;
-
-                    /**
-                        Simple bounce - just in case, segments are not perfect!
-                        */
-                    if(obj_data->center.x - obj_data->r <= 0){
-                        obj_data->center.x = obj_data->r + obj_data->r - obj_data->center.x;
-                        if(obj_data->vx < 0){
-                           obj_data->vx *= -PARTICLE_TO_WALL_RESTITUTION;
+                        /**
+                            Simple bounce - just in case, segments are not perfect!
+                            */
+                        if(obj_data->center.x - obj_data->r <= 0){
+                            obj_data->center.x = obj_data->r + obj_data->r - obj_data->center.x;
+                            if(obj_data->vx < 0){
+                               obj_data->vx *= -PARTICLE_TO_WALL_RESTITUTION;
+                            }
+                        }else if(obj_data->center.x + obj_data->r >= SCREEN_BUFFER_HEIGHT){
+                            obj_data->center.x = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.x + obj_data->r + obj_data->r);
+                            if(obj_data->vx > 0){
+                               obj_data->vx *= -PARTICLE_TO_WALL_RESTITUTION;
+                            }
                         }
-                    }else if(obj_data->center.x + obj_data->r >= SCREEN_BUFFER_HEIGHT){
-                        obj_data->center.x = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.x + obj_data->r + obj_data->r);
-                        if(obj_data->vx > 0){
-                           obj_data->vx *= -PARTICLE_TO_WALL_RESTITUTION;
+                        if(obj_data->center.y - obj_data->r <= 0){
+                            obj_data->center.y = obj_data->r + obj_data->r - obj_data->center.y;
+                            if(obj_data->vy < 0){
+                               obj_data->vy *= -PARTICLE_TO_WALL_RESTITUTION;
+                            }
+                        }else if(obj_data->center.y + obj_data->r >= SCREEN_BUFFER_HEIGHT){
+                            obj_data->center.y = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.y + obj_data->r + obj_data->r);
+                            if(obj_data->vy > 0){
+                               obj_data->vy *= -PARTICLE_TO_WALL_RESTITUTION;
+                            }
                         }
-                    }
-                    if(obj_data->center.y - obj_data->r <= 0){
-                        obj_data->center.y = obj_data->r + obj_data->r - obj_data->center.y;
-                        if(obj_data->vy < 0){
-                           obj_data->vy *= -PARTICLE_TO_WALL_RESTITUTION;
-                        }
-                    }else if(obj_data->center.y + obj_data->r >= SCREEN_BUFFER_HEIGHT){
-                        obj_data->center.y = 2 * SCREEN_BUFFER_HEIGHT - (obj_data->center.y + obj_data->r + obj_data->r);
-                        if(obj_data->vy > 0){
-                           obj_data->vy *= -PARTICLE_TO_WALL_RESTITUTION;
-                        }
-                    }
-                    #undef obj_data
-                    break;
-                case motSWITCH:
-                    break;
-                case motDOOR:
-                    break;
+                        #undef obj_data
+                        break;
+                    case motSWITCH:
+                        break;
+                    case motDOOR:
+                        break;
+                }
             }
         }
-
         /**
             Ready to draw
             */
@@ -626,6 +640,9 @@ void* compute_collisions(ALLEGRO_THREAD *thread, void *argument){
             time = coll.time;
 
             collide(&Data->level, coll.who, coll.with, coll.with_movable, Data->level.dt);
+            if(Data->level.at_exit){
+                break;
+            }
             change_zones_for_movable(&Data->level, coll.who, 1 - time);
 
             coll_delete_node(&Data->level.movable_objects[coll.who].colls_with_mov, &coll);
@@ -658,10 +675,11 @@ void* compute_collisions(ALLEGRO_THREAD *thread, void *argument){
             }
         }
 
-        if(time < 1){
+        if((time < 1) && !Data->level.at_exit){
             move_objects(&Data->level, 1 - time);
         }
         coll_clear_tree(&Data->level.dirty_tree);
+        clear_heap(&Data->level.collision_queue);
         /**
             Signal and stop
             */

@@ -9,6 +9,7 @@
     */
 void player_get_dx_dy(movable_object *obj, double dt);
 void particle_get_dx_dy(movable_object *obj, double dt);
+void count_hp(movable_player *, double d_vx, double d_vy);
 
 /**
     Code
@@ -21,11 +22,20 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     #define WITH_POINT ((point*)level->primitive_objects[with].object_data)
     #define WITH_SEGMENT ((segment*)level->primitive_objects[with].object_data)
     #define WITH_CIRCLE ((circle*)level->primitive_objects[with].object_data)
+    #define WITH_EXIT ((prim_exit*)level->primitive_objects[with].object_data)
+    double player_d_vx,
+           player_d_vy,
+           with_d_vx,
+           with_d_vy;
     if(with_movable){
         switch(level->movable_objects[who].type){
             case motPLAYER:
+                player_d_vx = WHO_PLAYER->vx;
+                player_d_vy = WHO_PLAYER->vy;
                 switch(level->movable_objects[with].type){
                     case motPLAYER:
+                        with_d_vx = WITH_PLAYER->vx;
+                        with_d_vy = WITH_PLAYER->vy;
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
                                            WHO_PLAYER->r + WITH_PLAYER->r);
@@ -37,7 +47,9 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                  PLAYER_TO_PLAYER_RESTITUTION);
                         player_get_dx_dy(&level->movable_objects[who], dt);
                         player_get_dx_dy(&level->movable_objects[with], dt);
-
+                        with_d_vx = WITH_PLAYER->vx - with_d_vx;
+                        with_d_vy = WITH_PLAYER->vy - with_d_vy;
+                        count_hp(WITH_PLAYER, with_d_vx, with_d_vy);
                         break;
                     case motPARTICLE:
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
@@ -55,10 +67,15 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                     default:
                         break;
                 }
+                player_d_vx = WHO_PLAYER->vx - player_d_vx;
+                player_d_vy = WHO_PLAYER->vy - player_d_vy;
+                count_hp(WHO_PLAYER, player_d_vx, player_d_vy);
                 break;
             case motPARTICLE:
                 switch(level->movable_objects[with].type){
                     case motPLAYER:
+                        with_d_vx = WITH_PLAYER->vx;
+                        with_d_vy = WITH_PLAYER->vy;
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
                                            WHO_PARTICLE->r + WITH_PLAYER->r);
@@ -70,6 +87,9 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&level->movable_objects[who], dt);
                         player_get_dx_dy(&level->movable_objects[with], dt);
+                        with_d_vx = WITH_PLAYER->vx - with_d_vx;
+                        with_d_vy = WITH_PLAYER->vy - with_d_vy;
+                        count_hp(WITH_PLAYER, with_d_vx, with_d_vy);
                         break;
                     case motPARTICLE:
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
@@ -96,6 +116,8 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     }else{
         switch(level->movable_objects[who].type){
             case motPLAYER:
+                player_d_vx = WHO_PLAYER->vx;
+                player_d_vy = WHO_PLAYER->vy;
                 switch(level->primitive_objects[with].type){
                     case potPOINT:
                         separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
@@ -119,8 +141,15 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                         WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
                                                                         PLAYER_TO_WALL_RESTITUTION);
                         break;
+                    case potEXIT:
+                        level->at_exit = true;
+                        WITH_EXIT->done = true;
+                        break;
                 }
                 player_get_dx_dy(&level->movable_objects[who], dt);
+                player_d_vx = WHO_PLAYER->vx - player_d_vx;
+                player_d_vy = WHO_PLAYER->vy - player_d_vy;
+                count_hp(WHO_PLAYER, player_d_vx, player_d_vy);
                 break;
             case motPARTICLE:
                 switch(level->primitive_objects[with].type){
@@ -146,6 +175,8 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                         WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
                                                                         PARTICLE_TO_WALL_RESTITUTION);
                         break;
+                    default:
+                        ;
                 }
                 particle_get_dx_dy(&level->movable_objects[who], dt);
                 break;
@@ -160,8 +191,15 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     #undef WITH_POINT
     #undef WITH_SEGMENT
     #undef WITH_CIRCLE
+    #undef WITH_EXIT
 }
 
+void count_hp(movable_player *player, double d_vx, double d_vy){
+    d_vx = d_vx * d_vx + d_vy * d_vy;
+    if( !(double_abs(d_vx) < eps) ){
+        player->HP -= d_vx * PLAYER_DAMAGE_MULTIPLIER;
+    }
+}
 /**
     After collision the ould collision tree
     with movables for given object still exists,
@@ -271,6 +309,7 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
     #define WITH_POINT ((point*)with_what->object_data)
     #define WITH_SEGMENT ((segment*)(with_what->object_data))
     #define WITH_CIRCLE ((circle*)with_what->object_data)
+    #define WITH_EXIT ((fixed_exit*)(((prim_exit*)with_what->object_data)->fixed_data))
     collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
     new_coll.with_movable = false;
@@ -291,6 +330,13 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
                                                                       WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
                                                                       who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r);
                     break;
+                case potEXIT:
+                    if(!((prim_exit*)with_what->object_data)->done){
+                        new_coll.time = check_exit(WITH_EXIT->center.x - WHO_PLAYER->center.x,
+                                                   WITH_EXIT->center.y - WHO_PLAYER->center.y,
+                                                   WITH_EXIT);
+                    }
+                    break;
             }
             break;
         case motPARTICLE:
@@ -309,6 +355,8 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
                                                                       WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
                                                                       who->dx, who->dy, WHO_PARTICLE->r + WITH_CIRCLE->r);
                     break;
+                default:
+                    ;
             }
             break;
         default:
@@ -319,6 +367,7 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
     #undef WITH_POINT
     #undef WITH_SEGMENT
     #undef WITH_CIRCLE
+    #undef WITH_EXIT
     return new_coll;
 }
 
@@ -546,6 +595,15 @@ double check_collision_between_ball_and_segment(double x, double y, double dx, d
     }
 }
 
+double check_exit(double dx, double dy, fixed_exit *ex){
+    double fi = vector_angle(dx, dy);
+    if(sqrt(dx * dx + dy * dy) - radius_rectangle(ex, fi) < 0){
+        return 0.01;
+    }
+    else{
+        return EMPTY_COLLISION_TIME;
+    }
+}
 /**
     Colliding
     */

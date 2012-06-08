@@ -9,6 +9,8 @@
 #define PLAYER_TO_WALL_RESTITUTION 0.8
 #define PARTICLE_TO_WALL_RESTITUTION 0.8
 
+#define PLAYER_DAMAGE_MULTIPLIER 0.0005
+
 #include "structures.h"
 
 /**
@@ -34,6 +36,7 @@ void in_order_check_collision(level_data *level, fast_read_set *movable_done,
     */
 double check_collision_between_two_balls(double x, double y, double dx, double dy, double d);
 double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, segment *seg);
+double check_exit(double dx, double dy, fixed_exit *ex);
 
 /**
     Colliding

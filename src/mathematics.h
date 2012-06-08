@@ -32,6 +32,7 @@ inline short int short_min(short int, short int);
 inline short int short_max(short int, short int);
 int rzad(int);
 inline int sign(double);
+inline short short_sign(short);
 double norm(double fi);
 double vector_angle(double, double);
 

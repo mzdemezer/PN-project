@@ -181,7 +181,7 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
         Initializing Data
         */
 
-    Data->debug_buffer[0] = '\0';
+    Data->buffer[0] = '\0';
 
     construct_level(&Data->level);
 

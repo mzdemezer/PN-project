@@ -6,12 +6,19 @@
 #include "../mathematics.h"
 
 /**
+    Private methods
+    */
+bool add_primitive_to_zones_as_segment(level_data *level, const point *A, const point *B,
+                                       short int prim);
+/**
     level structure
     */
 void construct_level(level_data *level){
-    level->levelNumber = 0;
     level->background = NULL;
     level->acc = NULL;
+    level->at_exit = false;
+    level->victory = false;
+    new_scores(&level->score);
 
     level->number_of_movable_objects = 0;
     level->number_of_fixed_objects = 0;
@@ -26,6 +33,20 @@ void construct_level(level_data *level){
     construct_heap(&level->collision_queue, INITIAL_OBJECT_COLLISION_QUEUE_SIZE);
     construct_zones(level);
     coll_construct_tree(&level->dirty_tree);
+}
+
+/**
+    This function is called after
+    loading level from file
+    */
+void initialize_level(level_data *level){
+    add_borders(level);
+    level->acc = (move_arrays*)malloc(sizeof(move_arrays) * level->number_of_movable_objects);
+    level->dens = DEFAULT_FLUID_DENSITY;
+    level->wind_vx = 0;
+    level->wind_vy = 0;
+    level->start_time = al_get_time();
+    level->sum_time = 0;
 }
 
 void destroy_level(level_data *level){
@@ -44,6 +65,7 @@ void destroy_level(level_data *level){
 void clear_level(level_data *level){
     free(level->acc);
     level->acc = NULL;
+    level->at_exit = false;
 
     clear_primitive_object_list(level);
     clear_fixed_object_list(level);
@@ -51,6 +73,26 @@ void clear_level(level_data *level){
     clear_heap(&level->collision_queue);
     coll_clear_tree(&level->dirty_tree);
     clear_zones(level);
+}
+
+/**
+    Scores
+    */
+/**
+    This is done explicitly, not in clear_level!!!!
+    */
+score_struct clear_score(score_struct *score){
+    score_struct res;
+    score->total_score += score->score;
+    res = *score;
+    score->score = 0;
+    return res;
+}
+
+void new_scores(score_struct *score){
+    score->score = 0;
+    score->total_score = 0;
+    score->level_number = 1;
 }
 
 /**
@@ -160,6 +202,8 @@ void delete_primitive_object(primitive_object *object){
         case potCIRCLE:
             free((circle*)object->object_data);
             break;
+        case potEXIT:
+            free((prim_exit*)object->object_data);
     }
 }
 
@@ -463,6 +507,57 @@ void normalize_segment_zones(short int *zones){
     */
 
 /**
+    Something universal; needs the segment points,
+    but adds  prim as anything you want - as it's
+    a number on the primitives list.
+    Returns true if at least a part of segment
+    intersects with the map, false if not or if
+    A == B
+    */
+bool add_primitive_to_zones_as_segment(level_data *level, const point *A, const point *B,
+                                       short int prim){
+    if(A->x != B->x || A->y != B->y){
+        short int zn[4];
+        if(get_outer_zones_of_segment(A, B, zn)){
+            normalize_segment_zones(zn);
+            short int i = short_sign(zn[3] - zn[1]),
+                      j;
+            if(zn[0] == zn[2]){//to simplify: vertical
+                for(j = zn[1]; j != zn[3]; j += i){
+                    add_primitive_to_zone(&level->zones[zn[0]][j], prim);
+                }
+                add_primitive_to_zone(&level->zones[zn[0]][zn[3]], prim);
+            }else if(zn[1] == zn[3]){//horizontal
+                short int j;
+                for(j = zn[0]; j != zn[2]; ++j){
+                    add_primitive_to_zone(&level->zones[j][zn[1]], prim);
+                }
+                add_primitive_to_zone(&level->zones[zn[2]][zn[1]], prim);
+            }else{
+                point bord_1, bord_2;
+                while(zn[0] < zn[2] ||
+                      short_sign(zn[3] - zn[1]) == i){
+                    add_primitive_to_zone(&level->zones[zn[0]][zn[1]], prim);
+
+                    bord_1.x = (zn[0] + 1) * ZONE_SIZE;
+                    bord_1.y = zn[1] * ZONE_SIZE;
+                    bord_2.x = bord_1.x;
+                    bord_2.y = bord_1.y + ZONE_SIZE;
+                    if(do_segments_intersect(&bord_1, &bord_2, A, B)){
+                        zn[0] += 1;
+                    }else{
+                        zn[1] += i;
+                    }
+                }
+                add_primitive_to_zone(&level->zones[zn[2]][zn[3]], prim);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
     This function does all the allocating
     and counting.
     If segment is outside the map
@@ -472,52 +567,13 @@ void normalize_segment_zones(short int *zones){
     At least it should be...
     */
 void add_segment(level_data *level, const point *A, const point *B){
-    if(A->x != B->x || A->y != B->y){
-        short int zones[4];
-        if(get_outer_zones_of_segment(A, B, zones)){
-            /**
-                When correct zones are set it's time to work
-                */
-            normalize_segment_zones(zones);
-            short int i = sign(zones[3] - zones[1]),
-                      key = level->number_of_primitive_objects;
-            segment *seg = (segment*)malloc(sizeof(segment));
-            seg->ang = vector_angle(B->x - A->x, B->y - A->y);
-            seg->A = *A;
-            seg->B = *B;
-            get_line_from_points(A->x, A->y, B->x, B->y, &seg->line_equation);
-            add_primitive_object(level, potSEGMENT, seg);
-            if(zones[0] == zones[2]){//to simplify: vertical
-                short int j;
-                for(j = zones[1]; j != zones[3]; j += i){
-                    add_primitive_to_zone(&level->zones[zones[0]][j], key);
-                }
-                add_primitive_to_zone(&level->zones[zones[0]][zones[3]], key);
-            }else if(zones[1] == zones[3]){//horizontal
-                short int j;
-                for(j = zones[0]; j != zones[2]; ++j){
-                    add_primitive_to_zone(&level->zones[j][zones[1]], key);
-                }
-                add_primitive_to_zone(&level->zones[zones[2]][zones[1]], key);
-            }else{
-                point bord_1, bord_2;
-                while(zones[0] < zones[2] ||
-                      sign(zones[3] - zones[1]) == i){
-                    add_primitive_to_zone(&level->zones[zones[0]][zones[1]], key);
-
-                    bord_1.x = (zones[0] + 1) * ZONE_SIZE;
-                    bord_1.y = zones[1] * ZONE_SIZE;
-                    bord_2.x = bord_1.x;
-                    bord_2.y = bord_1.y + ZONE_SIZE;
-                    if(do_segments_intersect(&bord_1, &bord_2, A, B)){
-                        zones[0] += 1;
-                    }else{
-                        zones[1] += i;
-                    }
-                }
-                add_primitive_to_zone(&level->zones[zones[2]][zones[3]], key);
-            }
-        }
+    /**
+        Reversed order: first check if there is anything to add to zones
+        then if it's true do it and at the end allocate the thing ^^
+        */
+    if(add_primitive_to_zones_as_segment(level, A, B, level->number_of_primitive_objects)){
+        segment *seg = construct_segment(A, B);
+        add_primitive_object(level, potSEGMENT, seg);
     }
 }
 
@@ -608,4 +664,17 @@ void add_rectangle(level_data *level, fixed_rectangle *rectangle){
     add_segment(level, rectangle->v2, rectangle->v3);
     add_segment(level, rectangle->v3, rectangle->v4);
     add_segment(level, rectangle->v4, rectangle->v1);
+}
+
+void add_exit(level_data *level, fixed_exit *ex){
+    short int key = level->number_of_primitive_objects;
+    bool flag = false;
+    flag |= add_primitive_to_zones_as_segment(level, ex->v1, ex->v2, key);
+    flag |= add_primitive_to_zones_as_segment(level, ex->v2, ex->v3, key);
+    flag |= add_primitive_to_zones_as_segment(level, ex->v3, ex->v4, key);
+    flag |= add_primitive_to_zones_as_segment(level, ex->v4, ex->v1, key);
+    if(flag){
+        prim_exit *pr_ex = construct_prim_exit(ex);
+        add_primitive_object(level, potEXIT, (void*)pr_ex);
+    }
 }

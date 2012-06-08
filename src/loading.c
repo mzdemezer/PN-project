@@ -4,6 +4,7 @@
 #include <allegro5/allegro.h>
 #include "main.h"
 #include "loading.h"
+#include "draw.h"
 
 /**
     Private methods
@@ -22,113 +23,51 @@ void* load_level(ALLEGRO_THREAD *thread, void *argument){
     synchronized_draw(draw_loading, Data);
 
     // Actual loading
-    load_and_initialize_level(Data);
+    if(!load_and_initialize_level(Data)){
+        al_lock_mutex(Data->mutex_change_state);
+            Data->request_change_state = true;
+            Data->new_state = gsSCORE;
+        al_unlock_mutex(Data->mutex_change_state);
+        printf("Loading failed, redirect to score\n");
+    }else{
+        Data->loading_state = 14;
 
-    Data->loading_state = 14;
-
-    printf("Loading finished\n");
-    al_lock_mutex(Data->mutex_change_state);
-        Data->new_state = gsGAME;
-        Data->request_change_state = true;
-    al_unlock_mutex(Data->mutex_change_state);
-
+        printf("Loading finished\n");
+        al_lock_mutex(Data->mutex_change_state);
+            Data->new_state = gsGAME;
+            Data->request_change_state = true;
+        al_unlock_mutex(Data->mutex_change_state);
+    }
     return NULL;
     #undef Data
 };
 
-void load_and_initialize_level(game_shared_data *Data){
-    add_borders(&Data->level);
-    load_level_from_file(Data);
-    special_call(draw_level_background, (void*)Data);
-
-    Data->loading_state = 10;
-
-    Data->level.acc = (move_arrays*)malloc(sizeof(move_arrays) * Data->level.number_of_movable_objects);
-    Data->level.dens = DEFAULT_FLUID_DENSITY;
-    Data->level.wind_vx = 0;
-    Data->level.wind_vy = 0;
-    Data->level.start_time = al_get_time();
-    Data->level.sum_time = 0;
-}
-
-/**
-    Load background, scale it, draw static objects
-    */
-void draw_level_background(game_shared_data *Data){
-    ALLEGRO_BITMAP *tempBitmap;
-    ALLEGRO_TRANSFORM tempT;
-
-    /**
-        Preparing bitmaps and loading the file
-        This is the place to destroy bitmaps - swap them
-        quickly for new ones when DrawThread is
-        busy... helping to do this :D
-        */
-    al_destroy_bitmap(Data->level.background);
-    Data->level.background = al_create_bitmap(Data->scales.scale_h, Data->scales.scale_h);
-    if(strcmp(Data->level.filename + 12, "0") == 0){
-        tempBitmap = NULL;
+bool load_and_initialize_level(game_shared_data *Data){
+    if(!load_level_from_file(Data)){
+        return false;
     }else{
-        tempBitmap = al_load_bitmap(Data->level.filename);
+        special_call(draw_level_background, (void*)Data);
+        Data->loading_state = 10;
+        initialize_level(&Data->level);
+        return true;
     }
-
-    /**
-        Scaling and drawing
-        */
-    al_lock_mutex(Data->mutex_draw);
-            Data->loading_state = 11;
-            draw(draw_loading, Data);
-        al_identity_transform(&tempT);
-        al_use_transform(&tempT);
-            al_set_target_bitmap(Data->level.background);
-            if(tempBitmap){
-                scale_bitmap(tempBitmap, Data->scales.scale_h, Data->scales.scale_h);
-                al_destroy_bitmap(tempBitmap);
-            }else{
-                al_clear_to_color(DEFAULT_BACKGROUND_COLOR);
-            }
-
-        al_use_transform(&Data->transformation);
-            al_set_target_backbuffer(Data->display);
-            Data->loading_state = 12;
-            draw(draw_loading, Data);
-        al_use_transform(&tempT);
-
-            tempBitmap = al_get_backbuffer(Data->display);
-            al_set_target_bitmap(tempBitmap);
-            al_draw_bitmap(Data->level.background, 0, 0, 0);
-
-        al_use_transform(&Data->transformation);
-            draw_all_fixed_objects(&Data->level);
-
-
-            al_set_target_bitmap(Data->level.background);
-        al_use_transform(&tempT);
-            al_draw_bitmap_region(tempBitmap, 0, 0, Data->scales.scale_h, Data->scales.scale_h, 0, 0, 0);
-
-            al_set_target_bitmap(tempBitmap);
-        al_use_transform(&Data->transformation);
-            Data->loading_state = 13;
-            draw(draw_loading, Data);
-    al_unlock_mutex(Data->mutex_draw);
 }
 
-void load_level_from_file(game_shared_data *Data){
+bool load_level_from_file(game_shared_data *Data){
     ALLEGRO_FILE *level;
     char buffer[1024];
     int n, i, op0, op1;
     object_workshop Factory;
 
     strcpy(buffer, "Data/levels/level");
-    int_to_str(Data->level.levelNumber, buffer + 17);
+    int_to_str(Data->level.score.level_number, buffer + 17);
     strcat(buffer, ".lev");
 
     level = al_fopen(buffer, "r");
 
     if (level == NULL) {
-        fprintf(stderr, "Failed to open %s\n", buffer);
-        Data->close_now = true;
-        return;
+        printf("Failed to open level: %s\n", buffer);
+        return false;
     }
 
     /**
@@ -272,6 +211,7 @@ void load_level_from_file(game_shared_data *Data){
         read_color(buffer, level, &Factory.new_exit->color, op0, "Invalid level input: rectangle#%d color\n", i);
 
         construct_rectangle(&Data->level.fixed_objects[Data->level.number_of_fixed_objects - 1]);
+        add_exit(&Data->level, Factory.new_exit);
     }
 
     Data->loading_state = 6;
@@ -386,6 +326,7 @@ void load_level_from_file(game_shared_data *Data){
 
     al_fclose(level);
     Data->loading_state = 9;
+    return true;
 }
 
 /**

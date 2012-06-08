@@ -29,6 +29,15 @@ void special_call(void (*function_to_call)(game_shared_data*), game_shared_data 
     al_unlock_mutex(Data->mutex_special_main_call);
 }
 
+void initialize_loading_thread(game_shared_data *Data, void* (*load_func)(ALLEGRO_THREAD *, void *)){
+    Data->thread_loading = NULL;
+    Data->thread_loading = al_create_thread(load_func, (void*)Data);
+}
+
+/**
+    Loading thread is intialized separetly,
+    at demand
+    */
 bool initialize_all_threads(game_shared_data *Data){
     Data->thread_event_queue = NULL;
     Data->thread_event_queue = al_create_thread(thread_event_queue_procedure, (void*)Data);

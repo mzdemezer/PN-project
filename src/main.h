@@ -32,6 +32,7 @@
 
 void special_call(void (*function_to_call)(game_shared_data *), game_shared_data*);
 bool initialize_all_threads(game_shared_data *);
+void initialize_loading_thread(game_shared_data *, void* (*)(ALLEGRO_THREAD *, void *));
 void start_game(game_shared_data *Data);
 
 #endif

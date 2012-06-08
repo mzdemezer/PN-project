@@ -25,7 +25,9 @@ typedef enum game_state{
     gsMENU,
     gsLOADING,
     gsPAUSE,
-    gsGAME
+    gsGAME,
+    gsENDLEVEL,
+    gsSCORE
 }game_state;
 
 typedef enum enum_keys{
@@ -112,7 +114,7 @@ typedef struct game_shared_data{
     keyboard_structure keyboard;
 
     level_data level;
-
+    score_struct last_score;
     /**
         Flags
         */
@@ -130,8 +132,8 @@ typedef struct game_shared_data{
     ALLEGRO_COND *cond_synchro_with_main_iter;
     bool synchro_with_main_iter;
 
+    char buffer[256];
     bool debug;
-    char debug_buffer[256];
     ALLEGRO_FONT *font_debug;
 
     bool close_now;

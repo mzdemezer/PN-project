@@ -8,6 +8,8 @@
 #include "gameobjects.h"
 #include "../structures.h"
 
+#define DEFAULT_FLUID_DENSITY 0.001
+
 #define ACC_2nd_DIM NumOfThreads + 2
 typedef struct move_arrays{
     double x, y,
@@ -16,17 +18,23 @@ typedef struct move_arrays{
           ay[ACC_2nd_DIM];
 }move_arrays;
 
+typedef struct score_struct{
+    int score,
+        total_score,
+        level_number;
+}score_struct;
+
+
 /**
     level structure
     */
-
 #define INITIAL_ALLOCATED_MOVABLE 256
 #define INITIAL_ALLOCATED_FIXED 1024
 #define INITIAL_ALLOCATED_PRIMITIVE 8192
 #define INITIAL_OBJECT_COLLISION_QUEUE_SIZE 1024
 typedef struct level_data{
-    int levelNumber,
-        number_of_movable_objects,
+    score_struct score;
+    int number_of_movable_objects,
         number_of_fixed_objects,
         number_of_primitive_objects,
         allocated_movable,
@@ -48,11 +56,21 @@ typedef struct level_data{
            last_time, dt;
     move_arrays *acc;
     double dens, wind_vx, wind_vy;
+
+    bool at_exit,
+         victory;
 }level_data;
 
 void construct_level(level_data *level);
+void initialize_level(level_data *level);
 void destroy_level(level_data *level);
 void clear_level(level_data *level);
+
+/**
+    Scores
+    */
+void new_scores(score_struct *score);
+score_struct clear_score(score_struct *score);
 
 /**
     Dynamic arrays for game objects
@@ -89,7 +107,9 @@ void add_segment(level_data *level, const point *A, const point *B);
 void add_borders(level_data *level);
 void add_point(level_data *level, point *A);
 void add_circle(level_data *level, double r, point center);
+
 void add_square(level_data *level, fixed_square *square);
 void add_rectangle(level_data *level, fixed_rectangle *rectangle);
+void add_exit(level_data *level, fixed_exit *ex);
 
 #endif

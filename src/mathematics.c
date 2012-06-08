@@ -68,12 +68,18 @@ int rzad(int a){
     return res;
 }
 
-/**
-    Maths
-    */
-
 inline int sign(double a){
     if(a == 0){
+        return 0;
+    }else if(a > 0){
+        return 1;
+    }else{
+        return -1;
+    }
+}
+
+inline short short_sign(short a){
+     if(a == 0){
         return 0;
     }else if(a > 0){
         return 1;

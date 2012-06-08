@@ -7,6 +7,39 @@
 
 /**
     Constructors
+    Objects more complicated than primitives
+    need a lot of variables to be initialized.
+    So I decided to pass a pointer to
+    unconstructed new object and just do it
+    in that space. For large constructions
+    I use   object_workshop !
+    */
+
+/**
+    Primitives
+    */
+point* construct_point(){
+    return (point*)malloc(sizeof(point));
+}
+
+segment* construct_segment(const point *A, const point *B){
+    segment *seg = (segment*)malloc(sizeof(segment));
+    seg->ang = vector_angle(B->x - A->x, B->y - A->y);
+    seg->A = *A;
+    seg->B = *B;
+    get_line_from_points(A->x, A->y, B->x, B->y, &seg->line_equation);
+    return seg;
+}
+
+prim_exit* construct_prim_exit(fixed_exit *ex){
+    prim_exit *pr_ex = (prim_exit*)malloc(sizeof(prim_exit));
+    pr_ex->done = false;
+    pr_ex->fixed_data = ex;
+    return pr_ex;
+}
+
+/**
+    Fixed
     Primitives if needed must be added
     explicitly outside constructors
     */
@@ -24,19 +57,19 @@ void construct_square(fixed_object *object){
     object->r = radius_square;
     Data->r = Data->bok * SQRT2 / 2;
     double fi = PI4 + Data->ang;
-    Data->v1 = (point*)malloc(sizeof(point));
+    Data->v1 = construct_point();
     Data->v1->x = Data->center.x + Data->r * cos(fi);
     Data->v1->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v2 = (point*)malloc(sizeof(point));
+    Data->v2 = construct_point();
     Data->v2->x = Data->center.x + Data->r * cos(fi);
     Data->v2->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v3 = (point*)malloc(sizeof(point));
+    Data->v3 = construct_point();
     Data->v3->x = Data->center.x + Data->r * cos(fi);
     Data->v3->y = Data->center.y + Data->r * sin(fi);
     fi += PIpol;
-    Data->v4 = (point*)malloc(sizeof(point));
+    Data->v4 = construct_point();
     Data->v4->x = Data->center.x + Data->r * cos(fi);
     Data->v4->y = Data->center.y + Data->r * sin(fi);
     #undef Data
@@ -70,19 +103,19 @@ void construct_rectangle(fixed_object *object){
     Data->r = Data->b / (sin(Data->fi02) * 2);
 
     fi = PIpol - Data->ang + Data->fi02;
-    Data->v1 = (point*)malloc(sizeof(point));
+    Data->v1 = construct_point();
     Data->v1->x = Data->center.x + Data->r * cos(fi);
     Data->v1->y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v3 = (point*)malloc(sizeof(point));
+    Data->v3 = construct_point();
     Data->v3->x = Data->center.x + Data->r * cos(fi);
     Data->v3->y = Data->center.y + Data->r * sin(fi);
     fi = PIpol - Data->ang - Data->fi02;
-    Data->v2 = (point*)malloc(sizeof(point));
+    Data->v2 = construct_point();
     Data->v2->x = Data->center.x + Data->r * cos(fi);
     Data->v2->y = Data->center.y + Data->r * sin(fi);
     fi += PI;
-    Data->v4 = (point*)malloc(sizeof(point));
+    Data->v4 = construct_point();
     Data->v4->x = Data->center.x + Data->r * cos(fi);
     Data->v4->y = Data->center.y + Data->r * sin(fi);
     #undef Data
@@ -124,6 +157,7 @@ void construct_player(movable_object *object){
     Data->charge = 0;
     Data->r = PLAYER_RADIUS;
     Data->r0 = PLAYER_RADIUS;
+    Data->HP = PLAYER_HP;
     get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, object->zones);
     #undef Data
 }

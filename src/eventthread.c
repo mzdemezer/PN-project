@@ -12,10 +12,15 @@
 void handle_event_menu(game_shared_data*);
 void handle_event_game(game_shared_data *);
 void handle_event_loading(game_shared_data *);
+void handle_event_end_level(game_shared_data *);
+void handle_event_score(game_shared_data *);
 
 void request_loading(game_shared_data *);
 void request_game(game_shared_data *);
 void request_pause(game_shared_data *);
+void request_menu(game_shared_data *Data);
+void request_end_level(game_shared_data *Data);
+void request_score(game_shared_data *Data);
 
 extern void change_menu(game_shared_data *, menu_elem *, int);
 extern void return_menu(game_shared_data *);
@@ -31,20 +36,50 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
         */
     while(1){
     al_wait_for_event(Data->event_queue, &Data->last_event);
-        //printf("event type#%d\n", Data->last_event.type);
 
         if(Data->last_event.type == ALLEGRO_EVENT_TIMER){
-            if(Data->game_state == gsGAME){
-                al_lock_mutex(Data->mutex_main_iteration);
-                    if(Data->iteration_finished){
-                        Data->iteration_finished = false;
-                        al_broadcast_cond(Data->cond_main_iteration);
+            switch(Data->game_state){
+                case gsGAME:
+                    al_lock_mutex(Data->mutex_main_iteration);
+                        if(Data->iteration_finished){
+                            if(Data->level.at_exit){
+                                al_lock_mutex(Data->mutex_change_state);
+                                    Data->request_change_state = true;
+                                    Data->new_state = gsENDLEVEL;
+                                al_unlock_mutex(Data->mutex_change_state);
+                                if(Data->level.victory){
+                                    Data->level.score.level_number += 1;
+                                    initialize_loading_thread(Data, load_level);
+                                }
+                            }else{
+                                Data->iteration_finished = false;
+                                al_broadcast_cond(Data->cond_main_iteration);
+                            }
+                        }
+                    al_unlock_mutex(Data->mutex_main_iteration);
+                    break;
+                case gsENDLEVEL:
+                    Data->loading_state += 1;
+                    if(Data->loading_state >= TIMER_TICKS_FOR_END_LEVEL){
+                        terminate_iteration(Data);
+                        initialize_iteration_threads(Data);
+                        al_lock_mutex(Data->mutex_change_state);
+                            Data->request_change_state = true;
+                            if(Data->level.victory){
+                                Data->new_state = gsLOADING;
+                            }else{
+                                Data->new_state = gsSCORE;
+                            }
+                        al_unlock_mutex(Data->mutex_change_state);
                     }
-                al_unlock_mutex(Data->mutex_main_iteration);
-            }else{
-                al_lock_mutex(Data->mutex_draw_call);
-                    Data->draw_call = true;
-                al_unlock_mutex(Data->mutex_draw_call);
+                    if(Data->loading_state < 32){
+                        synchronized_draw(draw_end_level, Data);
+                        break;
+                    }
+                default:
+                    al_lock_mutex(Data->mutex_draw_call);
+                        Data->draw_call = true;
+                    al_unlock_mutex(Data->mutex_draw_call);
             }
 
             timer_ticks += 1;
@@ -61,6 +96,8 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
             case gsPAUSE:
             case gsMENU: handle_event_menu(Data); break;
             case gsLOADING: handle_event_loading(Data); break;
+            case gsENDLEVEL: handle_event_end_level(Data); break;
+            case gsSCORE: handle_event_score(Data); break;
         }
 
         if(Data->close_now){
@@ -74,7 +111,9 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
                     case gsPAUSE: request_pause(Data); break;
                     case gsLOADING: request_loading(Data); break;
                     case gsGAME: request_game(Data); break;
-                    case gsMENU: break;
+                    case gsMENU: request_menu(Data); break;
+                    case gsENDLEVEL: request_end_level(Data); break;
+                    case gsSCORE: request_score(Data); break;
                 }
             }
         al_unlock_mutex(Data->mutex_change_state);
@@ -111,7 +150,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
 }
 
 /**
-    menu
+    Handlers
     */
 void handle_event_menu(game_shared_data *Data){
     activation_argument arg;
@@ -207,32 +246,69 @@ void handle_event_game(game_shared_data *Data){
                     break;
                 default:
                     al_lock_mutex(Data->keyboard.mutex_keyboard);
-                    if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
-                        Data->keyboard.flags[ekKEY_UP] = true;
-                    }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
-                        Data->keyboard.flags[ekKEY_DOWN] = true;
-                    }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
-                        Data->keyboard.flags[ekKEY_LEFT] = true;
-                    }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
-                        Data->keyboard.flags[ekKEY_RIGHT] = true;
-                    }else if(Data->last_event.keyboard.keycode == ALLEGRO_KEY_TILDE){
-                        Data->debug = !Data->debug;
-                    }
+                        if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
+                            Data->keyboard.flags[ekKEY_UP] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
+                            Data->keyboard.flags[ekKEY_DOWN] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
+                            Data->keyboard.flags[ekKEY_LEFT] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
+                            Data->keyboard.flags[ekKEY_RIGHT] = true;
+                        }else if(Data->last_event.keyboard.keycode == ALLEGRO_KEY_TILDE){
+                            Data->debug = !Data->debug;
+                        }
                     al_unlock_mutex(Data->keyboard.mutex_keyboard);
             }
             break;
         case ALLEGRO_EVENT_KEY_UP:
             al_lock_mutex(Data->keyboard.mutex_keyboard);
-            if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
-                Data->keyboard.flags[ekKEY_UP] = false;
-            }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
-                Data->keyboard.flags[ekKEY_DOWN] = false;
-            }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
-                Data->keyboard.flags[ekKEY_LEFT] = false;
-            }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
-                Data->keyboard.flags[ekKEY_RIGHT] = false;
-            }
+                if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
+                    Data->keyboard.flags[ekKEY_UP] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
+                    Data->keyboard.flags[ekKEY_DOWN] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
+                    Data->keyboard.flags[ekKEY_LEFT] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
+                    Data->keyboard.flags[ekKEY_RIGHT] = false;
+                }
             al_unlock_mutex(Data->keyboard.mutex_keyboard);
+            break;
+    }
+}
+
+void handle_event_end_level(game_shared_data *Data){
+    switch(Data->last_event.type){
+        case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            Data->close_now = true;
+            break;
+        case ALLEGRO_EVENT_KEY_DOWN:
+            switch(Data->last_event.keyboard.keycode){
+                case ALLEGRO_KEY_PAD_ENTER:
+                case ALLEGRO_KEY_ENTER:
+                case ALLEGRO_KEY_ESCAPE:
+                case ALLEGRO_KEY_SPACE:
+                    Data->loading_state = TIMER_TICKS_FOR_END_LEVEL;
+                    break;
+            }
+            break;
+    }
+}
+
+void handle_event_score(game_shared_data *Data){
+    switch(Data->last_event.type){
+        case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            Data->close_now = true;
+            break;
+        case ALLEGRO_EVENT_KEY_DOWN:
+            switch(Data->last_event.keyboard.keycode){
+                case ALLEGRO_KEY_PAD_ENTER:
+                case ALLEGRO_KEY_ENTER:
+                    al_lock_mutex(Data->mutex_change_state);
+                        Data->new_state = gsMENU;
+                        Data->request_change_state = true;
+                    al_unlock_mutex(Data->mutex_change_state);
+                    break;
+            }
             break;
     }
 }
@@ -251,9 +327,9 @@ void new_game_activate(void *argument){
         Data->new_state = gsLOADING;
     al_unlock_mutex(Data->mutex_change_state);
     Data->menu.current_elem = 1;
-    Data->level.levelNumber = 1;
-    Data->thread_loading = NULL;
-    Data->thread_loading = al_create_thread(&load_level, (void*)Data);
+    new_scores(&Data->last_score);
+    new_scores(&Data->level.score);
+    initialize_loading_thread(Data, load_level);
     #undef Data
     #undef arg
 };
@@ -324,9 +400,58 @@ void request_loading(game_shared_data *Data){
         Data->close_now = true;
     }
     else{
+        if(Data->game_state == gsGAME){
+            terminate_iteration(Data);
+            initialize_iteration_threads(Data);
+        }
         Data->request_change_state = false;
         Data->game_state = gsLOADING;
         Data->draw_function = draw_loading;
         al_start_thread(Data->thread_loading);
+    }
+}
+
+void request_menu(game_shared_data *Data){
+    make_main_menu_unpause(&Data->menu);
+    if(Data->game_state == gsSCORE){
+        ;//go to highscores
+    }
+    Data->request_change_state = false;
+    Data->game_state = gsMENU;
+    Data->draw_function = draw_menu;
+}
+
+void request_end_level(game_shared_data *Data){
+    /**
+        Print screen
+        */
+    void draw_game_to_background(game_shared_data *arg){
+        draw_content_to_background(draw_game, arg);
+    };
+    special_call(draw_game_to_background, Data);
+    Data->last_score = clear_score(&Data->level.score);
+
+    if(Data->last_score.level_number > 1){
+        printf("Level finished\n"
+               "Score:\t%d\n"
+               "Highest level:\t%d\n", Data->last_score.total_score,
+                                       Data->last_score.level_number - 1);
+    }
+    Data->loading_state = 0;
+    Data->request_change_state = false;
+    Data->game_state = gsENDLEVEL;
+    Data->draw_function = draw_end_level;
+}
+
+void request_score(game_shared_data *Data){
+    if(Data->last_score.level_number > 1 &&
+       Data->last_score.total_score > 0){
+        Data->request_change_state = false;
+        Data->game_state = gsSCORE;
+        Data->draw_function = draw_score;
+    }else{
+        //Either load error, or 0 score
+        printf("Request score: redirect to menu\n");
+        request_menu(Data);
     }
 }
