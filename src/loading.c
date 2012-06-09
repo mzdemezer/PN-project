@@ -59,7 +59,7 @@ bool load_level_from_file(game_shared_data *Data){
     int n, i, op0, op1;
     object_workshop Factory;
 
-    strcpy(buffer, "Data/levels/level");
+    strcpy(buffer, "Data/Levels/level");
     int_to_str(Data->level.score.level_number, buffer + 17);
     strcat(buffer, ".lev");
 
@@ -76,7 +76,7 @@ bool load_level_from_file(game_shared_data *Data){
 
     read_line(buffer, level);
 
-    strcpy(Data->level.filename, "Data/levels/");
+    strcpy(Data->level.filename, "Data/Levels/");
     strcpy(Data->level.filename + 12, buffer);
 
     /**
