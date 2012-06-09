@@ -132,6 +132,7 @@ typedef struct game_shared_data{
     ALLEGRO_COND *cond_synchro_with_main_iter;
     bool synchro_with_main_iter;
 
+    int name_length;
     char buffer[256];
     bool debug;
     ALLEGRO_FONT *font_debug;

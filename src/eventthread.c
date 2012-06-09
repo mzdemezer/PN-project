@@ -159,7 +159,7 @@ void handle_event_menu(game_shared_data *Data){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->close_now = true;
             break;
-        case ALLEGRO_EVENT_KEY_DOWN:
+        case ALLEGRO_EVENT_KEY_CHAR:
             switch(Data->last_event.keyboard.keycode){
                 case ALLEGRO_KEY_LEFT:
                     if(Data->menu.current_menu[Data->menu.current_elem].type == metUPDOWN){
@@ -295,19 +295,59 @@ void handle_event_end_level(game_shared_data *Data){
 }
 
 void handle_event_score(game_shared_data *Data){
+    int key;
+    char a;
     switch(Data->last_event.type){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->close_now = true;
             break;
-        case ALLEGRO_EVENT_KEY_DOWN:
-            switch(Data->last_event.keyboard.keycode){
+        case ALLEGRO_EVENT_KEY_CHAR:
+            key = Data->last_event.keyboard.keycode;
+            switch(key){
                 case ALLEGRO_KEY_PAD_ENTER:
                 case ALLEGRO_KEY_ENTER:
-                    al_lock_mutex(Data->mutex_change_state);
-                        Data->new_state = gsMENU;
-                        Data->request_change_state = true;
-                    al_unlock_mutex(Data->mutex_change_state);
+                    if(Data->name_length > 0){
+                        al_lock_mutex(Data->mutex_change_state);
+                            Data->new_state = gsMENU;
+                            Data->request_change_state = true;
+                        al_unlock_mutex(Data->mutex_change_state);
+                    }
                     break;
+                case ALLEGRO_KEY_SPACE:
+                    add_char_to_name(Data->buffer, ' ', &Data->name_length, MAX_NAME_LENGTH);
+                    break;
+                case ALLEGRO_KEY_MINUS:
+                    if(Data->last_event.keyboard.modifiers & ALLEGRO_KEYMOD_SHIFT){
+                        a = '_';
+                    }else{
+                        a = '-';
+                    }
+                    add_char_to_name(Data->buffer, a, &Data->name_length, MAX_NAME_LENGTH);
+                    break;
+                case ALLEGRO_KEY_BACKSPACE:
+                    if(Data->name_length > 0){
+                        Data->name_length -= 1;
+                        Data->buffer[Data->name_length] = '\0';
+                    }
+                    break;
+                default:
+                    if(key >= ALLEGRO_KEY_PAD_0 && key <= ALLEGRO_KEY_PAD_9){
+                        add_char_to_name(Data->buffer, int_to_char(key - ALLEGRO_KEY_PAD_0), &Data->name_length, MAX_NAME_LENGTH);
+                    }else if(key >= ALLEGRO_KEY_0 && key <= ALLEGRO_KEY_9){
+                        if(Data->last_event.keyboard.modifiers & ALLEGRO_KEYMOD_SHIFT
+                           && key == ALLEGRO_KEY_7){
+                            a = '&';
+                        }else{
+                            a = int_to_char(key - ALLEGRO_KEY_0);
+                        }
+                        add_char_to_name(Data->buffer, a, &Data->name_length, MAX_NAME_LENGTH);
+                    }else if(key >= ALLEGRO_KEY_A && key <= ALLEGRO_KEY_Z){
+                        a = *al_keycode_to_name(key);
+                        if(!(Data->last_event.keyboard.modifiers & ALLEGRO_KEYMOD_SHIFT)){
+                            to_lower_case(&a);
+                        }
+                        add_char_to_name(Data->buffer, a, &Data->name_length, MAX_NAME_LENGTH);
+                    }
             }
             break;
     }
@@ -449,6 +489,8 @@ void request_score(game_shared_data *Data){
         Data->request_change_state = false;
         Data->game_state = gsSCORE;
         Data->draw_function = draw_score;
+        Data->buffer[0] = '\0';
+        Data->name_length = 0;
     }else{
         //Either load error, or 0 score
         printf("Request score: redirect to menu\n");

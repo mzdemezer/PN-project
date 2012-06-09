@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <locale.h>
 
 #include "main.h"
 #include "game.h"
@@ -79,6 +80,7 @@ int main(){
         fprintf(stderr, "Problems when initilizing Allegro");
         return -1;
     }
+    setlocale(LC_NUMERIC, "C");
     /**
         Initializing addons
         */

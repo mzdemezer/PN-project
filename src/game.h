@@ -12,6 +12,9 @@
 
 #define SPHERE_DRAG_COEFFICENT 0.45
 
+#define TIME_LIMIT 60
+#define TIME_SCORE_MULTIPLIER 50
+
 void* main_iteration(ALLEGRO_THREAD *, void *);
 void* compute_gravity(ALLEGRO_THREAD *, void *);
 void* compute_electrostatics(ALLEGRO_THREAD *, void *);

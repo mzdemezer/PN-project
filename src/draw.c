@@ -150,9 +150,16 @@ void draw_score(game_shared_data *Data){
     al_draw_text(Data->font_menu_big,
                  al_map_rgb(255, 255, 255),
                  Data->display_data.width / 2,
-                 Data->display_data.height / 2,
+                 Data->display_data.height * 0.3,
                  ALLEGRO_ALIGN_CENTRE,
                  "SCORE");
+
+    al_draw_text(Data->font_menu_config,
+                 al_map_rgb(255, 255, 255),
+                 Data->display_data.width / 2,
+                 Data->display_data.height * 0.6,
+                 ALLEGRO_ALIGN_CENTRE,
+                 Data->buffer);
 
     al_use_transform(&Data->transformation);
 }

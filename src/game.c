@@ -282,16 +282,27 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             */
         al_lock_mutex(Data->mutex_main_iteration);
         if(Data->level.player->HP <= 0){
+                Data->level.sum_time -= Data->level.start_time;
+                Data->level.start_time = al_get_time();
+                Data->level.sum_time += Data->level.start_time;
                 Data->level.victory = false;
                 Data->level.at_exit = true;
                 Data->level.score.level_number += 1;
             al_unlock_mutex(Data->mutex_main_iteration);
-            Data->level.sum_time += al_get_time() - Data->level.start_time;
         }else if(Data->level.at_exit){
+                Data->level.sum_time -= Data->level.start_time;
+                Data->level.start_time = al_get_time();
+                Data->level.sum_time += Data->level.start_time;
                 Data->level.victory = true;
                 Data->level.score.score += Data->level.player->HP;
+                dt = TIME_LIMIT + Data->level.score.level_number - Data->level.sum_time;
+                if(dt < 0){
+                    dt = 0;
+                }else{
+                    dt *= TIME_SCORE_MULTIPLIER;
+                }
+                Data->level.score.score += dt;
             al_unlock_mutex(Data->mutex_main_iteration);
-            Data->level.sum_time += al_get_time() - Data->level.start_time;
         }else{
             al_unlock_mutex(Data->mutex_main_iteration);
             for(i = 0; i < Data->level.number_of_movable_objects; ++i){

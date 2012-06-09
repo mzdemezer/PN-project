@@ -41,3 +41,19 @@ void stringify_resolution(const ALLEGRO_DISPLAY_MODE *display_data, char *target
     int_to_str(display_data->height, target + len + 1);
     target[len] = 'x';
 }
+
+void add_char_to_name(char *buffer, char new_char, int *length, int max_length){
+    if(*length < max_length){
+        buffer[*length] = new_char;
+        *length += 1;
+        buffer[*length] = '\0';
+    }
+}
+
+void capitalize(char *a){
+    *a &= 0xdf;
+}
+
+void to_lower_case(char *a){
+    *a |= 0x20;
+}
