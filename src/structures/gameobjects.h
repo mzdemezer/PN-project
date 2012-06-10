@@ -4,6 +4,9 @@
 #include <allegro5/allegro.h>
 #include "collstructures.h"
 
+#define HIGH_CHARGE 1000.0
+#define PARTICLE_ALPHA 120
+
 /**
     These structures enable objectivization
     by casting on different objects in

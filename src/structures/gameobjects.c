@@ -164,12 +164,28 @@ void construct_player(movable_object *object){
 
 void construct_particle(movable_object *object){
     #define Data ((movable_particle*)(object->object_data))
+    double col;
+    int low;
     object->draw = draw_particle;
     object->r = radius_circle;
     Data->vx = 0;
     Data->vy = 0;
     Data->surface_field = Data->r * Data->r * PI;
     get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, object->zones);
+    col = Data->charge / HIGH_CHARGE;
+    if(col < -1){
+        col = -1;
+    }else if(col > 1){
+        col = 1;
+    }
+    col *= 127.5;
+    if(col > 0){
+        low = 127.5 - col;
+        Data->color = al_map_rgba(127.5 + col, low, low, PARTICLE_ALPHA);
+    }else{
+        low = 127.5 + col;
+        Data->color = al_map_rgba(low, low, 127.5 - col, PARTICLE_ALPHA);
+    }
     #undef Data
 }
 

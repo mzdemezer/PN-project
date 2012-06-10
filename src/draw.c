@@ -623,7 +623,7 @@ void draw_player(void *object_data, double dx, double dy){
 
 void draw_particle(void *object_data, double dx, double dy){
     #define Data ((movable_particle*)object_data)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r, al_map_rgb(255, 0, 255));
+    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r, Data->color);
     #undef Data
 }
 

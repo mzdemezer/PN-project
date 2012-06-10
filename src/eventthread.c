@@ -163,6 +163,21 @@ void handle_event_menu(game_shared_data *Data){
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             Data->close_now = true;
             break;
+        case ALLEGRO_EVENT_KEY_DOWN:
+            switch(Data->last_event.keyboard.keycode){
+                case ALLEGRO_KEY_ESCAPE:
+                    al_lock_mutex(Data->mutex_change_state);
+                        void *temp = (void*)Data->menu.current_menu;
+                        return_menu(Data);
+                        if(Data->game_state == gsPAUSE){
+                            if(temp == (void*)Data->menu.current_menu){
+                                return_to_game_activate((void*)&arg);
+                            }
+                        }
+                    al_unlock_mutex(Data->mutex_change_state);
+                    break;
+            }
+            break;
         case ALLEGRO_EVENT_KEY_CHAR:
             switch(Data->last_event.keyboard.keycode){
                 case ALLEGRO_KEY_LEFT:
@@ -199,17 +214,6 @@ void handle_event_menu(game_shared_data *Data){
                             (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
                             break;
                     }
-                    break;
-                case ALLEGRO_KEY_ESCAPE:
-                    al_lock_mutex(Data->mutex_change_state);
-                        void *temp = (void*)Data->menu.current_menu;
-                        return_menu(Data);
-                        if(Data->game_state == gsPAUSE){
-                            if(temp == (void*)Data->menu.current_menu){
-                                return_to_game_activate((void*)&arg);
-                            }
-                        }
-                    al_unlock_mutex(Data->mutex_change_state);
                     break;
             }
             break;
