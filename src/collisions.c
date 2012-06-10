@@ -27,24 +27,34 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     double player_d_vx,
            player_d_vy,
            with_d_vx,
-           with_d_vy;
+           with_d_vy,
+           dr;
     if(with_movable){
         switch(level->movable_objects[who].type){
             case motPLAYER:
+                if(WHO_PLAYER->shield + WHO_PLAYER->shield_push > WHO_PLAYER->r0){
+                    dr = WHO_PLAYER->shield_push;
+                }else{
+                    dr = 0;
+                }
                 player_d_vx = WHO_PLAYER->vx;
                 player_d_vy = WHO_PLAYER->vy;
                 switch(level->movable_objects[with].type){
                     case motPLAYER:
                         with_d_vx = WITH_PLAYER->vx;
                         with_d_vy = WITH_PLAYER->vy;
+                        if(WITH_PLAYER->shield + WITH_PLAYER->shield_push > WITH_PLAYER->r0){
+                            dr += WHO_PLAYER->shield_push;
+                        }
+                        dr *= dt;
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
-                                           WHO_PLAYER->r + WITH_PLAYER->r + WHO_PLAYER->shield_push + WITH_PLAYER->shield_push);
+                                           WHO_PLAYER->r + WITH_PLAYER->r + dr);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PLAYER->center.x,
                                                                  WITH_PLAYER->center.y - WHO_PLAYER->center.y,
-                                                                 WHO_PLAYER->mass, WITH_PLAYER->mass,
+                                                                 WHO_PLAYER->mass, WITH_PLAYER->mass, dr,
                                                                  PLAYER_TO_PLAYER_RESTITUTION);
                         player_get_dx_dy(&level->movable_objects[who], dt);
                         player_get_dx_dy(&level->movable_objects[with], dt);
@@ -53,14 +63,15 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy);
                         break;
                     case motPARTICLE:
+                        dr *= dt;
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
-                                           WHO_PLAYER->r + WITH_PARTICLE->r + WHO_PLAYER->shield_push);
+                                           WHO_PLAYER->r + WITH_PARTICLE->r + dr);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
                                                                  WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
-                                                                 WHO_PLAYER->mass, WITH_PARTICLE->mass,
+                                                                 WHO_PLAYER->mass, WITH_PARTICLE->mass, dr,
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         player_get_dx_dy(&level->movable_objects[who], dt);
                         particle_get_dx_dy(&level->movable_objects[with], dt);
@@ -77,14 +88,20 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                     case motPLAYER:
                         with_d_vx = WITH_PLAYER->vx;
                         with_d_vy = WITH_PLAYER->vy;
+                        if(WITH_PLAYER->shield + WITH_PLAYER->shield_push > WITH_PLAYER->r0){
+                            dr = WITH_PLAYER->shield_push;
+                        }else{
+                            dr = 0;
+                        }
+                        dr *= dt;
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
-                                           WHO_PARTICLE->r + WITH_PLAYER->r + WITH_PLAYER->shield_push);
+                                           WHO_PARTICLE->r + WITH_PLAYER->r + dr);
                         get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
                                                                  WITH_PLAYER->center.y - WHO_PARTICLE->center.y,
-                                                                 WHO_PARTICLE->mass, WITH_PLAYER->mass,
+                                                                 WHO_PARTICLE->mass, WITH_PLAYER->mass, dr,
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&level->movable_objects[who], dt);
                         player_get_dx_dy(&level->movable_objects[with], dt);
@@ -100,7 +117,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                  &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PARTICLE->center.x,
                                                                  WITH_PARTICLE->center.y - WHO_PARTICLE->center.y,
-                                                                 WHO_PARTICLE->mass, WITH_PARTICLE->mass,
+                                                                 WHO_PARTICLE->mass, WITH_PARTICLE->mass, 0,
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&level->movable_objects[who], dt);
                         particle_get_dx_dy(&level->movable_objects[with], dt);
@@ -118,46 +135,52 @@ void collide(level_data *level, short int who, short int with, bool with_movable
             case motPLAYER:
                 player_d_vx = WHO_PLAYER->vx;
                 player_d_vy = WHO_PLAYER->vy;
+                if(WHO_PLAYER->shield + WHO_PLAYER->shield_push > WHO_PLAYER->r0){
+                    dr = WHO_PLAYER->shield_push;
+                }else{
+                    dr = 0;
+                }
+                dr *= dt;
                 switch(level->primitive_objects[with].type){
                     case potPOINT:
                         separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
-                                                      WITH_POINT->x, WITH_POINT->y, WHO_PLAYER->r + WHO_PLAYER->shield_push);
+                                                      WITH_POINT->x, WITH_POINT->y, WHO_PLAYER->r + dr);
                         if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
                             get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
                                                                             WITH_POINT->x - WHO_PLAYER->center.x,
                                                                             WITH_POINT->y - WHO_PLAYER->center.y,
-                                                                            PLAYER_TO_WALL_RESTITUTION);
+                                                                            0, PLAYER_TO_WALL_RESTITUTION);
                         }else{
-                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
-                            get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                      WITH_SEGMENT, SHIELD_TO_WALL_RESTITUTION);
+                            get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                            WITH_POINT->x - WHO_PLAYER->center.x,
+                                                                            WITH_POINT->y - WHO_PLAYER->center.y,
+                                                                            dr, SHIELD_TO_WALL_RESTITUTION);
                         }
                         break;
                     case potSEGMENT:
+                        separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r + dr * dt, WITH_SEGMENT);
                         if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
-                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
                             get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                      WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
+                                                                      WITH_SEGMENT, dr, PLAYER_TO_WALL_RESTITUTION);
                         }else{
-                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
                             get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                      WITH_SEGMENT, SHIELD_TO_WALL_RESTITUTION);
+                                                                      WITH_SEGMENT, dr, SHIELD_TO_WALL_RESTITUTION);
                         }
                         break;
                     case potCIRCLE:
                         separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
                                                       WITH_CIRCLE->center.x, WITH_CIRCLE->center.y,
-                                                      WHO_PLAYER->r + WITH_CIRCLE->r + WHO_PLAYER->shield_push);
+                                                      WHO_PLAYER->r + WITH_CIRCLE->r + dr * dt);
                         if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
                             get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
                                                                             WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
                                                                             WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
-                                                                            PLAYER_TO_WALL_RESTITUTION);
+                                                                            dr, PLAYER_TO_WALL_RESTITUTION);
                         }else{
                             get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
                                                                             WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
                                                                             WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
-                                                                            SHIELD_TO_WALL_RESTITUTION);
+                                                                            dr, SHIELD_TO_WALL_RESTITUTION);
                         }
                         break;
                     case potEXIT:
@@ -178,12 +201,12 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
                                                                         WITH_POINT->x - WHO_PARTICLE->center.x,
                                                                         WITH_POINT->y - WHO_PARTICLE->center.y,
-                                                                        PARTICLE_TO_WALL_RESTITUTION);
+                                                                        0, PARTICLE_TO_WALL_RESTITUTION);
                         break;
                     case potSEGMENT:
                         separate_ball_from_segment(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->r, WITH_SEGMENT);
                         get_velocity_after_ball_to_wall_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
-                                                                  WITH_SEGMENT, PARTICLE_TO_WALL_RESTITUTION);
+                                                                  WITH_SEGMENT, 0, PARTICLE_TO_WALL_RESTITUTION);
                         break;
                     case potCIRCLE:
                         separate_ball_from_fixed_ball(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y,
@@ -192,7 +215,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         get_velocity_after_ball_to_fixed_ball_collision(&WHO_PARTICLE->vx, &WHO_PARTICLE->vy,
                                                                         WITH_CIRCLE->center.x - WHO_PARTICLE->center.x,
                                                                         WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
-                                                                        PARTICLE_TO_WALL_RESTITUTION);
+                                                                        0, PARTICLE_TO_WALL_RESTITUTION);
                         break;
                     default:
                         ;
@@ -230,7 +253,7 @@ void count_hp_and_shield(movable_player *player, double d_vx, double d_vy){
             player->shield = 0;
         }
         player->shield_push = 0;
-        get_player_radius(player, 0);
+        get_player_radius(player);
     }else{
         player->HP -= d_vx;
     }
@@ -347,24 +370,38 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
     #define WITH_CIRCLE ((circle*)with_what->object_data)
     #define WITH_EXIT ((fixed_exit*)(((prim_exit*)with_what->object_data)->fixed_data))
     collision_data new_coll;
+    double dr;
     new_coll.time = EMPTY_COLLISION_TIME;
     new_coll.with_movable = false;
     switch(who->type){
         case motPLAYER:
+            if(WHO_PLAYER->shield + WHO_PLAYER->shield_push > WHO_PLAYER->r0){
+                dr = WHO_PLAYER->shield_push;
+            }else{
+                dr = 0;
+            }
             switch(with_what->type){
                 case potPOINT:
                     new_coll.time = check_collision_between_two_balls(WITH_POINT->x - WHO_PLAYER->center.x,
                                                                       WITH_POINT->y - WHO_PLAYER->center.y,
-                                                                      who->dx, who->dy, WHO_PLAYER->r + WHO_PLAYER->shield_push);
+                                                                      who->dx, who->dy, WHO_PLAYER->r, dr);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_two_balls(WITH_POINT->x - WHO_PLAYER->center.x,
+                                                                      WITH_POINT->y - WHO_PLAYER->center.y,
+                                                                      who->dx, who->dy, WHO_PLAYER->r0, 0));
                     break;
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
-                                                                             who->dx, who->dy, WHO_PLAYER->r + WHO_PLAYER->shield_push, WITH_SEGMENT);
+                                                                             who->dx, who->dy, WHO_PLAYER->r, dr, WITH_SEGMENT);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
+                                                                             who->dx, who->dy, WHO_PLAYER->r0, 0, WITH_SEGMENT));
                     break;
                 case potCIRCLE:
                     new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
                                                                       WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
-                                                                      who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r + WHO_PLAYER->shield_push);
+                                                                      who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r, dr);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
+                                                                      who->dx, who->dy, WHO_PLAYER->r0 + WITH_CIRCLE->r, 0));
                     break;
                 case potEXIT:
                     if(!((prim_exit*)with_what->object_data)->done){
@@ -380,16 +417,16 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
                 case potPOINT:
                     new_coll.time = check_collision_between_two_balls(WITH_POINT->x - WHO_PARTICLE->center.x,
                                                                       WITH_POINT->y - WHO_PARTICLE->center.y,
-                                                                      who->dx, who->dy, WHO_PARTICLE->r);
+                                                                      who->dx, who->dy, WHO_PARTICLE->r, 0);
                     break;
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PARTICLE->center.x, WHO_PARTICLE->center.y,
-                                                                             who->dx, who->dy, WHO_PARTICLE->r, WITH_SEGMENT);
+                                                                             who->dx, who->dy, WHO_PARTICLE->r, 0, WITH_SEGMENT);
                     break;
                 case potCIRCLE:
                     new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PARTICLE->center.x,
                                                                       WITH_CIRCLE->center.y - WHO_PARTICLE->center.y,
-                                                                      who->dx, who->dy, WHO_PARTICLE->r + WITH_CIRCLE->r);
+                                                                      who->dx, who->dy, WHO_PARTICLE->r + WITH_CIRCLE->r, 0);
                     break;
                 default:
                     ;
@@ -408,61 +445,82 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
 }
 
 collision_data get_collision_with_movable(movable_object *who, movable_object *with_whom){
+    #define WHO_PLAYER ((movable_player*)who->object_data)
+    #define WITH_PLAYER ((movable_player*)with_whom->object_data)
+    #define WHO_PARTICLE ((movable_particle*)who->object_data)
+    #define WITH_PARTICLE ((movable_particle*)with_whom->object_data)
     collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
+    double dr;
     switch(who->type){
         case motPLAYER:
-            #define WHO_PLAYER ((movable_player*)who->object_data)
+            if(WHO_PLAYER->shield + WHO_PLAYER->shield_push > WHO_PLAYER->r0){
+                dr = WHO_PLAYER->shield_push;
+            }else{
+                dr = 0;
+            }
             switch(with_whom->type){
                 case motPLAYER:
-                    #define WITH_PLAYER ((movable_player*)with_whom->object_data)
+                    if(WITH_PLAYER->shield + WITH_PLAYER->shield_push > WITH_PLAYER->r0){
+                        dr += WITH_PLAYER->shield_push;
+                    }
                     new_coll.time = check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PLAYER->center.x,
                                                                       WITH_PLAYER->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PLAYER->r + WHO_PLAYER->r + WHO_PLAYER->shield_push + WITH_PLAYER->shield_push);
-                    #undef WITH_PLAYER
+                                                                      WHO_PLAYER->r + WITH_PLAYER->r, dr);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_PLAYER->center.y - WHO_PLAYER->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WHO_PLAYER->r0 + WITH_PLAYER->r0, 0));
                     break;
                 case motPARTICLE:
-                    #define WITH_PARTICLE ((movable_particle*)with_whom->object_data)
                     new_coll.time = check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
                                                                       WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PARTICLE->r + WHO_PLAYER->r + WHO_PLAYER->shield_push);
-                    #undef WITH_PARTICLE
+                                                                      WITH_PARTICLE->r + WHO_PLAYER->r, dr);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
+                                                                      WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PARTICLE->r + WHO_PLAYER->r0, 0));
                     break;
                 default:
                     break;
             }
-            #undef WHO_PLAYER
             break;
         case motPARTICLE:
-            #define WHO_PARTICLE ((movable_particle*)who->object_data)
             switch(with_whom->type){
                 case motPLAYER:
-                    #define WITH_PLAYER ((movable_player*)with_whom->object_data)
+                    if(WITH_PLAYER->shield + WITH_PLAYER->shield_push > WITH_PLAYER->r0){
+                        dr = WITH_PLAYER->shield_push;
+                    }else{
+                        dr = 0;
+                    }
                     new_coll.time = check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
                                                                       WITH_PLAYER->center.y - WHO_PARTICLE->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PLAYER->r + WHO_PARTICLE->r);
-                    #undef WITH_PLAYER
+                                                                      WITH_PLAYER->r + WHO_PARTICLE->r, dr);
+                    new_coll.time = double_min(new_coll.time, check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
+                                                                      WITH_PLAYER->center.y - WHO_PARTICLE->center.y,
+                                                                      with_whom->dx - who->dx, with_whom->dy - who->dy,
+                                                                      WITH_PLAYER->r0 + WHO_PARTICLE->r, 0));
                     break;
                 case motPARTICLE:
-                    #define WITH_PARTICLE ((movable_particle*)with_whom->object_data)
                     new_coll.time = check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PARTICLE->center.x,
                                                                       WITH_PARTICLE->center.y - WHO_PARTICLE->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PARTICLE->r + WHO_PARTICLE->r);
-                    #undef WITH_PARTICLE
+                                                                      WITH_PARTICLE->r + WHO_PARTICLE->r, 0);
                     break;
                 default:
                     break;
             }
-            #undef WHO_PARTICLE
             break;
         default:
             break;
     }
-
+    #undef WHO_PLAYER
+    #undef WITH_PLAYER
+    #undef WHO_PARTICLE
+    #undef WITH_PARTICLE
     return new_coll;
 }
 
@@ -553,17 +611,20 @@ void in_order_check_collision(level_data *level, fast_read_set *movable_done,
     x, y - relative present position of second ball
     dx, dy - relative displacement of first ball (second is immobile in this equation)
     d - sum of radiuses
+    dr - change in radius sum in this quantum of time
 
-    This function is good both for mobile and immobile balls or points :)
+    This function is good both for mobile and immobile balls or points,
+    that change size or not :)
     */
-double check_collision_between_two_balls(double x, double y, double dx, double dy, double d){
-    double a = dx * dx + dy * dy,
-        b = 2 * (x * dx + y * dy);
+double check_collision_between_two_balls(double x, double y, double dx, double dy,
+                                         double d, double dr){
+    double a = dx * dx + dy * dy - dr * dr,
+        b = 2 * (x * dx + y * dy - d * dr);
     if(a == 0){//linear
         if(b == 0){
             return EMPTY_COLLISION_TIME;
         }else{
-            b = -(x * x + y * y + d * d) / b;
+            b = -(x * x + y * y - d * d) / b;
             if(b <= 0 && b >= 1){
                 return b;
             }else{
@@ -611,23 +672,39 @@ double check_collision_between_two_balls(double x, double y, double dx, double d
 /**
     Computing the point on the circle that is
     closest to segment and then if it collides
-    during this quantum of time  dt.
+    during this quantum of time  dt using
+    get_segment_intersection and dividing
+    one segment by another...
+    That was one way to do it unntil I didn't
+    include changing radius. Now I use the
+    line equation to compute when distance will
+    be equal to radius already modified at that
+    point. Then I check if ball moved to that
+    point collides - if the collision point
+    is within segment constraints
     */
-double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, segment *seg){
+double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, double dr, segment *seg){
     double cs = cos(seg->ang),
            sn = sin(seg->ang),
-           d_into = sign(dy * cs - dx * sn);
-    point BC = {x  - r * sn * d_into,
-                       y  + r * cs * d_into},
-                 Bd = {BC.x + dx * 2,
-                       BC.y + dy * 2},
-                 I;
-    if(get_segment_intersection(&seg->A, &seg->B, &BC, &Bd, &I)){
-        x = I.x - BC.x;
-        y = I.y - BC.y;
-        return sqrt((x * x + y * y) / (dx * dx + dy * dy));
-    }else{
+           d_into = sign(dy * cs - dx * sn),
+    dt = seg->line_equation.A * dx + seg->line_equation.B * dy + d_into * seg->line_equation.sqrtAB * dr;
+    if(double_abs(dt) < double_eps){
         return EMPTY_COLLISION_TIME;
+    }else{
+        dt = (-d_into * seg->line_equation.sqrtAB * r - seg->line_equation.A * x - seg->line_equation.B * y - seg->line_equation.C) / dt;
+        if(dt >= 0 && dt <= 1){
+            r += dr * dt;
+            point A = {x, y},
+                  B = {x + 2 * (dx - r * sn * d_into),
+                       y + 2 * (dy + r * cs * d_into)};
+            if(do_segments_intersect(&A, &B, &seg->A, &seg->B)){
+                return dt;
+            }else{
+                return EMPTY_COLLISION_TIME;
+            }
+        }else{
+            return EMPTY_COLLISION_TIME;
+        }
     }
 }
 
@@ -644,15 +721,16 @@ double check_exit(double dx, double dy, fixed_exit *ex){
     Colliding
     */
 void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *v2x, double *v2y,
-                                              double dx, double dy, double m1, double m2, double restitution){
+                                              double dx, double dy, double m1, double m2, double dr, double restitution){
     *v1x -= *v2x;
     *v1y -= *v2y;
     dy = vector_angle(dx, dy);
     dx = cos(dy);
     dy = sin(dy);
     double v_into = *v1x * dx + *v1y * dy,
-          v_perp = *v1y * dx - *v1x * dy,
-          mc = m1 + m2;
+           v_perp = *v1y * dx - *v1x * dy,
+           mc = m1 + m2;
+           v_into += dr * sign(v_into);
     *v1x = v_into * ((m1 - restitution * m2) / mc);
     *v1y = *v1x * dy + *v2y + v_perp * dx;
     *v1x = *v1x * dx + *v2x - v_perp * dy;
@@ -665,22 +743,24 @@ void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *
 /**
     I treat fixed points as ininitely small balls
     */
-void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double restitution){
+void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double dr, double restitution){
     double ang = vector_angle(dx, dy),
            cs = cos(ang);
            ang = sin(ang);
     double v_into = *vx * cs + *vy * ang,
            v_perp = *vy * cs - *vx * ang;
+    v_into += dr * sign(v_into);
     v_into *= -restitution;
     *vx = v_into * cs - v_perp * ang;
     *vy = v_into * ang + v_perp * cs;
 }
 
-void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *seg, double restitution){
+void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *seg, double dr, double restitution){
     double cs = cos(seg->ang),
            sn = sin(seg->ang),
            v_into = *vy * cs - *vx * sn, //y
            v_perp = *vx * cs + *vy * sn; //x
+    v_into += dr * sign(v_into);
     v_into *= -restitution;
     *vx = v_perp * cs - v_into * sn;
     *vy = v_perp * sn + v_into * cs;
@@ -689,7 +769,7 @@ void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *
 /**
     Separating
     */
-void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d){
+bool separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d){
     double dx = *x2 - *x1,
            dy = *y2 - *y1,
            ang = vector_angle(dx, dy);
@@ -706,7 +786,9 @@ void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y
         *y1 -= dx * ang;
         *x2 += d * dy;
         *y2 += dx * dy;
+        return true;
     }
+    return false;
 }
 
 /**
@@ -716,7 +798,7 @@ void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y
 
     Of course works also for fixed points
     */
-void separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d){
+bool separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d){
     double dx = x2 - *x1,
            dy = y2 - *y1,
            ang = vector_angle(dx, dy);
@@ -728,13 +810,15 @@ void separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2,
         d += 1.3;
         *x1 -= d * cos(ang);
         *y1 -= d * sin(ang);
+        return true;
     }
+    return false;
 }
 
-void separate_ball_from_segment(double *x, double *y, double d, segment *seg){
+bool separate_ball_from_segment(double *x, double *y, double d, segment *seg){
     double dist = point_distance_from_line(*x, *y, &seg->line_equation);
     if(dist == -1){
-        separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
+        return separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
     }else{
         if(dist < d){
             double ang = vector_angle(seg->line_equation.A, seg->line_equation.B),
@@ -753,6 +837,9 @@ void separate_ball_from_segment(double *x, double *y, double d, segment *seg){
                 *y += d * ang;
                 //ang
             }
+            return true;
+        }else{
+            return false;
         }
     }
 }

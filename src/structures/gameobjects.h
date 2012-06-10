@@ -87,20 +87,35 @@ typedef struct movable_object{
 #define PLAYER_RADIUS 20
 #define PLAYER_HP 1000
 #define PLAYER_MAX_ENERGY 3000
+
 #define PLAYER_MAX_SHIELD_GENERATOR 30
 #define PLAYER_SHIELD_THROTTLE 0.1
 #define PLAYER_MAX_SHIELD (PLAYER_RADIUS * 2)
+
+#define PLAYER_MAX_GRAVITY_GENERATOR 30
+#define PLAYER_MAX_GRAVITY_MULTIPLIER 100
+#define PLAYER_GRAVITY_THORTTLE 0.5
+#define GRAVITY_LOSS 5
+
+#define PLAYER_MAX_ELECTROSTATIC_GENERATOR 30
+#define PLAYER_MAX_CHARGE 10000
+#define PLAYER_ELECTROSTATIC_THROTTLE 50
+#define ELECTROSTATIC_LOSS 200
+
 typedef struct movable_player{
     point center;
     double r, vx, vy;
     double ang;
     int engine_state,
         energy_generator,
-        shield_generator;
+        shield_generator,
+        gravity_generator,
+        electrostatic_generator;
     double mass,
-          charge,
-          r0;
-    double HP,
+           gravity,
+           charge,
+           r0,
+           HP,
            shield,
            shield_push;
 }movable_player;
@@ -250,6 +265,6 @@ double radius_circle(void *object_data, double fi);
 double radius_rectangle(void *object_data, double fi);
 double radius_player(void *object_data, double fi);
 
-void get_player_radius(movable_player *player, double push);
+void get_player_radius(movable_player *player);
 
 #endif

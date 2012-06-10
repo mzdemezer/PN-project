@@ -184,17 +184,44 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 if(Data->level.player->shield <= eps){
                     Data->level.player->shield = 0;
                 }
+                get_player_radius(Data->level.player);
+            }
+        }else if(Data->level.player->shield < PLAYER_MAX_SHIELD){
+            Data->level.player->shield_push = Data->level.player->shield_generator * PLAYER_SHIELD_THROTTLE;
+        }else{
+            Data->level.player->shield_push = 0;
+        }
+
+        if(!Data->level.player->electrostatic_generator){
+            if(double_abs(Data->level.player->charge) > eps){
+                Data->level.player->charge -= ELECTROSTATIC_LOSS * sign(Data->level.player->charge);
+                if(double_abs(Data->level.player->charge) < ELECTROSTATIC_LOSS){
+                    Data->level.player->charge = 0;
+                }
             }
         }else{
-            if(Data->level.player->shield < PLAYER_MAX_SHIELD){
-                Data->level.player->shield += Data->level.player->shield_generator * PLAYER_SHIELD_THROTTLE;
-                if(Data->level.player->shield > PLAYER_MAX_SHIELD){
-                    Data->level.player->shield = PLAYER_MAX_SHIELD;
-                }
+            if(double_abs(Data->level.player->charge) < PLAYER_MAX_CHARGE){
+                Data->level.player->charge += PLAYER_ELECTROSTATIC_THROTTLE * Data->level.player->electrostatic_generator;
+            }else{
+                Data->level.player->charge = PLAYER_MAX_CHARGE * sign(Data->level.player->electrostatic_generator);
             }
         }
 
-        get_player_radius(Data->level.player, op);
+        if(!Data->level.player->gravity_generator){
+            if(Data->level.player->gravity > 1 + eps){
+                Data->level.player->gravity -= GRAVITY_LOSS;
+                if(Data->level.player->gravity < 1){
+                    Data->level.player->gravity = 1;
+                }
+            }
+        }else{
+            if(Data->level.player->gravity < PLAYER_MAX_GRAVITY_MULTIPLIER){
+                Data->level.player->gravity += PLAYER_GRAVITY_THORTTLE * Data->level.player->gravity_generator;
+                if(Data->level.player->gravity > PLAYER_MAX_GRAVITY_MULTIPLIER){
+                    Data->level.player->gravity = PLAYER_MAX_GRAVITY_MULTIPLIER;
+                }
+            }
+        }
 
         for(i = 0; i < Data->level.number_of_movable_objects; ++i){
             acc[i].x = ((fixed_circle*)(Data->level.movable_objects[i].object_data))->center.x;
@@ -274,23 +301,61 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Data->level.player->ang -= dANG;
         }
 
-
+        i = Data->level.player->energy_generator;
         if(Data->keyboard.flags[ekKEY_SHIELD]){
             if(Data->level.player->shield_generator < PLAYER_MAX_SHIELD_GENERATOR){
                 Data->level.player->shield_generator += 1;
             }
-            Data->level.player->energy_generator -= 5;
-        }else{
+            Data->level.player->energy_generator -= COST_SHIELD;
+        }
+
+        if(Data->keyboard.flags[ekKEY_NEG]){
+            if(Data->keyboard.flags[ekKEY_POS] || Data->level.player->electrostatic_generator > 0){
+                Data->level.player->electrostatic_generator /= 2;
+            }else{
+                if(Data->level.player->electrostatic_generator > -PLAYER_MAX_ELECTROSTATIC_GENERATOR){
+                    Data->level.player->electrostatic_generator -= 1;
+                }
+                Data->level.player->energy_generator -= COST_ELECTROSTATIC;
+            }
+        }else if(Data->keyboard.flags[ekKEY_POS]){
+            if(Data->level.player->electrostatic_generator < 0){
+                Data->level.player->electrostatic_generator /= 2;
+            }else{
+                if(Data->level.player->electrostatic_generator < PLAYER_MAX_ELECTROSTATIC_GENERATOR){
+                    Data->level.player->electrostatic_generator += 1;
+                }
+                Data->level.player->energy_generator -= COST_ELECTROSTATIC;
+            }
+        }
+
+        if(Data->keyboard.flags[ekKEY_GRAV]){
+            if(Data->level.player->gravity_generator < PLAYER_MAX_GRAVITY_GENERATOR){
+                Data->level.player->gravity_generator += 1;
+            }
+            Data->level.player->energy_generator -= COST_GRAVITY;
+        }
+
+        if(i == Data->level.player->energy_generator){
             if(Data->level.player->shield_generator > 0){
                 Data->level.player->shield_generator /= 2;
             }
+            if(Data->level.player->gravity_generator > 0){
+                Data->level.player->gravity_generator /= 2;
+            }
+            if(Data->level.player->electrostatic_generator != 0){
+                Data->level.player->electrostatic_generator /= 2;
+            }
             if(Data->level.player->energy_generator < PLAYER_MAX_ENERGY){
-                Data->level.player->energy_generator += 1;
+                Data->level.player->energy_generator += ENERGY_REPLENISHMENT_SPEED;
             }
         }
         if(Data->level.player->energy_generator <= 0){
             Data->level.player->energy_generator = 0;
             Data->keyboard.flags[ekKEY_SHIELD] = false;
+            Data->keyboard.flags[ekKEY_NEG] = false;
+            Data->keyboard.flags[ekKEY_POS] = false;
+            Data->keyboard.flags[ekKEY_GRAV] = false;
         }
 
         al_unlock_mutex(Data->keyboard.mutex_keyboard);
@@ -342,6 +407,12 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             al_unlock_mutex(Data->mutex_main_iteration);
         }else{
             al_unlock_mutex(Data->mutex_main_iteration);
+            Data->level.player->shield += Data->level.player->shield_push;
+            if(Data->level.player->shield > PLAYER_MAX_SHIELD){
+                Data->level.player->shield = PLAYER_MAX_SHIELD;
+            }
+            get_player_radius(Data->level.player);
+
             for(i = 0; i < Data->level.number_of_movable_objects; ++i){
                 if(get_drag_data(&(Data->level.movable_objects[i]), &vx, &vy, &Cx, &S)){
                     Cx = S * Cx * Data->level.dens;
@@ -772,7 +843,7 @@ bool get_grav_data(movable_object *obj, double *mass, double *r){
     switch(obj->type){
         case motPLAYER:
             #define obj_data ((movable_player*)obj->object_data)
-            *mass = obj_data->mass;
+            *mass = obj_data->mass * obj_data->gravity;
             *r = obj_data->r;
             #undef obj_data
             return true;

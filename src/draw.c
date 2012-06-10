@@ -19,6 +19,8 @@ void clear_stat_bar(game_shared_data *Data);
 void draw_time(game_shared_data *Data);
 void draw_HP_bar(game_shared_data *Data);
 void draw_shield_bar(game_shared_data *Data);
+void draw_electrostatic_bar(game_shared_data *Data);
+void draw_gravity_bar(game_shared_data *Data);
 void draw_stat_bar(game_shared_data *);
 void highlight_zone(game_shared_data *Data, short int x, short int y, ALLEGRO_COLOR color);
 void draw_zones(game_shared_data *Data, movable_object *obj, ALLEGRO_COLOR color);
@@ -28,8 +30,8 @@ void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int si
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac);
 void draw_tetragon(point *v1, point *v2, point *v3, point *v4, ALLEGRO_COLOR color);
 
-#define PLAYER_SHIELD_R 0
-#define PLAYER_SHIELD_G 10
+#define PLAYER_SHIELD_R 30
+#define PLAYER_SHIELD_G 0
 #define PLAYER_SHIELD_B 120
 /**
     Code
@@ -442,7 +444,7 @@ void draw_HP_bar(game_shared_data *Data){
 void draw_generator_bar(game_shared_data *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 100,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 110,
-                             al_map_rgba(50, 10, 0, 0.3));
+                             al_map_rgba(50, 50, 0, 0.3));
     float pos = (float)Data->level.player->energy_generator / PLAYER_MAX_ENERGY;
     if(pos < 0){
         pos = 0;
@@ -450,13 +452,13 @@ void draw_generator_bar(game_shared_data *Data){
     pos *= SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT - 20;
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 100,
                              SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 110,
-                             al_map_rgb(190, 0, 0));
+                             al_map_rgb(255, 255, 0));
 }
 
 void draw_shield_bar(game_shared_data *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 120,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 130,
-                             al_map_rgba(0, 30, 130, 0.3));
+                             al_map_rgba(40, 0, 130, 0.3));
     float pos = (float)Data->level.player->shield / PLAYER_MAX_SHIELD;
     if(pos < 0){
         pos = 0;
@@ -464,7 +466,42 @@ void draw_shield_bar(game_shared_data *Data){
     pos *= SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT - 20;
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 120,
                              SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 130,
-                             al_map_rgb(0, 80, 255));
+                             al_map_rgb(110, 0, 255));
+}
+
+void draw_electrostatic_bar(game_shared_data *Data){
+    float pos = (float)Data->level.player->charge / PLAYER_MAX_CHARGE;
+    if(pos > 1){
+        pos = 1;
+    }else if(pos < -1){
+        pos = -1;
+    }
+    int col = pos * 127;
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 140,
+                             SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 150,
+                             al_map_rgba((128 + col) / 4, (128 - int_abs(col)) / 4, (128 - col) / 4, 0.01));
+
+    pos *= (SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT) / 2 - 10;
+    al_draw_filled_rectangle((SCREEN_BUFFER_WIDTH + SCREEN_BUFFER_HEIGHT) / 2 + Data->scales.trans_x,       Data->scales.trans_y + 140,
+                             (SCREEN_BUFFER_WIDTH + SCREEN_BUFFER_HEIGHT) / 2 + Data->scales.trans_x + pos, Data->scales.trans_y + 150,
+                             al_map_rgba(128 + col, 128 - int_abs(col), 128 - col, 128 + int_abs(col)));
+}
+
+void draw_gravity_bar(game_shared_data *Data){
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 160,
+                             SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 170,
+                             al_map_rgba(0, 0, 0, 180));
+    float pos = (Data->level.player->gravity - 1) / (PLAYER_MAX_GRAVITY_MULTIPLIER - 1);
+    if(pos < 0){
+        pos = 0;
+    }
+    pos *= SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT - 20;
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 160,
+                             SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 170,
+                             al_map_rgb(0, 0, 0));
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 163,
+                             SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 167,
+                             al_map_rgb(255, 255, 255));
 }
 
 void draw_stat_bar(game_shared_data *Data){
@@ -473,6 +510,8 @@ void draw_stat_bar(game_shared_data *Data){
     draw_HP_bar(Data);
     draw_generator_bar(Data);
     draw_shield_bar(Data);
+    draw_electrostatic_bar(Data);
+    draw_gravity_bar(Data);
 }
 
 /**

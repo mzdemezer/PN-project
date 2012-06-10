@@ -18,6 +18,7 @@
 #define SQRT2 1.41421356
 
 #define eps 0.000001
+#define double_eps 0.0000000001
 
 /**
     Physics

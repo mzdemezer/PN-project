@@ -10,7 +10,7 @@
 #include "level.h"
 #include "../menu.h"
 
-#define NUMBER_OF_SIGNIFICANT_KEYS 5
+#define NUMBER_OF_SIGNIFICANT_KEYS 8
 
 /**
     Config
@@ -38,7 +38,10 @@ typedef enum enum_keys{
     ekKEY_DOWN,
     ekKEY_LEFT,
     ekKEY_RIGHT,
-    ekKEY_SHIELD
+    ekKEY_SHIELD,
+    ekKEY_NEG,
+    ekKEY_POS,
+    ekKEY_GRAV
 }enum_keys;
 
 typedef struct keyboard_structure{
@@ -46,7 +49,10 @@ typedef struct keyboard_structure{
         key_down,
         key_left,
         key_right,
-        key_shield;
+        key_shield,
+        key_neg,
+        key_pos,
+        key_grav;
     bool flags[NUMBER_OF_SIGNIFICANT_KEYS];
     ALLEGRO_MUTEX *mutex_keyboard;
 }keyboard_structure;

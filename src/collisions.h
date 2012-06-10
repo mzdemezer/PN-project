@@ -11,7 +11,7 @@
 #define SHIELD_TO_WALL_RESTITUTION 0.5
 
 #define PLAYER_DAMAGE_MULTIPLIER 0.0005
-#define PLAYER_SHIELD_DAMAGE_MULITIPLIER 0.2
+#define PLAYER_SHIELD_DAMAGE_MULITIPLIER 0.1
 
 #include "structures.h"
 
@@ -36,24 +36,25 @@ void in_order_check_collision(level_data *level, fast_read_set *movable_done,
 /**
     Detecting
     */
-double check_collision_between_two_balls(double x, double y, double dx, double dy, double d);
-double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, segment *seg);
+double check_collision_between_two_balls(double x, double y, double dx, double dy,
+                                         double d, double dr);
+double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, double dr, segment *seg);
 double check_exit(double dx, double dy, fixed_exit *ex);
 
 /**
     Colliding
     */
 void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *v2x, double *v2y,
-                                              double dx, double dy, double m1, double m2, double restitution);
-void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double restitution);
+                                              double dx, double dy, double m1, double m2, double dr, double restitution);
+void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double dr, double restitution);
 
-void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *seg, double restitution);
+void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *seg, double dr, double restitution);
 
 /**
     Separating
     */
-void separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d);
-void separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d);
-void separate_ball_from_segment(double *x, double *y, double d, segment *seg);
+bool separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d);
+bool separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d);
+bool separate_ball_from_segment(double *x, double *y, double d, segment *seg);
 
 #endif

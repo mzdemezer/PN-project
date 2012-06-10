@@ -268,10 +268,18 @@ void change_zones_for_movable(level_data *level, short int index, double t){
     for(i = 0; i < 4; ++i){
         oldz[i] = obj->zones[i];
     }
-    get_zone_for_object(((point*)(obj->object_data))->x,
-                        ((point*)(obj->object_data))->y,
-                        obj->dx * t, obj->dy * t, ((fixed_circle*)obj->object_data)->r,
-                        obj->zones);
+    if(obj->type == motPLAYER){
+        #define player ((movable_player*)obj->object_data)
+        get_zone_for_object(player->center.x, player->center.y,
+                            obj->dx * t, obj->dy * t, player->r + player->shield_push * 2,
+                            obj->zones);
+        #undef player
+    }else{
+        get_zone_for_object(((point*)(obj->object_data))->x,
+                            ((point*)(obj->object_data))->y,
+                            obj->dx * t, obj->dy * t, ((fixed_circle*)obj->object_data)->r,
+                            obj->zones);
+    }
 
     #define newz(x) (obj->zones[x])
     #define Zonez(x, y) (level->zones[x][y])

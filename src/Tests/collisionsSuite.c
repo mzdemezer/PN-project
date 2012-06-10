@@ -9,7 +9,7 @@ void test_check_collision_between_ball_and_segment01(CuTest *tc){
     double  x = 25, y = 25,
            dx = 0, dy = -20,
            r = 15;
-    CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, &seg) - 0.5) < eps);
+    CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, 0, &seg) - 0.5) < eps);
 }
 
 void test_check_collision_between_ball_and_segment02(CuTest *tc){
@@ -17,7 +17,7 @@ void test_check_collision_between_ball_and_segment02(CuTest *tc){
     double  x = 25, y = 25,
            dx = 60, dy = -20,
            r = 15;
-    CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, &seg) - EMPTY_COLLISION_TIME) < eps);
+    CuAssertTrue(tc, double_abs(check_collision_between_ball_and_segment(x, y, dx, dy, r, 0, &seg) - EMPTY_COLLISION_TIME) < eps);
 }
 
 CuSuite* collisionsGetSuite(void){

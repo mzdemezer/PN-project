@@ -264,6 +264,12 @@ void handle_event_game(game_shared_data *Data){
                             Data->keyboard.flags[ekKEY_RIGHT] = true;
                         }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
                             Data->keyboard.flags[ekKEY_SHIELD] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_neg){
+                            Data->keyboard.flags[ekKEY_NEG] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_pos){
+                            Data->keyboard.flags[ekKEY_POS] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_grav){
+                            Data->keyboard.flags[ekKEY_GRAV] = true;
                         }else if(Data->last_event.keyboard.keycode == ALLEGRO_KEY_TILDE){
                             Data->debug = !Data->debug;
                         }
@@ -282,6 +288,12 @@ void handle_event_game(game_shared_data *Data){
                     Data->keyboard.flags[ekKEY_RIGHT] = false;
                 }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
                     Data->keyboard.flags[ekKEY_SHIELD] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_neg){
+                    Data->keyboard.flags[ekKEY_NEG] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_grav){
+                    Data->keyboard.flags[ekKEY_GRAV] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_pos){
+                    Data->keyboard.flags[ekKEY_POS] = false;
                 }
             al_unlock_mutex(Data->keyboard.mutex_keyboard);
             break;
