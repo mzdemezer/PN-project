@@ -467,6 +467,7 @@ function Load(){
 	for(i in input){
 		input[i] = input[i].split(' ');
 	}
+	console.log(input);
 	for(i in Data.Arrays){
 		Data[Data.Arrays[i]] = [];
 	}
@@ -484,26 +485,43 @@ function Load(){
 					break;
 				case "Rectangles":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
+						for(var k = 6; k < input[j].length; ++k){
+							input[j][5] += input[j][k];
+						}
 						Data.Add(rectangle({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, color: input[j][5]}));
 					}
 					break;
 				case "Circles":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
+						for(var k = 4; k < input[j].length; ++k){
+							input[j][3] += input[j][k];
+						}
 						Data.Add(circle({x: input[j][0] - 0, y: input[j][1] - 0, r0: input[j][2] - 0, color: input[j][3]}));
 					}
 					break;
 				case "Squares":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
+						for(var k = 5; k < input[j].length; ++k){
+							input[j][4] += input[j][k];
+						}
 						Data.Add(square({x: input[j][0] - 0, y: input[j][1] - 0, bok: input[j][2] - 0, ang: input[j][3] - 0, color: input[j][4]}));
 					}
 					break;
 				case "Entrances":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						Data.Add(entrance({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, color: input[j][5]}));
+						for(var k = 6; k < input[j].length; ++k){
+							input[j][5] += input[j][k];
+						}
+						Data.Add(entrance({x: input[j][0] - 0, y: input[j][1] - 0,
+												a: input[j][2] - 0, b: input[j][3] - 0,
+												ang: input[j][4] - 0, color: input[j][5]}));
 					}
 					break;
 				case "Exits":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
+						for(var k = 6; k < input[j].length; ++k){
+							input[j][5] += input[j][k];
+						}
 						Data.Add(exit({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, color: input[j][5]}));
 					}
 					break;
@@ -521,11 +539,17 @@ function Load(){
 						}
 						connected.Doors.sort(sortfunc);
 						connected.Switches.sort(sortfunc);
+						for(var l = k + 2; l < input[j].length; ++l){
+							input[j][k + 1] += input[j][l];
+						}
 						Data.Add(aswitch({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, connected: connected, swType: input[j][5], pos: input[j][6] - 0, mass: input[j][k] - 0, color: input[j][k + 1]}));
 					}
 					break;
 				case "Doors":
 					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
+						for(var k = 9; k < input[j].length; ++k){
+							input[j][8] += input[j][k];
+						}
 						Data.Add(door({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, doorType: input[j][5], pos: input[j][6] - 0, openingTime: input[j][7] - 0, color: input[j][8]}));
 					}
 					break;
@@ -1238,6 +1262,23 @@ function findRectVertices(Rec){
 	return verts;
 }
 
+function findSquareVertices(Sqr){
+	var verts = [{x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}],
+		 fi = pi4 + Sqr.ang;
+	verts[0].x = Sqr.x + Sqr.r0 * Math.cos(fi);
+	verts[0].y = Sqr.y + Sqr.r0 * Math.sin(fi);
+	fi += pipol;
+	verts[1].x = Sqr.x + Sqr.r0 * Math.cos(fi);
+	verts[1].y = Sqr.y + Sqr.r0 * Math.sin(fi);
+	fi += pipol;
+	verts[2].x = Sqr.x + Sqr.r0 * Math.cos(fi);
+	verts[2].y = Sqr.y + Sqr.r0 * Math.sin(fi);
+	fi += pipol;
+	verts[3].x = Sqr.x + Sqr.r0 * Math.cos(fi);
+	verts[3].y = Sqr.y + Sqr.r0 * Math.sin(fi);
+	return verts;
+}
+
 function circleRadius(){return this.r0};
 
 function square(SQ){//{x:x0,y:y0,bok:bok0,ang:ang0,color:color}
@@ -1445,7 +1486,7 @@ function particle(P){//{x:x,y:y,r0:r0,charge:charge,mass:mass}
 
 //-------------------------------------------------------------
 
-function drawSquare(sq, color){
+function drawSquareSTUPID(sq, color){
 	var r, x, y;
 	x = sq.x + sq.r(0);
 	y = sq.y;
@@ -1462,7 +1503,20 @@ function drawSquare(sq, color){
 	$ctx.fill();
 }
 
-function drawRect(rc, color){
+function drawSquare(sq, color){
+	var v = findSquareVertices(sq);
+	$ctx.moveTo(v[0].x, v[0].y);
+	$ctx.beginPath();
+	$ctx.lineTo(v[1].x, v[1].y);
+	$ctx.lineTo(v[2].x, v[2].y);
+	$ctx.lineTo(v[3].x, v[3].y);
+	$ctx.lineTo(v[0].x, v[0].y);
+	$ctx.closePath();
+	$ctx.fillStyle = color;
+	$ctx.fill();
+}
+
+function drawRectSTUPID(rc, color){
 	var r,x,y;
 	r=rc.r(0);
 	x=rc.x+r; //fi == 0
@@ -1479,6 +1533,33 @@ function drawRect(rc, color){
 	$ctx.fill();
 	$ctx.stroke();
 	$ctx.closePath();
+	r=rc.r(pipol + rc.ang + rc.fi0 / 2);
+	$ctx.beginPath();
+	$ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
+	$ctx.closePath();
+	$ctx.fillStyle='#a00';
+	$ctx.fill();
+	r = rc.r(-rc.ang);
+	$ctx.beginPath();
+	$ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
+	$ctx.closePath();
+	$ctx.fillStyle='#00a';
+	$ctx.fill();
+}
+
+function drawRect(rc, color){
+	var v = findRectVertices(rc);
+	$ctx.moveTo(v[0].x, v[0].y);
+	$ctx.beginPath();
+	$ctx.lineTo(v[1].x, v[1].y);
+	$ctx.lineTo(v[2].x, v[2].y);
+	$ctx.lineTo(v[3].x, v[3].y);
+	$ctx.lineTo(v[0].x, v[0].y);
+	$ctx.closePath();
+	$ctx.fillStyle=color;
+	$ctx.fill();
+	$ctx.stroke();
+	
 	r=rc.r(pipol + rc.ang + rc.fi0 / 2);
 	$ctx.beginPath();
 	$ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
@@ -1691,8 +1772,11 @@ function klawa(e){
 	}
 
 	switch(e.keyCode){
-		case 46://del
-			delObject();
+		case 46://shift + del
+		case 68://shift + d
+			if(e.shiftKey){
+				delObject();
+			}
 			break;
 		case 67://shift + c
 			if(e.shiftKey){
