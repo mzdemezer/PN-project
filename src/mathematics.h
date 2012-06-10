@@ -30,6 +30,7 @@ inline double double_min(double, double);
 inline double double_max(double, double);
 inline short int short_min(short int, short int);
 inline short int short_max(short int, short int);
+inline int int_max(int, int);
 int rzad(int);
 inline int sign(double);
 inline short short_sign(short);

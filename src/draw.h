@@ -44,6 +44,7 @@ void draw_circle(void *object_data);
 void draw_rectangle(void *object_data);
 void draw_all_fixed_objects(level_data *level);
 
+void draw_shield(double x, double y, double radius, int r, int g, int b);
 void draw_player(void *object_data, double dx, double dy);
 void draw_particle(void *object_data, double dx, double dy);
 void draw_door(void *object_data, double dx, double dy);

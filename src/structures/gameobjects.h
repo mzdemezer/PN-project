@@ -86,15 +86,23 @@ typedef struct movable_object{
 #define PLAYER_MASS 600
 #define PLAYER_RADIUS 20
 #define PLAYER_HP 1000
+#define PLAYER_MAX_ENERGY 3000
+#define PLAYER_MAX_SHIELD_GENERATOR 30
+#define PLAYER_SHIELD_THROTTLE 0.1
+#define PLAYER_MAX_SHIELD (PLAYER_RADIUS * 2)
 typedef struct movable_player{
     point center;
     double r, vx, vy;
     double ang;
-    int engine_state;
+    int engine_state,
+        energy_generator,
+        shield_generator;
     double mass,
           charge,
           r0;
-    double HP;
+    double HP,
+           shield,
+           shield_push;
 }movable_player;
 
 typedef enum switch_type{
@@ -241,5 +249,7 @@ double radius_square(void *object_data, double fi);
 double radius_circle(void *object_data, double fi);
 double radius_rectangle(void *object_data, double fi);
 double radius_player(void *object_data, double fi);
+
+void get_player_radius(movable_player *player, double push);
 
 #endif

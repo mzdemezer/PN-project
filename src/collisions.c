@@ -9,7 +9,8 @@
     */
 void player_get_dx_dy(movable_object *obj, double dt);
 void particle_get_dx_dy(movable_object *obj, double dt);
-void count_hp(movable_player *, double d_vx, double d_vy);
+double count_hp_loss(double d_vx, double d_vy);
+void count_hp_and_shield(movable_player *, double d_vx, double d_vy);
 
 /**
     Code
@@ -38,7 +39,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         with_d_vy = WITH_PLAYER->vy;
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
-                                           WHO_PLAYER->r + WITH_PLAYER->r);
+                                           WHO_PLAYER->r + WITH_PLAYER->r + WHO_PLAYER->shield_push + WITH_PLAYER->shield_push);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PLAYER->center.x,
@@ -49,12 +50,12 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         player_get_dx_dy(&level->movable_objects[with], dt);
                         with_d_vx = WITH_PLAYER->vx - with_d_vx;
                         with_d_vy = WITH_PLAYER->vy - with_d_vy;
-                        count_hp(WITH_PLAYER, with_d_vx, with_d_vy);
+                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy);
                         break;
                     case motPARTICLE:
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
-                                           WHO_PLAYER->r + WITH_PARTICLE->r);
+                                           WHO_PLAYER->r + WITH_PARTICLE->r + WHO_PLAYER->shield_push);
                         get_velocities_after_two_balls_collision(&(WHO_PLAYER->vx), &(WHO_PLAYER->vy),
                                                                  &(WITH_PARTICLE->vx), &(WITH_PARTICLE->vy),
                                                                  WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
@@ -69,7 +70,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 }
                 player_d_vx = WHO_PLAYER->vx - player_d_vx;
                 player_d_vy = WHO_PLAYER->vy - player_d_vy;
-                count_hp(WHO_PLAYER, player_d_vx, player_d_vy);
+                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy);
                 break;
             case motPARTICLE:
                 switch(level->movable_objects[with].type){
@@ -78,7 +79,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         with_d_vy = WITH_PLAYER->vy;
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
                                            &WITH_PLAYER->center.x, &WITH_PLAYER->center.y, WITH_PLAYER->mass,
-                                           WHO_PARTICLE->r + WITH_PLAYER->r);
+                                           WHO_PARTICLE->r + WITH_PLAYER->r + WITH_PLAYER->shield_push);
                         get_velocities_after_two_balls_collision(&(WHO_PARTICLE->vx), &(WHO_PARTICLE->vy),
                                                                  &(WITH_PLAYER->vx), &(WITH_PLAYER->vy),
                                                                  WITH_PLAYER->center.x - WHO_PARTICLE->center.x,
@@ -89,7 +90,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         player_get_dx_dy(&level->movable_objects[with], dt);
                         with_d_vx = WITH_PLAYER->vx - with_d_vx;
                         with_d_vy = WITH_PLAYER->vy - with_d_vy;
-                        count_hp(WITH_PLAYER, with_d_vx, with_d_vy);
+                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy);
                         break;
                     case motPARTICLE:
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
@@ -103,7 +104,6 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                                                                  PLAYER_TO_PARTICLE_RESTITUTION);
                         particle_get_dx_dy(&level->movable_objects[who], dt);
                         particle_get_dx_dy(&level->movable_objects[with], dt);
-
                         break;
                     default:
                         break;
@@ -121,25 +121,44 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 switch(level->primitive_objects[with].type){
                     case potPOINT:
                         separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
-                                                      WITH_POINT->x, WITH_POINT->y, WHO_PLAYER->r);
-                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                        WITH_POINT->x - WHO_PLAYER->center.x,
-                                                                        WITH_POINT->y - WHO_PLAYER->center.y,
-                                                                        PLAYER_TO_WALL_RESTITUTION);
+                                                      WITH_POINT->x, WITH_POINT->y, WHO_PLAYER->r + WHO_PLAYER->shield_push);
+                        if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
+                            get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                            WITH_POINT->x - WHO_PLAYER->center.x,
+                                                                            WITH_POINT->y - WHO_PLAYER->center.y,
+                                                                            PLAYER_TO_WALL_RESTITUTION);
+                        }else{
+                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
+                            get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                      WITH_SEGMENT, SHIELD_TO_WALL_RESTITUTION);
+                        }
                         break;
                     case potSEGMENT:
-                        separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
-                        get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                  WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
+                        if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
+                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
+                            get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                      WITH_SEGMENT, PLAYER_TO_WALL_RESTITUTION);
+                        }else{
+                            separate_ball_from_segment(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->r, WITH_SEGMENT);
+                            get_velocity_after_ball_to_wall_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                      WITH_SEGMENT, SHIELD_TO_WALL_RESTITUTION);
+                        }
                         break;
                     case potCIRCLE:
                         separate_ball_from_fixed_ball(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y,
                                                       WITH_CIRCLE->center.x, WITH_CIRCLE->center.y,
-                                                      WHO_PLAYER->r + WITH_CIRCLE->r);
-                        get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
-                                                                        WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
-                                                                        WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
-                                                                        PLAYER_TO_WALL_RESTITUTION);
+                                                      WHO_PLAYER->r + WITH_CIRCLE->r + WHO_PLAYER->shield_push);
+                        if(WHO_PLAYER->shield <= WHO_PLAYER->r0){
+                            get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                            WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
+                                                                            WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
+                                                                            PLAYER_TO_WALL_RESTITUTION);
+                        }else{
+                            get_velocity_after_ball_to_fixed_ball_collision(&WHO_PLAYER->vx, &WHO_PLAYER->vy,
+                                                                            WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
+                                                                            WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
+                                                                            SHIELD_TO_WALL_RESTITUTION);
+                        }
                         break;
                     case potEXIT:
                         level->at_exit = true;
@@ -149,7 +168,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 player_get_dx_dy(&level->movable_objects[who], dt);
                 player_d_vx = WHO_PLAYER->vx - player_d_vx;
                 player_d_vy = WHO_PLAYER->vy - player_d_vy;
-                count_hp(WHO_PLAYER, player_d_vx, player_d_vy);
+                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy);
                 break;
             case motPARTICLE:
                 switch(level->primitive_objects[with].type){
@@ -194,12 +213,29 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     #undef WITH_EXIT
 }
 
-void count_hp(movable_player *player, double d_vx, double d_vy){
+double count_hp_loss(double d_vx, double d_vy){
     d_vx = d_vx * d_vx + d_vy * d_vy;
     if( !(double_abs(d_vx) < eps) ){
-        player->HP -= d_vx * PLAYER_DAMAGE_MULTIPLIER;
+        return d_vx * PLAYER_DAMAGE_MULTIPLIER;
+    }else{
+        return 0;
     }
 }
+
+void count_hp_and_shield(movable_player *player, double d_vx, double d_vy){
+    d_vx = count_hp_loss(d_vx, d_vy);
+    if(player->shield > player->r0){
+        player->shield -= d_vx * PLAYER_SHIELD_DAMAGE_MULITIPLIER;
+        if(player->shield <= eps){
+            player->shield = 0;
+        }
+        player->shield_push = 0;
+        get_player_radius(player, 0);
+    }else{
+        player->HP -= d_vx;
+    }
+}
+
 /**
     After collision the ould collision tree
     with movables for given object still exists,
@@ -319,16 +355,16 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
                 case potPOINT:
                     new_coll.time = check_collision_between_two_balls(WITH_POINT->x - WHO_PLAYER->center.x,
                                                                       WITH_POINT->y - WHO_PLAYER->center.y,
-                                                                      who->dx, who->dy, WHO_PLAYER->r);
+                                                                      who->dx, who->dy, WHO_PLAYER->r + WHO_PLAYER->shield_push);
                     break;
                 case potSEGMENT:
                     new_coll.time = check_collision_between_ball_and_segment(WHO_PLAYER->center.x, WHO_PLAYER->center.y,
-                                                                             who->dx, who->dy, WHO_PLAYER->r, WITH_SEGMENT);
+                                                                             who->dx, who->dy, WHO_PLAYER->r + WHO_PLAYER->shield_push, WITH_SEGMENT);
                     break;
                 case potCIRCLE:
                     new_coll.time = check_collision_between_two_balls(WITH_CIRCLE->center.x - WHO_PLAYER->center.x,
                                                                       WITH_CIRCLE->center.y - WHO_PLAYER->center.y,
-                                                                      who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r);
+                                                                      who->dx, who->dy, WHO_PLAYER->r + WITH_CIRCLE->r + WHO_PLAYER->shield_push);
                     break;
                 case potEXIT:
                     if(!((prim_exit*)with_what->object_data)->done){
@@ -383,7 +419,7 @@ collision_data get_collision_with_movable(movable_object *who, movable_object *w
                     new_coll.time = check_collision_between_two_balls(WITH_PLAYER->center.x - WHO_PLAYER->center.x,
                                                                       WITH_PLAYER->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PLAYER->r + WHO_PLAYER->r);
+                                                                      WITH_PLAYER->r + WHO_PLAYER->r + WHO_PLAYER->shield_push + WITH_PLAYER->shield_push);
                     #undef WITH_PLAYER
                     break;
                 case motPARTICLE:
@@ -391,7 +427,7 @@ collision_data get_collision_with_movable(movable_object *who, movable_object *w
                     new_coll.time = check_collision_between_two_balls(WITH_PARTICLE->center.x - WHO_PLAYER->center.x,
                                                                       WITH_PARTICLE->center.y - WHO_PLAYER->center.y,
                                                                       with_whom->dx - who->dx, with_whom->dy - who->dy,
-                                                                      WITH_PARTICLE->r + WHO_PLAYER->r);
+                                                                      WITH_PARTICLE->r + WHO_PLAYER->r + WHO_PLAYER->shield_push);
                     #undef WITH_PARTICLE
                     break;
                 default:

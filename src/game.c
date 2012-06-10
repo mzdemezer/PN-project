@@ -178,6 +178,24 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         Data->level.player->vx += op * cos(Data->level.player->ang);
         Data->level.player->vy += op * sin(Data->level.player->ang);
 
+        if(!Data->level.player->shield_generator){
+            if(Data->level.player->shield > eps){
+                Data->level.player->shield -= 1;
+                if(Data->level.player->shield <= eps){
+                    Data->level.player->shield = 0;
+                }
+            }
+        }else{
+            if(Data->level.player->shield < PLAYER_MAX_SHIELD){
+                Data->level.player->shield += Data->level.player->shield_generator * PLAYER_SHIELD_THROTTLE;
+                if(Data->level.player->shield > PLAYER_MAX_SHIELD){
+                    Data->level.player->shield = PLAYER_MAX_SHIELD;
+                }
+            }
+        }
+
+        get_player_radius(Data->level.player, op);
+
         for(i = 0; i < Data->level.number_of_movable_objects; ++i){
             acc[i].x = ((fixed_circle*)(Data->level.movable_objects[i].object_data))->center.x;
             acc[i].y = ((fixed_circle*)(Data->level.movable_objects[i].object_data))->center.y;
@@ -254,6 +272,25 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
         }
         else if(Data->keyboard.flags[ekKEY_LEFT]){
             Data->level.player->ang -= dANG;
+        }
+
+
+        if(Data->keyboard.flags[ekKEY_SHIELD]){
+            if(Data->level.player->shield_generator < PLAYER_MAX_SHIELD_GENERATOR){
+                Data->level.player->shield_generator += 1;
+            }
+            Data->level.player->energy_generator -= 5;
+        }else{
+            if(Data->level.player->shield_generator > 0){
+                Data->level.player->shield_generator /= 2;
+            }
+            if(Data->level.player->energy_generator < PLAYER_MAX_ENERGY){
+                Data->level.player->energy_generator += 1;
+            }
+        }
+        if(Data->level.player->energy_generator <= 0){
+            Data->level.player->energy_generator = 0;
+            Data->keyboard.flags[ekKEY_SHIELD] = false;
         }
 
         al_unlock_mutex(Data->keyboard.mutex_keyboard);

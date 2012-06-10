@@ -17,7 +17,8 @@ void clear_paused_menu(game_shared_data *Data);
 void draw_menu_content(game_shared_data *Data);
 void clear_stat_bar(game_shared_data *Data);
 void draw_time(game_shared_data *Data);
-void draw_HP(game_shared_data *Data);
+void draw_HP_bar(game_shared_data *Data);
+void draw_shield_bar(game_shared_data *Data);
 void draw_stat_bar(game_shared_data *);
 void highlight_zone(game_shared_data *Data, short int x, short int y, ALLEGRO_COLOR color);
 void draw_zones(game_shared_data *Data, movable_object *obj, ALLEGRO_COLOR color);
@@ -27,6 +28,9 @@ void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int si
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac);
 void draw_tetragon(point *v1, point *v2, point *v3, point *v4, ALLEGRO_COLOR color);
 
+#define PLAYER_SHIELD_R 0
+#define PLAYER_SHIELD_G 10
+#define PLAYER_SHIELD_B 120
 /**
     Code
     */
@@ -154,7 +158,7 @@ void draw_high_scores(game_shared_data *Data){
 
     al_draw_text(Data->font_menu_big, white, Data->display_data.width / 2,
                  Data->display_data.height * 0.07 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, "HIGH SCORES");
-    al_draw_text(Data->font_menu_selected, yellow, Data->display_data.width / 2,
+    al_draw_text(Data->font_menu_regular, yellow, Data->display_data.width / 2,
                  Data->display_data.height * 0.8 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, "RETURN");
     strcpy(buf, "name");
     for(i = 0; i < MAX_HIGH_SCORES; ++i){
@@ -403,7 +407,7 @@ void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int si
 void clear_stat_bar(game_shared_data *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x, Data->scales.trans_y,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x, SCREEN_BUFFER_HEIGHT + Data->scales.trans_y,
-                             al_map_rgb(45, 0, 0));
+                             al_map_rgb(20, 0, 0));
 }
 
 void draw_time(game_shared_data *Data){
@@ -421,10 +425,10 @@ void draw_time(game_shared_data *Data){
     al_use_transform(&Data->transformation);
 }
 
-void draw_HP(game_shared_data *Data){
+void draw_HP_bar(game_shared_data *Data){
     al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 80,
                              SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 90,
-                             al_map_rgba(0, 160, 0, 0.3));
+                             al_map_rgba(0, 130, 0, 0.3));
     float pos = Data->level.player->HP / PLAYER_HP;
     if(pos < 0){
         pos = 0;
@@ -435,10 +439,40 @@ void draw_HP(game_shared_data *Data){
                              al_map_rgb(0, 255, 0));
 }
 
+void draw_generator_bar(game_shared_data *Data){
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 100,
+                             SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 110,
+                             al_map_rgba(50, 10, 0, 0.3));
+    float pos = (float)Data->level.player->energy_generator / PLAYER_MAX_ENERGY;
+    if(pos < 0){
+        pos = 0;
+    }
+    pos *= SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT - 20;
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 100,
+                             SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 110,
+                             al_map_rgb(190, 0, 0));
+}
+
+void draw_shield_bar(game_shared_data *Data){
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10, Data->scales.trans_y + 120,
+                             SCREEN_BUFFER_WIDTH + Data->scales.trans_x - 10,  Data->scales.trans_y + 130,
+                             al_map_rgba(0, 30, 130, 0.3));
+    float pos = (float)Data->level.player->shield / PLAYER_MAX_SHIELD;
+    if(pos < 0){
+        pos = 0;
+    }
+    pos *= SCREEN_BUFFER_WIDTH - SCREEN_BUFFER_HEIGHT - 20;
+    al_draw_filled_rectangle(SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10,       Data->scales.trans_y + 120,
+                             SCREEN_BUFFER_HEIGHT + Data->scales.trans_x + 10 + pos, Data->scales.trans_y + 130,
+                             al_map_rgb(0, 80, 255));
+}
+
 void draw_stat_bar(game_shared_data *Data){
     clear_stat_bar(Data);
     draw_time(Data);
-    draw_HP(Data);
+    draw_HP_bar(Data);
+    draw_generator_bar(Data);
+    draw_shield_bar(Data);
 }
 
 /**
@@ -612,12 +646,33 @@ void draw_all_fixed_objects(level_data *level){
     }
 }
 
+void draw_shield(double x, double y, double radius, int r, int g, int b){
+    al_draw_filled_circle(x, y, radius * 1.12, al_map_rgba(r * 0.1, g * 0.1, b * 0.1, 0.01));
+    al_draw_filled_circle(x, y, radius * 1.08, al_map_rgba(r * 0.2, g * 0.2, b * 0.2, 0.01));
+    al_draw_filled_circle(x, y, radius * 1.04, al_map_rgba(r * 0.3, g * 0.3, b * 0.3, 0.01));
+    al_draw_filled_circle(x, y, radius * 0.96, al_map_rgba(r * 0.4, g * 0.4, b * 0.4, 0.02));
+    al_draw_filled_circle(x, y, radius * 0.92, al_map_rgba(r * 0.5, g * 0.5, b * 0.5, 0.03));
+    al_draw_filled_circle(x, y, radius * 0.88, al_map_rgba(r * 0.6, g * 0.6, b * 0.6, 0.04));
+    al_draw_filled_circle(x, y, radius * 0.84, al_map_rgba(r * 0.7, g * 0.7, b * 0.7, 0.05));
+    al_draw_filled_circle(x, y, radius * 0.80, al_map_rgba(r * 0.8, g * 0.8, b * 0.8, 0.06));
+    al_draw_filled_circle(x, y, radius * 0.76, al_map_rgba(r * 0.9, g * 0.9, b * 0.9, 0.07));
+    al_draw_filled_circle(x, y, radius * 0.72, al_map_rgba(r, g, b, 0.08));
+    al_draw_filled_circle(x, y, radius * 0.68, al_map_rgba(r * 1.1, g * 1.1, b * 1.1, 0.09));
+    al_draw_filled_circle(x, y, radius * 0.64, al_map_rgba(r * 1.2, g * 1.2, b * 1.2, 0.1));
+    al_draw_filled_circle(x, y, radius * 0.60, al_map_rgba(r * 1.3, g * 1.3, b * 1.3, 0.11));
+    al_draw_filled_circle(x, y, radius * 0.56, al_map_rgba(r * 1.4, g * 1.4, b * 1.4, 0.12));
+}
+
 void draw_player(void *object_data, double dx, double dy){
     #define Data ((movable_player*)object_data)
     al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
     al_draw_filled_circle(Data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(Data->ang),
                           Data->center.y + dy + PLAYER_RADIUS * 0.5 * sin(Data->ang),
                           PLAYER_RADIUS * 0.2, al_map_rgb(0, 0, 0));
+    if(Data->shield){
+        draw_shield(Data->center.x + dx, Data->center.y + dy, Data->shield,
+                    PLAYER_SHIELD_R, PLAYER_SHIELD_G, PLAYER_SHIELD_B);
+    }
     #undef Data
 }
 

@@ -269,7 +269,7 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
     Data->keyboard.key_down  = ALLEGRO_KEY_DOWN;
     Data->keyboard.key_left  = ALLEGRO_KEY_LEFT;
     Data->keyboard.key_right = ALLEGRO_KEY_RIGHT;
-
+    Data->keyboard.key_shield = ALLEGRO_KEY_S;
     /**
         Mutexes
         */

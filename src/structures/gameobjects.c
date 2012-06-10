@@ -158,6 +158,10 @@ void construct_player(movable_object *object){
     Data->r = PLAYER_RADIUS;
     Data->r0 = PLAYER_RADIUS;
     Data->HP = PLAYER_HP;
+    Data->shield = 0;
+    Data->shield_push = 0;
+    Data->shield_generator = 0;
+    Data->energy_generator = PLAYER_MAX_ENERGY;
     get_zone_for_object(Data->center.x, Data->center.y, 0, 0, Data->r, object->zones);
     #undef Data
 }
@@ -233,4 +237,18 @@ double radius_rectangle(void *object_data, double fi){
     #define Data ((fixed_rectangle*)object_data)
     return rectangle_equation(Data->r, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
     #undef Data
+}
+
+/**
+    Others
+    */
+
+void get_player_radius(movable_player *player, double push){
+    double max = double_max(player->r0, player->shield);
+    if(max > player->r){
+        player->shield_push = push;
+    }else{
+        player->shield_push = 0;
+    }
+    player->r = max - push;
 }

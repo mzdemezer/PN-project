@@ -262,6 +262,8 @@ void handle_event_game(game_shared_data *Data){
                             Data->keyboard.flags[ekKEY_LEFT] = true;
                         }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
                             Data->keyboard.flags[ekKEY_RIGHT] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
+                            Data->keyboard.flags[ekKEY_SHIELD] = true;
                         }else if(Data->last_event.keyboard.keycode == ALLEGRO_KEY_TILDE){
                             Data->debug = !Data->debug;
                         }
@@ -278,6 +280,8 @@ void handle_event_game(game_shared_data *Data){
                     Data->keyboard.flags[ekKEY_LEFT] = false;
                 }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
                     Data->keyboard.flags[ekKEY_RIGHT] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
+                    Data->keyboard.flags[ekKEY_SHIELD] = false;
                 }
             al_unlock_mutex(Data->keyboard.mutex_keyboard);
             break;
@@ -504,9 +508,6 @@ void request_loading(game_shared_data *Data){
 
 void request_menu(game_shared_data *Data){
     make_main_menu_unpause(&Data->menu);
-    if(Data->game_state != gsHIGHSCORES){
-        Data->menu.current_elem = mmeHIGHSCORES;
-    }
     Data->request_change_state = false;
     Data->game_state = gsMENU;
     Data->draw_function = draw_menu;

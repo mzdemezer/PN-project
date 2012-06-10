@@ -58,6 +58,14 @@ inline short int short_max(short int a, short int b){
     }
 }
 
+inline int int_max(int a, int b){
+    if(a > b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
 int rzad(int a){
     int res = 1, lim = 10;
     a = int_abs(a);
