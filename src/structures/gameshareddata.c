@@ -41,6 +41,9 @@ void scale_fonts(game_shared_data *Data){
     destroy_fonts(Data);
 
     buffer = al_get_config_value(Data->config, "Fonts", "menu_font");
+    if(!buffer){
+        buffer = DEFAULT_FONT_MENU;
+    }
     Data->font_menu_big = al_load_ttf_font(buffer, (int)(Data->scales.scale_h / 10), 0);
     if (!Data->font_menu_big){
         fprintf(stderr, "Could not load '%s'.\n", buffer);
@@ -58,6 +61,9 @@ void scale_fonts(game_shared_data *Data){
     Data->font_menu_config_selected = al_load_ttf_font(buffer, (int)(Data->font_menu_selected->height * 0.45), 0);
 
     buffer = al_get_config_value(Data->config, "Fonts", "time_font");
+    if(!buffer){
+        buffer = DEFAULT_FONT_TIME;
+    }
     Data->font_time = al_load_ttf_font(buffer, (int)(Data->scales.scale_h / 20), 0);
     if (!Data->font_time){
         fprintf(stderr, "Could not load '%s'.\n", buffer);
@@ -71,6 +77,9 @@ void scale_fonts(game_shared_data *Data){
     al_set_config_value(Data->config, "Fonts", "time_font", buffer);
 
     buffer = al_get_config_value(Data->config, "Fonts", "debug_font");
+    if(!buffer){
+        buffer = DEFAULT_FONT_DEBUG;
+    }
     Data->font_debug = al_load_ttf_font(buffer, (int)(Data->scales.scale_h / 36), 0);
     if (!Data->font_debug){
         fprintf(stderr, "Could not load '%s'.\n", buffer);
@@ -84,11 +93,61 @@ void scale_fonts(game_shared_data *Data){
     al_set_config_value(Data->config, "Fonts", "debug_font", buffer);
 }
 
+void get_high_scores(game_shared_data *Data){
+    int i;
+    char buf[20];
+    bool error = false;
+    const char *buf2;
+    strcpy(buf, "name");
+    for(i = 1; i <= MAX_HIGH_SCORES; ++i){
+        int_to_str(i, buf + 4);
+        buf2 = al_get_config_value(Data->config, "High_scores", buf + 4);
+        if(!buf2){
+            error = true;
+            Data->high_scores[i - 1].score = 0;
+        }else if(strcmp(buf2, "") == 0){
+            Data->high_scores[i - 1].score = 0;
+        }else{
+            Data->high_scores[i - 1].score = atoi(buf2);
+        }
+        buf2 = al_get_config_value(Data->config, "High_scores", buf);
+        if(!buf2){
+            error = true;
+            strncpy(Data->high_scores[i - 1].name, "-", MAX_NAME_LENGTH);
+        }else{
+            strncpy(Data->high_scores[i - 1].name,  buf2, MAX_NAME_LENGTH);
+        }
+        Data->high_scores[i - 1].name[MAX_NAME_LENGTH] = '\0';
+    }
+    if(error){
+        set_high_scores(Data);
+    }
+}
+
+void set_high_scores(game_shared_data *Data){
+    int i;
+    char buf[20], buf2[20];
+    strcpy(buf, "name");
+    for(i = 1; i <= MAX_HIGH_SCORES; ++i){
+        int_to_str(i, buf + 4);
+        if(Data->high_scores[i - 1].score == 0 && strcmp(Data->high_scores[i - 1].name, "") == 0){
+            al_set_config_value(Data->config, "High_scores", buf, "-");
+            al_set_config_value(Data->config, "High_scores", buf + 4, "");
+        }else{
+            al_set_config_value(Data->config, "High_scores", buf, Data->high_scores[i - 1].name);
+            int_to_str(Data->high_scores[i - 1].score, buf2);
+            al_set_config_value(Data->config, "High_scores", buf + 4, buf2);
+        }
+    }
+}
+
 /**
     This procedure does not initialize threads
     */
 bool construct_game_shared_data(game_shared_data *Data, int max_fps){
+    int i;
     char buf[20];
+    const char *buf2;
     /**
         Getting resolution
         */
@@ -102,13 +161,34 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
         al_set_config_value(Data->config, "Fonts", "menu_font", DEFAULT_FONT_MENU);
         al_set_config_value(Data->config, "Fonts", "time_font", DEFAULT_FONT_TIME);
         al_set_config_value(Data->config, "Fonts", "debug_font", DEFAULT_FONT_DEBUG);
+        strcpy(buf, "name");
+        for(i = 1; i <= MAX_HIGH_SCORES; ++i){
+            int_to_str(i, buf + 4);
+            al_set_config_value(Data->config, "High_scores", buf, "-");
+            al_set_config_value(Data->config, "High_scores", buf + 4, "");
+        }
     }
 
     /**
         Creating display
         */
-    Data->fullscreen = atoi(al_get_config_value(Data->config, "Graphic", "fullscreen"));
-    Data->chosen_resolution = atoi(al_get_config_value(Data->config, "Graphic", "resolution"));
+    buf2 = al_get_config_value(Data->config, "Graphic", "fullscreen");
+    if(!buf2){
+        al_set_config_value(Data->config, "Graphic", "fullscreen", "1");
+        Data->fullscreen = true;
+    }else{
+        Data->fullscreen = atoi(buf2);
+    }
+
+    buf2 = al_get_config_value(Data->config, "Graphic", "resolution");
+    if(!buf2){
+        int_to_str(Data->max_resolution_index, buf);
+        al_set_config_value(Data->config, "Graphic", "resolution", buf);
+        Data->chosen_resolution = Data->max_resolution_index;
+    }else{
+        Data->chosen_resolution = atoi(buf2);
+    }
+
     al_get_display_mode(Data->chosen_resolution, &Data->display_data);
     Data->in_menu_display_data = Data->display_data;
     Data->reso_chosen_in_menu = Data->chosen_resolution;
@@ -227,6 +307,8 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
     /**
         Others
         */
+    get_high_scores(Data);
+    Data->name_length = -1;
     Data->draw_function = draw_menu;
     Data->FPS = 0;
 

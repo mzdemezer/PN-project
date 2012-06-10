@@ -10,7 +10,6 @@
 #define MAIN_MENU_SIZE 4
 #define OPTIONS_MENU_SIZE 4
 #define GRAPHIC_MENU_SIZE -2
-#define HIGH_SCORES_MENU_SIZE 1
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -1
 
@@ -64,11 +63,6 @@ enum sound_menu_elems{
 enum controls_menu_elems{
     cmeDESCRIPTOR,
     cmeRETURN
-};
-
-enum high_scores_menu_elems{
-    hsmeDESCRIPTOR,
-    hsmeRETURN
 };
 
 typedef struct menu_structure{

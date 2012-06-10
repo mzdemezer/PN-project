@@ -16,6 +16,8 @@
     Config
     */
 #define CONFIG_FILE_NAME "config.ini"
+#define MAX_HIGH_SCORES 10
+#define MAX_NAME_LENGTH 25
 
 #define DEFAULT_FONT_MENU "pirulen.ttf"
 #define DEFAULT_FONT_DEBUG "DejaVuSans.ttf"
@@ -27,7 +29,8 @@ typedef enum game_state{
     gsPAUSE,
     gsGAME,
     gsENDLEVEL,
-    gsSCORE
+    gsSCORE,
+    gsHIGHSCORES
 }game_state;
 
 typedef enum enum_keys{
@@ -54,6 +57,10 @@ typedef struct scale_structure{
           scale;
 }scale_structure;
 
+typedef struct high_score{
+    int score;
+    char name[MAX_NAME_LENGTH + 1];
+}high_score;
 /**
     Auxilary threads
     */
@@ -134,6 +141,8 @@ typedef struct game_shared_data{
 
     int name_length;
     char buffer[256];
+    high_score high_scores[MAX_HIGH_SCORES];
+
     bool debug;
     ALLEGRO_FONT *font_debug;
 
@@ -161,5 +170,7 @@ void destroy_game_shared_data(game_shared_data *);
 void calculate_scales(game_shared_data *);
 void calculate_transformation(game_shared_data *);
 void scale_fonts(game_shared_data*);
+void get_high_scores(game_shared_data *);
+void set_high_scores(game_shared_data *);
 
 #endif

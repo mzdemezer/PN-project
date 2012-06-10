@@ -39,7 +39,6 @@ void menu_elem_init(menu_elem *item,
 menu_elem *create_menu(){
     menu_elem *main_menu =        (menu_elem*)malloc(sizeof(menu_elem) * (2 + int_abs(MAIN_MENU_SIZE))),
                      *options_menu =     (menu_elem*)malloc(sizeof(menu_elem) * (1 + int_abs(OPTIONS_MENU_SIZE))),
-                     *high_scores_menu =  (menu_elem*)malloc(sizeof(menu_elem) * (1 + int_abs(HIGH_SCORES_MENU_SIZE))),
                      *graphic_menu =     (menu_elem*)malloc(sizeof(menu_elem) * (1 + int_abs(GRAPHIC_MENU_SIZE))),
                      *sound_menu =       (menu_elem*)malloc(sizeof(menu_elem) * (1 + int_abs(SOUND_MENU_SIZE))),
                      *controls_menu =    (menu_elem*)malloc(sizeof(menu_elem) * (1 + int_abs(CONTROLS_MENU_SIZE)));
@@ -50,8 +49,8 @@ menu_elem *create_menu(){
                    "NEW GAME", new_game_activate);
     menu_elem_init(&main_menu[mmeOPTIONS], metSUBMENU,
                    "OPTIONS", options_menu);
-    menu_elem_init(&main_menu[mmeHIGHSCORES], metSUBMENU,
-                   "HIGH SCORES", high_scores_menu);
+    menu_elem_init(&main_menu[mmeHIGHSCORES], metACTIVATE,
+                   "HIGH SCORES", high_scores_activate);
     menu_elem_init(&main_menu[mmeEXIT], metACTIVATE,
                    "EXIT", exit_activate);
     menu_elem_init(&main_menu[mmeRETURN], metACTIVATE,
@@ -85,11 +84,6 @@ menu_elem *create_menu(){
     menu_elem_init(&controls_menu[cmeRETURN], metSUBMENU,
                    "RETURN", options_menu);
 
-
-    menu_elem_init(&high_scores_menu[hsmeDESCRIPTOR], HIGH_SCORES_MENU_SIZE,
-                   "HIGH SCORES", main_menu);
-    menu_elem_init(&high_scores_menu[hsmeRETURN], metSUBMENU,
-                   "RETURN", main_menu);
     return main_menu;
 }
 

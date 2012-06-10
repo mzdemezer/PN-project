@@ -95,13 +95,13 @@ void draw_menu_content(game_shared_data *Data){
         regular_font = Data->font_menu_regular;
         select_font = Data->font_menu_selected;
         flags = ALLEGRO_ALIGN_CENTRE;
-        align_x = Data->display_data.width/2;
+        align_x = Data->display_data.width / 2;
     }
     else{//Configuration menu
         regular_font = Data->font_menu_config;
         select_font = Data->font_menu_config_selected;
         flags = ALLEGRO_ALIGN_LEFT;
-        align_x = Data->display_data.width/10 + Data->scales.scale_x;
+        align_x = Data->display_data.width / 10 + Data->scales.scale_x;
     }
 
     num_of_elems = int_abs(Data->menu.current_menu[0].type);
@@ -134,6 +134,44 @@ void draw_menu_content(game_shared_data *Data){
             arg.Data = Data;
             Data->menu.current_menu[i].activate((void*)&arg);
         }
+    }
+
+    al_use_transform(&Data->transformation);
+}
+
+/**
+    Draw high scores
+    */
+void draw_high_scores(game_shared_data *Data){
+    int i;
+    char buf[20];
+    ALLEGRO_TRANSFORM tempT;
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+    ALLEGRO_COLOR white = al_map_rgb(255, 255, 255),
+                  yellow = al_map_rgb(255, 255, 0),
+                  *color;
+
+    al_draw_text(Data->font_menu_big, white, Data->display_data.width / 2,
+                 Data->display_data.height * 0.07 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, "HIGH SCORES");
+    al_draw_text(Data->font_menu_selected, yellow, Data->display_data.width / 2,
+                 Data->display_data.height * 0.8 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, "RETURN");
+    strcpy(buf, "name");
+    for(i = 0; i < MAX_HIGH_SCORES; ++i){
+        if(i == Data->name_length){
+            color = &yellow;
+        }else{
+            color = &white;
+        }
+        int_to_str(i + 1, buf + 4);
+        al_draw_text(Data->font_menu_config, *color, Data->scales.scale_w * 0.1 + Data->scales.scale_x,
+                     Data->display_data.height * (0.06 * (i + 3.5)) + Data->scales.scale_y, ALLEGRO_ALIGN_LEFT, buf + 4);
+        al_draw_text(Data->font_menu_config, *color, Data->scales.scale_w * 0.15 + Data->scales.scale_x,
+                     Data->display_data.height * (0.06 * (i + 3.5)) + Data->scales.scale_y, ALLEGRO_ALIGN_LEFT,
+                     al_get_config_value(Data->config, "High_scores", buf));
+        al_draw_text(Data->font_menu_config, *color, Data->scales.scale_w * 0.9 + Data->scales.scale_x,
+                     Data->display_data.height * (0.06 * (i + 3.5)) + Data->scales.scale_y, ALLEGRO_ALIGN_RIGHT,
+                     al_get_config_value(Data->config, "High_scores", buf + 4));
     }
 
     al_use_transform(&Data->transformation);

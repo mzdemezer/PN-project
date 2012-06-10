@@ -14,13 +14,15 @@ void handle_event_game(game_shared_data *);
 void handle_event_loading(game_shared_data *);
 void handle_event_end_level(game_shared_data *);
 void handle_event_score(game_shared_data *);
+void handle_event_high_scores(game_shared_data *);
 
 void request_loading(game_shared_data *);
 void request_game(game_shared_data *);
 void request_pause(game_shared_data *);
-void request_menu(game_shared_data *Data);
-void request_end_level(game_shared_data *Data);
-void request_score(game_shared_data *Data);
+void request_menu(game_shared_data *);
+void request_end_level(game_shared_data *);
+void request_score(game_shared_data *);
+void request_high_scores(game_shared_data *);
 
 extern void change_menu(game_shared_data *, menu_elem *, int);
 extern void return_menu(game_shared_data *);
@@ -98,6 +100,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
             case gsLOADING: handle_event_loading(Data); break;
             case gsENDLEVEL: handle_event_end_level(Data); break;
             case gsSCORE: handle_event_score(Data); break;
+            case gsHIGHSCORES: handle_event_high_scores(Data); break;
         }
 
         if(Data->close_now){
@@ -114,6 +117,7 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
                     case gsMENU: request_menu(Data); break;
                     case gsENDLEVEL: request_end_level(Data); break;
                     case gsSCORE: request_score(Data); break;
+                    case gsHIGHSCORES: request_high_scores(Data); break;
                 }
             }
         al_unlock_mutex(Data->mutex_change_state);
@@ -308,7 +312,7 @@ void handle_event_score(game_shared_data *Data){
                 case ALLEGRO_KEY_ENTER:
                     if(Data->name_length > 0){
                         al_lock_mutex(Data->mutex_change_state);
-                            Data->new_state = gsMENU;
+                            Data->new_state = gsHIGHSCORES;
                             Data->request_change_state = true;
                         al_unlock_mutex(Data->mutex_change_state);
                     }
@@ -348,6 +352,23 @@ void handle_event_score(game_shared_data *Data){
                         }
                         add_char_to_name(Data->buffer, a, &Data->name_length, MAX_NAME_LENGTH);
                     }
+            }
+            break;
+    }
+}
+
+void handle_event_high_scores(game_shared_data *Data){
+    switch(Data->last_event.type){
+        case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            Data->close_now = true;
+            break;
+        case ALLEGRO_EVENT_KEY_CHAR:
+            switch(Data->last_event.keyboard.keycode){
+                case ALLEGRO_KEY_PAD_ENTER:
+                case ALLEGRO_KEY_ENTER:
+                case ALLEGRO_KEY_ESCAPE:
+                    high_scores_return(Data);
+                    break;
             }
             break;
     }
@@ -393,6 +414,29 @@ void exit_activate(void *argument){
     #undef arg
 };
 
+void high_scores_activate(void *argument){
+    #define arg ((activation_argument*)argument)
+    #define Data arg->Data
+    al_lock_mutex(Data->mutex_change_state);
+        Data->request_change_state = true;
+        Data->new_state = gsHIGHSCORES;
+    al_unlock_mutex(Data->mutex_change_state);
+    #undef Data
+    #undef arg
+}
+
+void high_scores_return(game_shared_data *Data){
+    al_lock_mutex(Data->mutex_change_state);
+        if(Data->new_state != gsPAUSE){
+            Data->new_state = gsMENU;
+        }
+        Data->request_change_state = true;
+        Data->name_length = -1;
+    al_unlock_mutex(Data->mutex_change_state);
+}
+
+
+
 /**
     Requests
     */
@@ -428,10 +472,13 @@ void request_game(game_shared_data *Data){
 }
 
 void request_pause(game_shared_data *Data){
+    make_main_menu_pause_menu(&Data->menu);
+    if(Data->game_state == gsHIGHSCORES){
+        Data->menu.current_elem = mmeHIGHSCORES + 1;
+    }
     Data->request_change_state = false;
     Data->game_state = gsPAUSE;
     Data->draw_function = draw_pause;
-    make_main_menu_pause_menu(&Data->menu);
 }
 
 void request_loading(game_shared_data *Data){
@@ -453,8 +500,8 @@ void request_loading(game_shared_data *Data){
 
 void request_menu(game_shared_data *Data){
     make_main_menu_unpause(&Data->menu);
-    if(Data->game_state == gsSCORE){
-        ;//go to highscores
+    if(Data->game_state != gsHIGHSCORES){
+        Data->menu.current_elem = mmeHIGHSCORES;
     }
     Data->request_change_state = false;
     Data->game_state = gsMENU;
@@ -496,4 +543,36 @@ void request_score(game_shared_data *Data){
         printf("Request score: redirect to menu\n");
         request_menu(Data);
     }
+}
+
+void request_high_scores(game_shared_data *Data){
+    int i;
+    /**
+        Update score
+        Data->name_length has the place number;
+        if score was too low, then it has -1
+        */
+    if(Data->game_state == gsSCORE){
+        for(i = MAX_HIGH_SCORES - 1; i >= 0; --i){
+            if(Data->last_score.total_score < Data->high_scores[i].score){
+                break;
+            }
+        }
+        if(i < MAX_HIGH_SCORES - 1){
+            Data->name_length = i + 1;
+            for(i = MAX_HIGH_SCORES - 1; i > Data->name_length; --i){
+                Data->high_scores[i].score = Data->high_scores[i - 1].score;
+                strcpy(Data->high_scores[i].name, Data->high_scores[i - 1].name);
+            }
+            Data->high_scores[i].score = Data->last_score.total_score;
+            strcpy(Data->high_scores[i].name, Data->buffer);
+            set_high_scores(Data);
+        }else{
+            Data->name_length = -1;
+        }
+    }
+    Data->new_state = Data->game_state; //very important line
+    Data->request_change_state = false;
+    Data->game_state = gsHIGHSCORES;
+    Data->draw_function = draw_high_scores;
 }

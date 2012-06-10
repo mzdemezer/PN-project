@@ -19,6 +19,7 @@ void synchronized_draw(void (*func)(game_shared_data *), game_shared_data *Data)
     */
 void draw_menu(game_shared_data* Data);
 void draw_pause(game_shared_data *Data);
+void draw_high_scores(game_shared_data *Data);
 void draw_score(game_shared_data *Data);
 void draw_end_level(game_shared_data *Data);
 void draw_loading(game_shared_data *Data);
