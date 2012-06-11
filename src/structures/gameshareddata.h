@@ -18,6 +18,9 @@
 #define CONFIG_FILE_NAME "config.ini"
 #define MAX_HIGH_SCORES 10
 #define MAX_NAME_LENGTH 25
+#define SHIP_PATH "Data/graphic/ship.png"
+#define SHIP_WIDTH 50
+#define SHIP_HEIGHT 50
 
 #define DEFAULT_FONT_MENU "pirulen.ttf"
 #define DEFAULT_FONT_DEBUG "DejaVuSans.ttf"
@@ -128,6 +131,8 @@ typedef struct game_shared_data{
 
     keyboard_structure keyboard;
 
+    ALLEGRO_BITMAP *ship, *unscaled_ship;
+    bool ship_loaded;
     level_data level;
     score_struct last_score;
     /**
@@ -178,6 +183,7 @@ void destroy_game_shared_data(game_shared_data *);
 void calculate_scales(game_shared_data *);
 void calculate_transformation(game_shared_data *);
 void scale_fonts(game_shared_data*);
+void scale_ship(game_shared_data *);
 void get_high_scores(game_shared_data *);
 void set_high_scores(game_shared_data *);
 

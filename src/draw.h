@@ -50,6 +50,7 @@ void draw_particle(void *object_data, double dx, double dy);
 void draw_door(void *object_data, double dx, double dy);
 void draw_switch(void *object_data, double dx, double dy);
 
+void draw_ship(void *object_data, game_shared_data *Data);
 
 
 #endif

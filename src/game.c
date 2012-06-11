@@ -12,6 +12,16 @@ bool get_drag_data(movable_object *obj, double *vx, double *vy, double *Cx, doub
 bool get_grav_data(movable_object *obj, double *mass, double *r);
 bool get_elec_data(movable_object *obj, double *charge, double *r);
 
+#define TIME_LIMIT 60
+#define TIME_SCORE_MULTIPLIER 50
+int count_score(double HP, int level_number, double time){
+    time = (level_number * 30 + TIME_LIMIT) - time;
+    if(time < 0){
+        time = 0;
+    }
+    return HP + time * TIME_SCORE_MULTIPLIER;
+}
+
 /**
     Code
     */
@@ -240,6 +250,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 default:
                     ;
             }
+            check_dx_dy(&Data->level.movable_objects[i].dx, &Data->level.movable_objects[i].dy);
         }
 
         /**
@@ -301,12 +312,13 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
             Data->level.player->ang -= dANG;
         }
 
-        i = Data->level.player->energy_generator;
         if(Data->keyboard.flags[ekKEY_SHIELD]){
             if(Data->level.player->shield_generator < PLAYER_MAX_SHIELD_GENERATOR){
                 Data->level.player->shield_generator += 1;
             }
             Data->level.player->energy_generator -= COST_SHIELD;
+        }else if(Data->level.player->shield_generator > 0){
+            Data->level.player->shield_generator /= 2;
         }
 
         if(Data->keyboard.flags[ekKEY_NEG]){
@@ -327,28 +339,22 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 }
                 Data->level.player->energy_generator -= COST_ELECTROSTATIC;
             }
+        }else if(Data->level.player->electrostatic_generator != 0){
+            Data->level.player->electrostatic_generator /= 2;
         }
+
 
         if(Data->keyboard.flags[ekKEY_GRAV]){
             if(Data->level.player->gravity_generator < PLAYER_MAX_GRAVITY_GENERATOR){
                 Data->level.player->gravity_generator += 1;
             }
             Data->level.player->energy_generator -= COST_GRAVITY;
+        }else if(Data->level.player->gravity_generator > 0){
+            Data->level.player->gravity_generator /= 2;
         }
 
-        if(i == Data->level.player->energy_generator){
-            if(Data->level.player->shield_generator > 0){
-                Data->level.player->shield_generator /= 2;
-            }
-            if(Data->level.player->gravity_generator > 0){
-                Data->level.player->gravity_generator /= 2;
-            }
-            if(Data->level.player->electrostatic_generator != 0){
-                Data->level.player->electrostatic_generator /= 2;
-            }
-            if(Data->level.player->energy_generator < PLAYER_MAX_ENERGY){
-                Data->level.player->energy_generator += ENERGY_REPLENISHMENT_SPEED;
-            }
+        if(Data->level.player->energy_generator < PLAYER_MAX_ENERGY){
+            Data->level.player->energy_generator += ENERGY_REPLENISHMENT_SPEED;
         }
         if(Data->level.player->energy_generator <= 0){
             Data->level.player->energy_generator = 0;
@@ -396,14 +402,9 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
                 Data->level.start_time = al_get_time();
                 Data->level.sum_time += Data->level.start_time;
                 Data->level.victory = true;
-                Data->level.score.score += Data->level.player->HP;
-                dt = TIME_LIMIT + Data->level.score.level_number - Data->level.sum_time;
-                if(dt < 0){
-                    dt = 0;
-                }else{
-                    dt *= TIME_SCORE_MULTIPLIER;
-                }
-                Data->level.score.score += dt;
+                Data->level.score.score += count_score(Data->level.player->HP,
+                                                           Data->level.score.level_number,
+                                                           Data->level.sum_time);
             al_unlock_mutex(Data->mutex_main_iteration);
         }else{
             al_unlock_mutex(Data->mutex_main_iteration);

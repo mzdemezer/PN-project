@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <math.h>
+#include "main.h"
 #include "collisions.h"
 #include "structures.h"
 #include "mathematics.h"
+#include "game.h"
 
 /**
     Private methods
@@ -10,7 +12,7 @@
 void player_get_dx_dy(movable_object *obj, double dt);
 void particle_get_dx_dy(movable_object *obj, double dt);
 double count_hp_loss(double d_vx, double d_vy);
-void count_hp_and_shield(movable_player *, double d_vx, double d_vy);
+void count_hp_and_shield(movable_player *player, double d_vx, double d_vy, float multiplier);
 
 /**
     Code
@@ -28,7 +30,8 @@ void collide(level_data *level, short int who, short int with, bool with_movable
            player_d_vy,
            with_d_vx,
            with_d_vy,
-           dr;
+           dr,
+           mult;
     if(with_movable){
         switch(level->movable_objects[who].type){
             case motPLAYER:
@@ -41,6 +44,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 player_d_vy = WHO_PLAYER->vy;
                 switch(level->movable_objects[with].type){
                     case motPLAYER:
+                        mult = PLAYER_WITH_PLAYER_DAMAGE_MULTIPLIER;
                         with_d_vx = WITH_PLAYER->vx;
                         with_d_vy = WITH_PLAYER->vy;
                         if(WITH_PLAYER->shield + WITH_PLAYER->shield_push > WITH_PLAYER->r0){
@@ -60,9 +64,10 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         player_get_dx_dy(&level->movable_objects[with], dt);
                         with_d_vx = WITH_PLAYER->vx - with_d_vx;
                         with_d_vy = WITH_PLAYER->vy - with_d_vy;
-                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy);
+                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy, mult);
                         break;
                     case motPARTICLE:
+                        mult = PLAYER_WITH_PARTICLE_DAMAGE_MULTIPLIER;
                         dr *= dt;
                         separate_two_balls(&WHO_PLAYER->center.x, &WHO_PLAYER->center.y, WHO_PLAYER->mass,
                                            &WITH_PARTICLE->center.x, &WITH_PARTICLE->center.y, WITH_PARTICLE->mass,
@@ -81,7 +86,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 }
                 player_d_vx = WHO_PLAYER->vx - player_d_vx;
                 player_d_vy = WHO_PLAYER->vy - player_d_vy;
-                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy);
+                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy, mult);
                 break;
             case motPARTICLE:
                 switch(level->movable_objects[with].type){
@@ -107,7 +112,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                         player_get_dx_dy(&level->movable_objects[with], dt);
                         with_d_vx = WITH_PLAYER->vx - with_d_vx;
                         with_d_vy = WITH_PLAYER->vy - with_d_vy;
-                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy);
+                        count_hp_and_shield(WITH_PLAYER, with_d_vx, with_d_vy, PLAYER_WITH_PARTICLE_DAMAGE_MULTIPLIER);
                         break;
                     case motPARTICLE:
                         separate_two_balls(&WHO_PARTICLE->center.x, &WHO_PARTICLE->center.y, WHO_PARTICLE->mass,
@@ -191,7 +196,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
                 player_get_dx_dy(&level->movable_objects[who], dt);
                 player_d_vx = WHO_PLAYER->vx - player_d_vx;
                 player_d_vy = WHO_PLAYER->vy - player_d_vy;
-                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy);
+                count_hp_and_shield(WHO_PLAYER, player_d_vx, player_d_vy, PLAYER_WITH_WALL_DAMAGE_MULTIPLIER);
                 break;
             case motPARTICLE:
                 switch(level->primitive_objects[with].type){
@@ -245,8 +250,8 @@ double count_hp_loss(double d_vx, double d_vy){
     }
 }
 
-void count_hp_and_shield(movable_player *player, double d_vx, double d_vy){
-    d_vx = count_hp_loss(d_vx, d_vy);
+void count_hp_and_shield(movable_player *player, double d_vx, double d_vy, float multiplier){
+    d_vx = count_hp_loss(d_vx, d_vy) * multiplier;
     if(player->shield > player->r0){
         player->shield -= d_vx * PLAYER_SHIELD_DAMAGE_MULITIPLIER;
         if(player->shield <= eps){
@@ -844,14 +849,23 @@ bool separate_ball_from_segment(double *x, double *y, double d, segment *seg){
     }
 }
 
+void check_dx_dy(double *dx, double *dy){
+    if(double_abs(*dx) > MAX_DISPLACEMENT){
+        *dx = MAX_DISPLACEMENT * sign(*dx);
+    }
+    if(double_abs(*dy) > MAX_DISPLACEMENT){
+        *dy = MAX_DISPLACEMENT * sign(*dy);
+    }
+}
+
 /**
     Private methods
     */
-
 void player_get_dx_dy(movable_object *obj, double dt){
     #define Data ((movable_player*)obj->object_data)
     obj->dx = Data->vx * dt;
     obj->dy = Data->vy * dt;
+    check_dx_dy(&obj->dx, &obj->dy);
     #undef Data
 }
 
@@ -859,5 +873,6 @@ void particle_get_dx_dy(movable_object *obj, double dt){
     #define Data ((movable_particle*)obj->object_data)
     obj->dx = Data->vx * dt;
     obj->dy = Data->vy * dt;
+    check_dx_dy(&obj->dx, &obj->dy);
     #undef Data
 }

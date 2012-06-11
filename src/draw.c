@@ -30,9 +30,9 @@ void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int si
 ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac);
 void draw_tetragon(point *v1, point *v2, point *v3, point *v4, ALLEGRO_COLOR color);
 
-#define PLAYER_SHIELD_R 30
+#define PLAYER_SHIELD_R 10
 #define PLAYER_SHIELD_G 0
-#define PLAYER_SHIELD_B 120
+#define PLAYER_SHIELD_B 130
 /**
     Code
     */
@@ -350,8 +350,18 @@ void draw_game(game_shared_data *Data){
         draw_grid(Data);
     }
 
-    for(i = 0; i < Data->level.number_of_movable_objects; ++i){
-       DRAW_MOVABLE(Data->level.movable_objects[i]);
+    if(Data->ship_loaded){
+        for(i = 0; i < Data->level.number_of_movable_objects; ++i){
+            if(Data->level.movable_objects[i].type != motPLAYER){
+                DRAW_MOVABLE(Data->level.movable_objects[i]);
+            }else{
+                draw_ship(Data->level.movable_objects[i].object_data, Data);
+            }
+        }
+    }else{
+        for(i = 0; i < Data->level.number_of_movable_objects; ++i){
+            DRAW_MOVABLE(Data->level.movable_objects[i]);
+        }
     }
 
 
@@ -696,23 +706,57 @@ void draw_shield(double x, double y, double radius, int r, int g, int b){
     al_draw_filled_circle(x, y, radius * 0.80, al_map_rgba(r * 0.8, g * 0.8, b * 0.8, 0.06));
     al_draw_filled_circle(x, y, radius * 0.76, al_map_rgba(r * 0.9, g * 0.9, b * 0.9, 0.07));
     al_draw_filled_circle(x, y, radius * 0.72, al_map_rgba(r, g, b, 0.08));
-    al_draw_filled_circle(x, y, radius * 0.68, al_map_rgba(r * 1.1, g * 1.1, b * 1.1, 0.09));
-    al_draw_filled_circle(x, y, radius * 0.64, al_map_rgba(r * 1.2, g * 1.2, b * 1.2, 0.1));
-    al_draw_filled_circle(x, y, radius * 0.60, al_map_rgba(r * 1.3, g * 1.3, b * 1.3, 0.11));
-    al_draw_filled_circle(x, y, radius * 0.56, al_map_rgba(r * 1.4, g * 1.4, b * 1.4, 0.12));
 }
 
 void draw_player(void *object_data, double dx, double dy){
-    #define Data ((movable_player*)object_data)
-    al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
-    al_draw_filled_circle(Data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(Data->ang),
-                          Data->center.y + dy + PLAYER_RADIUS * 0.5 * sin(Data->ang),
+    #define obj_data ((movable_player*)object_data)
+    al_draw_filled_circle(obj_data->center.x + dx, obj_data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
+    al_draw_filled_circle(obj_data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(obj_data->ang),
+                          obj_data->center.y + dy + PLAYER_RADIUS * 0.5 * sin(obj_data->ang),
                           PLAYER_RADIUS * 0.2, al_map_rgb(0, 0, 0));
-    if(Data->shield){
-        draw_shield(Data->center.x + dx, Data->center.y + dy, Data->shield,
+    if(obj_data->shield){
+        draw_shield(obj_data->center.x + dx, obj_data->center.y + dy, obj_data->shield,
                     PLAYER_SHIELD_R, PLAYER_SHIELD_G, PLAYER_SHIELD_B);
     }
-    #undef Data
+    if(obj_data->charge){
+        int col = (obj_data->charge / PLAYER_MAX_CHARGE) * 4;
+        draw_shield(obj_data->center.x + dx, obj_data->center.y + dy, double_abs(obj_data->charge) / PLAYER_MAX_CHARGE * 130,
+                    4 + col, 4 - int_abs(col), 4 - col);
+    }
+    if(obj_data->gravity > 1){
+        draw_shield(obj_data->center.x + dx, obj_data->center.y + dy, obj_data->gravity / PLAYER_MAX_GRAVITY_MULTIPLIER * 100,
+                    7, 7, 7);
+    }
+    #undef obj_data
+}
+
+void draw_ship(void *object_data, game_shared_data *Data){
+    #define obj_data ((movable_player*)object_data)
+    ALLEGRO_TRANSFORM tempT;
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+    al_draw_rotated_bitmap(Data->ship, al_get_bitmap_width(Data->ship) / 2, al_get_bitmap_height(Data->ship) / 2,
+                           obj_data->center.x * Data->scales.scale + Data->scales.scale_x, obj_data->center.y * Data->scales.scale + Data->scales.scale_y,
+                           obj_data->ang, 0);
+    al_use_transform(&Data->transformation);
+    if(obj_data->shield){
+        draw_shield(obj_data->center.x + Data->scales.trans_x,
+                    obj_data->center.y + Data->scales.trans_y, obj_data->shield,
+                    PLAYER_SHIELD_R, PLAYER_SHIELD_G, PLAYER_SHIELD_B);
+    }
+    if(obj_data->charge){
+        int col = (obj_data->charge / PLAYER_MAX_CHARGE) * 4;
+        draw_shield(obj_data->center.x + Data->scales.trans_x,
+                    obj_data->center.y + Data->scales.trans_y, double_abs(obj_data->charge) / PLAYER_MAX_CHARGE * 130,
+                    4 + col, 4 - int_abs(col), 4 - col);
+    }
+    if(obj_data->gravity > 1){
+        draw_shield(obj_data->center.x + Data->scales.trans_x,
+                    obj_data->center.y + Data->scales.trans_y,
+                    obj_data->gravity / PLAYER_MAX_GRAVITY_MULTIPLIER * 100,
+                    7, 7, 7);
+    }
+    #undef obj_data
 }
 
 void draw_particle(void *object_data, double dx, double dy){

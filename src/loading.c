@@ -86,7 +86,7 @@ bool load_level_from_file(game_shared_data *Data){
         player(s)
         */
     read_line(buffer, level);
-    sscanf(buffer, "%d", &n);
+    sscanf(buffer, " %d", &n);
 
     for(i = 0; i < n; ++i){
         Data->level.player = (movable_player*)malloc(sizeof(movable_player));
@@ -114,11 +114,11 @@ bool load_level_from_file(game_shared_data *Data){
 
         read_line(buffer, level);
         sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.new_rectangle->center.x,
-                                            &Factory.new_rectangle->center.y,
-                                            &Factory.new_rectangle->a,
-                                            &Factory.new_rectangle->b,
-                                            &Factory.new_rectangle->ang,
-                                            &op0);
+                                                &Factory.new_rectangle->center.y,
+                                                &Factory.new_rectangle->a,
+                                                &Factory.new_rectangle->b,
+                                                &Factory.new_rectangle->ang,
+                                                &op0);
 
         read_color(buffer, level, &Factory.new_rectangle->color, op0, "Invalid level input: rectangle#%d color\n", i);
 
@@ -138,9 +138,9 @@ bool load_level_from_file(game_shared_data *Data){
 
         read_line(buffer, level);
         sscanf(buffer, "%lf %lf %lf %d",   &Factory.new_circle->center.x,
-                                        &Factory.new_circle->center.y,
-                                        &Factory.new_circle->r,
-                                        &op0);
+                                            &Factory.new_circle->center.y,
+                                            &Factory.new_circle->r,
+                                            &op0);
         read_color(buffer, level, &Factory.new_circle->color, op0, "Invalid level input: circle#%d color\n", i);
 
         construct_circle(&Data->level.fixed_objects[Data->level.number_of_fixed_objects - 1]);
@@ -255,7 +255,7 @@ bool load_level_from_file(game_shared_data *Data){
         if(Factory.new_switch->connected.number_of_switches != 0){
             read_line(buffer, level);
             Factory.new_switch->connected.switches = (int*)malloc(sizeof(int) * Factory.new_switch->connected.number_of_switches);
-            sscanf(buffer, "%d", &Factory.new_switch->connected.switches[0]);
+            sscanf(buffer, " %d", &Factory.new_switch->connected.switches[0]);
             for(op1 = 1; op1 < Factory.new_switch->connected.number_of_switches; ++op1){
                 sscanf(buffer, " %d", &Factory.new_switch->connected.switches[op1]);
             }

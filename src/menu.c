@@ -215,6 +215,9 @@ void rescale_bitmaps(game_shared_data *Data){
     if(Data->level.background){
         draw_level_background(Data);
     }
+    if(Data->ship_loaded){
+        scale_ship(Data);
+    }
 }
 
 void change_resolution(game_shared_data *Data){

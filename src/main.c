@@ -80,7 +80,7 @@ int main(){
         fprintf(stderr, "Problems when initilizing Allegro");
         return -1;
     }
-    setlocale(LC_NUMERIC, "C");
+
     /**
         Initializing addons
         */
@@ -131,7 +131,7 @@ int main(){
     /**
         First draw
         */
-
+    setlocale(LC_NUMERIC, "C");
     draw(draw_menu, &Data);
 
     /**

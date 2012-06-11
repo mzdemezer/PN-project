@@ -36,6 +36,7 @@ void destroy_fonts(game_shared_data *Data){
     al_destroy_font(Data->font_time);
     al_destroy_font(Data->font_debug);
 }
+
 void scale_fonts(game_shared_data *Data){
     const char *buffer;
     destroy_fonts(Data);
@@ -91,6 +92,21 @@ void scale_fonts(game_shared_data *Data){
         buffer = DEFAULT_FONT_DEBUG;
     }
     al_set_config_value(Data->config, "Fonts", "debug_font", buffer);
+}
+
+void scale_ship(game_shared_data *Data){
+    ALLEGRO_TRANSFORM tempT;
+    int new_width = SHIP_WIDTH * Data->scales.scale,
+        new_height = SHIP_HEIGHT * Data->scales.scale;
+
+    al_destroy_bitmap(Data->ship);
+    Data->ship = al_create_bitmap(new_width, new_height);
+    al_set_target_bitmap(Data->ship);
+    al_identity_transform(&tempT);
+    al_use_transform(&tempT);
+        scale_bitmap(Data->unscaled_ship, new_width, new_height);
+    al_use_transform(&Data->transformation);
+    al_set_target_backbuffer(Data->display);
 }
 
 void get_high_scores(game_shared_data *Data){
@@ -310,6 +326,15 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
     /**
         Others
         */
+    Data->ship = NULL;
+    Data->unscaled_ship = al_load_bitmap(SHIP_PATH);
+    if(!Data->unscaled_ship){
+        Data->ship_loaded = false;
+    }else{
+        Data->ship_loaded = true;
+        scale_ship(Data);
+    }
+
     get_high_scores(Data);
     Data->name_length = -1;
     Data->draw_function = draw_menu;
@@ -341,4 +366,8 @@ void destroy_game_shared_data(game_shared_data *Data){
     destroy_fonts(Data);
     destroy_menu(&Data->menu);
     destroy_level(&Data->level);
+    if(Data->ship_loaded){
+        al_destroy_bitmap(Data->ship);
+        al_destroy_bitmap(Data->unscaled_ship);
+    }
 }

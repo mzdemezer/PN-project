@@ -10,7 +10,10 @@
 #define PARTICLE_TO_WALL_RESTITUTION 0.8
 #define SHIELD_TO_WALL_RESTITUTION 0.5
 
-#define PLAYER_DAMAGE_MULTIPLIER 0.0005
+#define PLAYER_DAMAGE_MULTIPLIER 0.001
+#define PLAYER_WITH_PARTICLE_DAMAGE_MULTIPLIER 12
+#define PLAYER_WITH_PLAYER_DAMAGE_MULTIPLIER 2
+#define PLAYER_WITH_WALL_DAMAGE_MULTIPLIER 0.7
 #define PLAYER_SHIELD_DAMAGE_MULITIPLIER 0.1
 
 #include "structures.h"
@@ -56,5 +59,8 @@ void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *
 bool separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d);
 bool separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d);
 bool separate_ball_from_segment(double *x, double *y, double d, segment *seg);
+
+
+void check_dx_dy(double *dx, double *dy);
 
 #endif
