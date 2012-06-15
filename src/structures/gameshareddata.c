@@ -157,6 +157,23 @@ void set_high_scores(game_shared_data *Data){
     }
 }
 
+void get_controls(game_shared_data *Data){
+    char buf[20], buf2[20];
+    const char *buffer;
+    int i;
+    for(i = 0; i < NUMBER_OF_SIGNIFICANT_KEYS; ++i){
+        int_to_str(i, buf);
+        buffer = al_get_config_value(Data->config, "Controls", buf);
+        if(buffer){
+            Data->keyboard.keys[i] = atoi(buffer);
+        }else{
+            Data->keyboard.keys[i] = Data->keyboard.defaults[i];
+            int_to_str(Data->keyboard.defaults[i], buf2);
+            al_set_config_value(Data->config, "Controls", buf, buf2);
+        }
+    }
+}
+
 /**
     This procedure does not initialize threads
     */
@@ -281,14 +298,16 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
 
     construct_level(&Data->level);
 
-    Data->keyboard.key_up    = ALLEGRO_KEY_UP;
-    Data->keyboard.key_down  = ALLEGRO_KEY_DOWN;
-    Data->keyboard.key_left  = ALLEGRO_KEY_LEFT;
-    Data->keyboard.key_right = ALLEGRO_KEY_RIGHT;
-    Data->keyboard.key_shield = ALLEGRO_KEY_S;
-    Data->keyboard.key_neg = ALLEGRO_KEY_D;
-    Data->keyboard.key_pos = ALLEGRO_KEY_F;
-    Data->keyboard.key_grav = ALLEGRO_KEY_G;
+    Data->keyboard.defaults[ekKEY_LEFT] = DEFAULT_KEY_LEFT;
+    Data->keyboard.defaults[ekKEY_RIGHT] = DEFAULT_KEY_RIGHT;
+    Data->keyboard.defaults[ekKEY_UP] = DEFAULT_KEY_UP;
+    Data->keyboard.defaults[ekKEY_DOWN] = DEFAULT_KEY_DOWN;
+    Data->keyboard.defaults[ekKEY_SHIELD] = DEFAULT_KEY_SHIELD;
+    Data->keyboard.defaults[ekKEY_NEG] = DEFAULT_KEY_NEG;
+    Data->keyboard.defaults[ekKEY_POS] = DEFAULT_KEY_POS;
+    Data->keyboard.defaults[ekKEY_GRAV] = DEFAULT_KEY_GRAV;
+    get_controls(Data);
+
     /**
         Mutexes
         */
@@ -322,6 +341,8 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
     Data->request_change_state = false;
     Data->special_main_call = false;
     Data->synchro_with_main_iter = false;
+    Data->ask_for_input = false;
+    Data->key_down = false;
 
     /**
         Others

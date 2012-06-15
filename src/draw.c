@@ -88,56 +88,63 @@ void clear_paused_menu(game_shared_data *Data){
 }
 
 void draw_menu_content(game_shared_data *Data){
-    int i, num_of_elems, flags;
+    int i, num_of_elems,
+        flags, interline,
+        first_line;
     double align_x;
     activation_argument arg;
+    arg.Data = Data;
     ALLEGRO_FONT *regular_font, *select_font;
     ALLEGRO_TRANSFORM tempT;
     al_identity_transform(&tempT);
     al_use_transform(&tempT);
 
+    first_line = Data->font_menu_big->height * 1.11;
     //Normal menu
     if((int)Data->menu.current_menu[0].type > 0){
         regular_font = Data->font_menu_regular;
         select_font = Data->font_menu_selected;
         flags = ALLEGRO_ALIGN_CENTRE;
         align_x = Data->display_data.width / 2;
+        interline = first_line;
     }
     else{//Configuration menu
         regular_font = Data->font_menu_config;
         select_font = Data->font_menu_config_selected;
         flags = ALLEGRO_ALIGN_LEFT;
         align_x = Data->display_data.width / 10 + Data->scales.scale_x;
+        interline = Data->font_menu_regular->height;
     }
+    first_line *= 1.5;
 
     num_of_elems = int_abs(Data->menu.current_menu[0].type);
     al_draw_text(Data->font_menu_big, al_map_rgb(255, 255, 255), Data->display_data.width/2,
                  Data->display_data.height/10 + Data->scales.scale_y, ALLEGRO_ALIGN_CENTRE, Data->menu.current_menu[0].name);
     for(i = 1; i < Data->menu.current_elem; ++i){
         al_draw_text(regular_font, al_map_rgb(255, 255, 255), align_x,
-                     (i + 1.5) * (Data->font_menu_big->height * 1.11) + Data->scales.scale_y,
+                     i * interline + first_line + Data->scales.scale_y,
                      flags, Data->menu.current_menu[i].name);
-        if(Data->menu.current_menu[i].type == metUPDOWN){
+        if(Data->menu.current_menu[i].type == metINPUT ||
+           Data->menu.current_menu[i].type == metUPDOWN){
             arg.call_type = meatDRAW + i;
-            arg.Data = Data;
             Data->menu.current_menu[i].activate((void*)&arg);
         }
     }
     al_draw_text(select_font, al_map_rgb(255, 255, 0), align_x,
-                 (i + 1.5) * (Data->font_menu_big->height * 1.11) + Data->scales.scale_y,
+                 i * interline + first_line + Data->scales.scale_y,
                  flags, Data->menu.current_menu[i].name);
-    if(Data->menu.current_menu[i].type == metUPDOWN){
+        if(Data->menu.current_menu[i].type == metINPUT ||
+           Data->menu.current_menu[i].type == metUPDOWN){
             arg.call_type = meatDRAW + i;
-            arg.Data = Data;
             Data->menu.current_menu[i].activate((void*)&arg);
         }
     for(++i; i <= num_of_elems; ++i){
         al_draw_text(regular_font, al_map_rgb(255, 255, 255), align_x,
-                     (i + 1.5) * (Data->font_menu_big->height * 1.11) + Data->scales.scale_y,
+                     i * interline + first_line + Data->scales.scale_y,
                      flags, Data->menu.current_menu[i].name);
-        if(Data->menu.current_menu[i].type == metUPDOWN){
+        if(Data->menu.current_menu[i].type == metINPUT ||
+           Data->menu.current_menu[i].type == metUPDOWN){
             arg.call_type = meatDRAW + i;
-            arg.Data = Data;
             Data->menu.current_menu[i].activate((void*)&arg);
         }
     }

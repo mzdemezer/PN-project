@@ -22,6 +22,15 @@
 #define SHIP_WIDTH 50
 #define SHIP_HEIGHT 50
 
+#define DEFAULT_KEY_LEFT ALLEGRO_KEY_LEFT
+#define DEFAULT_KEY_RIGHT ALLEGRO_KEY_RIGHT;
+#define DEFAULT_KEY_UP ALLEGRO_KEY_UP;
+#define DEFAULT_KEY_DOWN ALLEGRO_KEY_DOWN;
+#define DEFAULT_KEY_SHIELD ALLEGRO_KEY_S;
+#define DEFAULT_KEY_NEG ALLEGRO_KEY_D;
+#define DEFAULT_KEY_POS ALLEGRO_KEY_F;
+#define DEFAULT_KEY_GRAV ALLEGRO_KEY_G;
+
 #define DEFAULT_FONT_MENU "pirulen.ttf"
 #define DEFAULT_FONT_DEBUG "DejaVuSans.ttf"
 #define DEFAULT_FONT_TIME "Oloron.ttf"
@@ -48,14 +57,8 @@ typedef enum enum_keys{
 }enum_keys;
 
 typedef struct keyboard_structure{
-    int key_up,
-        key_down,
-        key_left,
-        key_right,
-        key_shield,
-        key_neg,
-        key_pos,
-        key_grav;
+    int keys[NUMBER_OF_SIGNIFICANT_KEYS];
+    int defaults[NUMBER_OF_SIGNIFICANT_KEYS];
     bool flags[NUMBER_OF_SIGNIFICANT_KEYS];
     ALLEGRO_MUTEX *mutex_keyboard;
 }keyboard_structure;
@@ -121,6 +124,9 @@ typedef struct game_shared_data{
     ALLEGRO_EVENT last_event;
 
     menu_structure menu;
+    bool ask_for_input;
+    bool key_down;
+    int input;
     ALLEGRO_FONT *font_menu_regular;
     ALLEGRO_FONT *font_menu_big;
     ALLEGRO_FONT *font_menu_selected;

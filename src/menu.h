@@ -11,11 +11,12 @@
 #define OPTIONS_MENU_SIZE 4
 #define GRAPHIC_MENU_SIZE -2
 #define SOUND_MENU_SIZE -1
-#define CONTROLS_MENU_SIZE -1
+#define CONTROLS_MENU_SIZE -9
 
 typedef enum menu_elem_type{
     metSUBMENU,
     metACTIVATE,
+    metINPUT,
     metUPDOWN
 }menu_elem_type;
 
@@ -62,6 +63,14 @@ enum sound_menu_elems{
 
 enum controls_menu_elems{
     cmeDESCRIPTOR,
+    cmeUP,
+    cmeDOWN,
+    cmeLEFT,
+    cmeRIGHT,
+    cmeSHIELD,
+    cmeNEG,
+    cmePOS,
+    cmeGRAV,
     cmeRETURN
 };
 

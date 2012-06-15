@@ -159,64 +159,85 @@ void* thread_event_queue_procedure(ALLEGRO_THREAD *thread, void *arg){
 void handle_event_menu(game_shared_data *Data){
     activation_argument arg;
     arg.Data = Data;
-    switch(Data->last_event.type){
-        case ALLEGRO_EVENT_DISPLAY_CLOSE:
-            Data->close_now = true;
-            break;
-        case ALLEGRO_EVENT_KEY_DOWN:
-            switch(Data->last_event.keyboard.keycode){
-                case ALLEGRO_KEY_ESCAPE:
-                    al_lock_mutex(Data->mutex_change_state);
-                        void *temp = (void*)Data->menu.current_menu;
-                        return_menu(Data);
-                        if(Data->game_state == gsPAUSE){
-                            if(temp == (void*)Data->menu.current_menu){
-                                return_to_game_activate((void*)&arg);
-                            }
-                        }
-                    al_unlock_mutex(Data->mutex_change_state);
-                    break;
-            }
-            break;
-        case ALLEGRO_EVENT_KEY_CHAR:
-            switch(Data->last_event.keyboard.keycode){
-                case ALLEGRO_KEY_LEFT:
-                    if(Data->menu.current_menu[Data->menu.current_elem].type == metUPDOWN){
-                        arg.call_type = meatDOWN;
-                        (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
-                    }
-                    break;
-                case ALLEGRO_KEY_RIGHT:
-                    if(Data->menu.current_menu[Data->menu.current_elem].type == metUPDOWN){
-                        arg.call_type = meatUP;
-                        (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
-                    }
-                    break;
-                case ALLEGRO_KEY_UP:
-                    Data->menu.current_elem -= 1;
-                    normalize_menu_selection(&(Data->menu));
-                    break;
-                case ALLEGRO_KEY_DOWN:
+    if(Data->ask_for_input){
+        switch(Data->last_event.type){
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                Data->close_now = true;
+                break;
+            case ALLEGRO_EVENT_KEY_UP:
+                if(Data->key_down){
+                    Data->key_down = false;
+                }else{
+                    Data->input = Data->last_event.keyboard.keycode;
+
+                    arg.call_type = meatDOWN;
+                    (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
+
                     Data->menu.current_elem += 1;
                     normalize_menu_selection(&(Data->menu));
-                    break;
-                case ALLEGRO_KEY_PAD_ENTER:
-                case ALLEGRO_KEY_ENTER:
-                    arg.call_type = meatACCEPT;
-                    switch (Data->menu.current_menu[Data->menu.current_elem].type){
-                        case metSUBMENU:
-                            change_menu(Data, (menu_elem*) Data->menu.current_menu[Data->menu.current_elem].activate, 1);
-                            break;
-                        case metACTIVATE:
+                }
+                break;
+        }
+    }else{
+        switch(Data->last_event.type){
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                Data->close_now = true;
+                break;
+            case ALLEGRO_EVENT_KEY_DOWN:
+                switch(Data->last_event.keyboard.keycode){
+                    case ALLEGRO_KEY_ESCAPE:
+                        al_lock_mutex(Data->mutex_change_state);
+                            void *temp = (void*)Data->menu.current_menu;
+                            return_menu(Data);
+                            if(Data->game_state == gsPAUSE){
+                                if(temp == (void*)Data->menu.current_menu){
+                                    return_to_game_activate((void*)&arg);
+                                }
+                            }
+                        al_unlock_mutex(Data->mutex_change_state);
+                        break;
+                }
+                break;
+            case ALLEGRO_EVENT_KEY_CHAR:
+                Data->key_down = true;
+                switch(Data->last_event.keyboard.keycode){
+                    case ALLEGRO_KEY_LEFT:
+                        if(Data->menu.current_menu[Data->menu.current_elem].type == metUPDOWN){
+                            arg.call_type = meatDOWN;
                             (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
-                            break;
-                        case metUPDOWN:
+                        }
+                        break;
+                    case ALLEGRO_KEY_RIGHT:
+                        if(Data->menu.current_menu[Data->menu.current_elem].type == metUPDOWN){
+                            arg.call_type = meatUP;
                             (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
-                            break;
-                    }
-                    break;
-            }
-            break;
+                        }
+                        break;
+                    case ALLEGRO_KEY_UP:
+                        Data->menu.current_elem -= 1;
+                        normalize_menu_selection(&(Data->menu));
+                        break;
+                    case ALLEGRO_KEY_DOWN:
+                        Data->menu.current_elem += 1;
+                        normalize_menu_selection(&(Data->menu));
+                        break;
+                    case ALLEGRO_KEY_PAD_ENTER:
+                    case ALLEGRO_KEY_ENTER:
+                        arg.call_type = meatACCEPT;
+                        switch (Data->menu.current_menu[Data->menu.current_elem].type){
+                            case metSUBMENU:
+                                change_menu(Data, (menu_elem*) Data->menu.current_menu[Data->menu.current_elem].activate, 1);
+                                break;
+                            case metINPUT:
+                            case metACTIVATE:
+                            case metUPDOWN:
+                                (Data->menu.current_menu[Data->menu.current_elem].activate)((void*)&arg);
+                                break;
+                        }
+                        break;
+                }
+                break;
+        }
     }
 }
 
@@ -254,21 +275,21 @@ void handle_event_game(game_shared_data *Data){
                     break;
                 default:
                     al_lock_mutex(Data->keyboard.mutex_keyboard);
-                        if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
-                            Data->keyboard.flags[ekKEY_UP] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
-                            Data->keyboard.flags[ekKEY_DOWN] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
+                        if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
                             Data->keyboard.flags[ekKEY_LEFT] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
                             Data->keyboard.flags[ekKEY_RIGHT] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
+                            Data->keyboard.flags[ekKEY_UP] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_DOWN]){
+                            Data->keyboard.flags[ekKEY_DOWN] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_SHIELD]){
                             Data->keyboard.flags[ekKEY_SHIELD] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_neg){
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_NEG]){
                             Data->keyboard.flags[ekKEY_NEG] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_pos){
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_POS]){
                             Data->keyboard.flags[ekKEY_POS] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_grav){
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_GRAV]){
                             Data->keyboard.flags[ekKEY_GRAV] = true;
                         }else if(Data->last_event.keyboard.keycode == ALLEGRO_KEY_TILDE){
                             Data->debug = !Data->debug;
@@ -278,22 +299,22 @@ void handle_event_game(game_shared_data *Data){
             break;
         case ALLEGRO_EVENT_KEY_UP:
             al_lock_mutex(Data->keyboard.mutex_keyboard);
-                if(Data->last_event.keyboard.keycode == Data->keyboard.key_up){
-                    Data->keyboard.flags[ekKEY_UP] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_down){
-                    Data->keyboard.flags[ekKEY_DOWN] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_left){
+                if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
                     Data->keyboard.flags[ekKEY_LEFT] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_right){
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
                     Data->keyboard.flags[ekKEY_RIGHT] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_shield){
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
+                    Data->keyboard.flags[ekKEY_UP] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_DOWN]){
+                    Data->keyboard.flags[ekKEY_DOWN] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_SHIELD]){
                     Data->keyboard.flags[ekKEY_SHIELD] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_neg){
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_NEG]){
                     Data->keyboard.flags[ekKEY_NEG] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_grav){
-                    Data->keyboard.flags[ekKEY_GRAV] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.key_pos){
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_POS]){
                     Data->keyboard.flags[ekKEY_POS] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_GRAV]){
+                    Data->keyboard.flags[ekKEY_GRAV] = false;
                 }
             al_unlock_mutex(Data->keyboard.mutex_keyboard);
             break;

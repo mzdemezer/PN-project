@@ -23,6 +23,7 @@ void normalize_resolution_selection(int *current, const int max);
 void resolution_activate(void*);
 void rescale_bitmaps(game_shared_data *);
 void change_resolution(game_shared_data *);
+void change_controls(void *argument);
 
 /**
     Code
@@ -81,6 +82,22 @@ menu_elem *create_menu(){
 
     menu_elem_init(&controls_menu[cmeDESCRIPTOR], CONTROLS_MENU_SIZE,
                    "CONTROLS", options_menu);
+    menu_elem_init(&controls_menu[cmeUP], metINPUT,
+                   "ACCELERATE", change_controls);
+    menu_elem_init(&controls_menu[cmeDOWN], metINPUT,
+                   "DECELERATE", change_controls);
+    menu_elem_init(&controls_menu[cmeLEFT], metINPUT,
+                   "TURN LEFT", change_controls);
+    menu_elem_init(&controls_menu[cmeRIGHT], metINPUT,
+                   "TURN RIGHT", change_controls);
+    menu_elem_init(&controls_menu[cmeSHIELD], metINPUT,
+                   "SHIELD", change_controls);
+    menu_elem_init(&controls_menu[cmeNEG], metINPUT,
+                   "NEGATIVE CHARGE", change_controls);
+    menu_elem_init(&controls_menu[cmePOS], metINPUT,
+                   "POSITIVE CHARGE", change_controls);
+    menu_elem_init(&controls_menu[cmeGRAV], metINPUT,
+                   "GRAVITY", change_controls);
     menu_elem_init(&controls_menu[cmeRETURN], metSUBMENU,
                    "RETURN", options_menu);
 
@@ -240,7 +257,7 @@ void change_resolution(game_shared_data *Data){
     }
 }
 
-void resolution_activate(void*argument){
+void resolution_activate(void* argument){
     #define arg ((activation_argument*)argument)
     #define Data arg->Data
     ALLEGRO_FONT *font;
@@ -281,8 +298,56 @@ void resolution_activate(void*argument){
                 }
                 stringify_resolution(&Data->in_menu_display_data, current_resolution);
                 al_draw_text(font, color, Data->scales.scale_w * 0.9 + Data->scales.scale_x,
-                             (arg->call_type - meatDRAW + 1.5) * (Data->font_menu_big->height * 1.11) + Data->scales.scale_y,
+                             (arg->call_type - meatDRAW) * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
                              ALLEGRO_ALIGN_RIGHT, current_resolution);
+    }
+    #undef Data
+    #undef arg
+}
+
+void change_controls(void *argument){
+    #define arg ((activation_argument*)argument)
+    #define Data arg->Data
+    int elem;
+    ALLEGRO_FONT *font;
+    ALLEGRO_COLOR color;
+    const char *buffer;
+    char buf[20], buf2[20];
+    switch(arg->call_type){
+        case meatACCEPT:
+            Data->ask_for_input = true;
+            break;
+        case meatDOWN:
+            Data->ask_for_input = false;
+            elem = Data->menu.current_elem - 1;
+            Data->keyboard.keys[elem] = Data->input;
+
+            int_to_str(elem, buf);
+            int_to_str(Data->input, buf2);
+            al_set_config_value(Data->config, "Controls", buf, buf2);
+            break;
+        default:
+            elem = arg->call_type - (int)meatDRAW;
+            if(elem > 0){
+                if(elem == Data->menu.current_elem){
+                    font = Data->font_menu_config_selected;
+                    color = al_map_rgb(255, 255, 0);
+                    if(Data->ask_for_input){
+                        buffer = "...";
+                    }else{
+                        buffer = al_keycode_to_name(Data->keyboard.keys[elem - 1]);
+                    }
+                }
+                else{
+                    font = Data->font_menu_config;
+                    color = al_map_rgb(255, 255, 255);
+                    buffer = al_keycode_to_name(Data->keyboard.keys[elem - 1]);
+                }
+                al_draw_text(font, color,
+                             Data->scales.scale_w * 0.9 + Data->scales.scale_x,
+                             elem * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
+                             ALLEGRO_ALIGN_RIGHT, buffer);
+            }
     }
     #undef Data
     #undef arg
