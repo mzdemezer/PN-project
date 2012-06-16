@@ -9,7 +9,7 @@
 
 #define MAIN_MENU_SIZE 4
 #define OPTIONS_MENU_SIZE 4
-#define GRAPHIC_MENU_SIZE -2
+#define GRAPHIC_MENU_SIZE -3
 #define SOUND_MENU_SIZE -1
 #define CONTROLS_MENU_SIZE -9
 
@@ -53,6 +53,7 @@ enum options_menu_elems{
 enum graphic_menu_elems{
     gmeDESCRIPTOR,
     gmeRESOLUTION,
+    gmeFULLSCREEN,
     gmeRETURN
 };
 

@@ -275,14 +275,14 @@ void handle_event_game(game_shared_data *Data){
                     break;
                 default:
                     al_lock_mutex(Data->keyboard.mutex_keyboard);
-                        if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
-                            Data->keyboard.flags[ekKEY_LEFT] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
-                            Data->keyboard.flags[ekKEY_RIGHT] = true;
-                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
+                        if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
                             Data->keyboard.flags[ekKEY_UP] = true;
                         }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_DOWN]){
                             Data->keyboard.flags[ekKEY_DOWN] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
+                            Data->keyboard.flags[ekKEY_LEFT] = true;
+                        }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
+                            Data->keyboard.flags[ekKEY_RIGHT] = true;
                         }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_SHIELD]){
                             Data->keyboard.flags[ekKEY_SHIELD] = true;
                         }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_NEG]){
@@ -299,14 +299,14 @@ void handle_event_game(game_shared_data *Data){
             break;
         case ALLEGRO_EVENT_KEY_UP:
             al_lock_mutex(Data->keyboard.mutex_keyboard);
-                if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
-                    Data->keyboard.flags[ekKEY_LEFT] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
-                    Data->keyboard.flags[ekKEY_RIGHT] = false;
-                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
+                if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_UP]){
                     Data->keyboard.flags[ekKEY_UP] = false;
                 }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_DOWN]){
                     Data->keyboard.flags[ekKEY_DOWN] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_LEFT]){
+                    Data->keyboard.flags[ekKEY_LEFT] = false;
+                }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_RIGHT]){
+                    Data->keyboard.flags[ekKEY_RIGHT] = false;
                 }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_SHIELD]){
                     Data->keyboard.flags[ekKEY_SHIELD] = false;
                 }else if(Data->last_event.keyboard.keycode == Data->keyboard.keys[ekKEY_NEG]){

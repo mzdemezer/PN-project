@@ -111,6 +111,9 @@ typedef struct game_shared_data{
     bool iteration_finished;
     bool main_iter_thread_waiting;
 
+    ALLEGRO_EVENT_QUEUE *event_queue;
+    ALLEGRO_EVENT last_event;
+
     scale_structure scales;
     ALLEGRO_TRANSFORM transformation;
     ALLEGRO_DISPLAY *display;
@@ -120,13 +123,13 @@ typedef struct game_shared_data{
     int chosen_resolution;
     int reso_chosen_in_menu;
 
-    ALLEGRO_EVENT_QUEUE *event_queue;
-    ALLEGRO_EVENT last_event;
-
     menu_structure menu;
     bool ask_for_input;
     bool key_down;
     int input;
+    bool fullscreen_in_menu;
+    bool mouse_working;
+
     ALLEGRO_FONT *font_menu_regular;
     ALLEGRO_FONT *font_menu_big;
     ALLEGRO_FONT *font_menu_selected;

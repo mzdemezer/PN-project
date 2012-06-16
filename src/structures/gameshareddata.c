@@ -213,6 +213,8 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
         Data->fullscreen = atoi(buf2);
     }
 
+    Data->fullscreen_in_menu = Data->fullscreen;
+
     buf2 = al_get_config_value(Data->config, "Graphic", "resolution");
     if(!buf2){
         int_to_str(Data->max_resolution_index, buf);

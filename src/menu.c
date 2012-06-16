@@ -20,10 +20,12 @@ void return_to_main_menu(menu_structure *);
 void restore_current_settings(game_shared_data *);
 
 void normalize_resolution_selection(int *current, const int max);
-void resolution_activate(void*);
+void resolution_activate(void *);
+void fullscreen_activate(void *);
 void rescale_bitmaps(game_shared_data *);
 void change_resolution(game_shared_data *);
 void change_controls(void *argument);
+void change_screen_mode(game_shared_data *Data);
 
 /**
     Code
@@ -72,6 +74,8 @@ menu_elem *create_menu(){
                    "GRAPHIC", options_menu);
     menu_elem_init(&graphic_menu[gmeRESOLUTION], metUPDOWN,
                    "RESOLUTION", resolution_activate);
+    menu_elem_init(&graphic_menu[gmeFULLSCREEN], metUPDOWN,
+                   "FULLSCREEN", fullscreen_activate);
     menu_elem_init(&graphic_menu[gmeRETURN], metSUBMENU,
                    "RETURN", options_menu);
 
@@ -285,21 +289,21 @@ void resolution_activate(void* argument){
             Data->in_menu_display_data = Data->display_data;
             break;
         default:
-                /**
-                    Draw
-                    */
-                if(arg->call_type - (int) meatDRAW == Data->menu.current_elem){
-                    font = Data->font_menu_config_selected;
-                    color = al_map_rgb(255, 255, 0);
-                }
-                else{
-                    font = Data->font_menu_config;
-                    color = al_map_rgb(255, 255, 255);
-                }
-                stringify_resolution(&Data->in_menu_display_data, current_resolution);
-                al_draw_text(font, color, Data->scales.scale_w * 0.9 + Data->scales.scale_x,
-                             (arg->call_type - meatDRAW) * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
-                             ALLEGRO_ALIGN_RIGHT, current_resolution);
+            /**
+                Draw
+                */
+            if(arg->call_type - (int) meatDRAW == Data->menu.current_elem){
+                font = Data->font_menu_config_selected;
+                color = al_map_rgb(255, 255, 0);
+            }
+            else{
+                font = Data->font_menu_config;
+                color = al_map_rgb(255, 255, 255);
+            }
+            stringify_resolution(&Data->in_menu_display_data, current_resolution);
+            al_draw_text(font, color, Data->scales.scale_w * 0.9 + Data->scales.scale_x,
+                         (arg->call_type - meatDRAW) * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
+                         ALLEGRO_ALIGN_RIGHT, current_resolution);
     }
     #undef Data
     #undef arg
@@ -343,11 +347,91 @@ void change_controls(void *argument){
                     color = al_map_rgb(255, 255, 255);
                     buffer = al_keycode_to_name(Data->keyboard.keys[elem - 1]);
                 }
-                al_draw_text(font, color,
-                             Data->scales.scale_w * 0.9 + Data->scales.scale_x,
-                             elem * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
-                             ALLEGRO_ALIGN_RIGHT, buffer);
+            al_draw_text(font, color,
+                         Data->scales.scale_w * 0.9 + Data->scales.scale_x,
+                         elem * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
+                         ALLEGRO_ALIGN_RIGHT, buffer);
             }
+    }
+    #undef Data
+    #undef arg
+}
+
+void change_screen_mode(game_shared_data *Data){
+    char buf[20];
+    int_to_str(Data->fullscreen, buf);
+    al_set_config_value(Data->config, "Graphic", "fullscreen", buf);
+    al_unregister_event_source(Data->event_queue, al_get_display_event_source(Data->display));
+
+    al_destroy_display(Data->display);
+    if(Data->fullscreen){
+        al_set_new_display_flags(ALLEGRO_FULLSCREEN);
+    }else{
+        al_set_new_display_flags(ALLEGRO_WINDOWED);
+        al_set_new_window_position(8, 30);
+    }
+    al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
+
+    Data->display = NULL;
+    Data->display = al_create_display(Data->display_data.width, Data->display_data.height);
+    if(!Data->display){
+        fprintf(stderr, "Problems when creating the display\n");
+        Data->close_now = true;
+    }else{
+        al_register_event_source(Data->event_queue, al_get_display_event_source(Data->display));
+        scale_fonts(Data);
+        rescale_bitmaps(Data);
+        if(Data->mouse_working){
+            al_hide_mouse_cursor(Data->display);
+        }
+    }
+}
+
+void fullscreen_activate(void *argument){
+    #define arg ((activation_argument*)argument)
+    #define Data arg->Data
+    int elem;
+    ALLEGRO_FONT *font;
+    ALLEGRO_COLOR color;
+    const char *buf;
+    switch(arg->call_type){
+        case meatACCEPT:
+            if(Data->fullscreen != Data->fullscreen_in_menu){
+                Data->fullscreen = Data->fullscreen_in_menu;
+                special_call(change_screen_mode, Data);
+            }
+            break;
+        case meatUP:
+        case meatDOWN:
+            Data->fullscreen_in_menu = !Data->fullscreen_in_menu;
+            break;
+        case meatRESTORE_CURRENT:
+            Data->fullscreen_in_menu = Data->fullscreen;
+            break;
+        default:
+            /**
+                Draw
+                */
+            elem = arg->call_type - (int)meatDRAW;
+            if(elem == Data->menu.current_elem){
+                font = Data->font_menu_config_selected;
+                color = al_map_rgb(255, 255, 0);
+            }
+            else{
+                font = Data->font_menu_config;
+                color = al_map_rgb(255, 255, 255);
+            }
+            if(Data->fullscreen_in_menu){
+                buf = "ON";
+            }else{
+                buf = "OFF";
+            }
+            al_draw_text(font, color,
+                         Data->scales.scale_w * 0.9 + Data->scales.scale_x,
+                         elem * Data->font_menu_regular->height + Data->font_menu_big->height * 1.665 + Data->scales.scale_y,
+                         ALLEGRO_ALIGN_RIGHT, buf);
     }
     #undef Data
     #undef arg

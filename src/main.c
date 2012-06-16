@@ -119,8 +119,10 @@ int main(){
         */
     if(!al_install_mouse()){
         fprintf(stderr, "failed to initialize the mouse!\n");
+        Data.mouse_working = false;
     }
     else{
+        Data.mouse_working = true;
         al_hide_mouse_cursor(Data.display);
     }
 
