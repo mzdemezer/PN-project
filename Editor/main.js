@@ -1,25 +1,24 @@
 ﻿//TODO:
 /*
-- writing second version of drawing functions that would find verticies
+- two ways of drawing objects - dotted border or filled (aspect)
+
 - some new objects? I have many more ideas, these are only very basic ones, so I will be able to finish on time xD
 */
 
-// I know drawing is HIGHLY non-optimal, but this is about maths and equations in polar coordinate system
-// Drawing is not going to work that way in game, no :P
-// Also, I know the number of globals is outrageous, but I'm in a hurry
+// I know the number of globals is outrageous, but I'm in a hurry
 
 const pi = Math.PI,
-		dwapi = pi*2,
-		pi32 = pi*1.5,
-		pipol = pi/2,
-		pi4 = pi/4,
-		pi34 = pi4*3,
-		stopni15 = pi/12,
-		jedenstopien = pi/180,
-		polstopnia = pi/360,
-		jedna50stopnia = pi/3600,
-		sqrt2 = Math.sqrt(2),
-		sqrt2przez2 = sqrt2/2;
+			dwapi = pi*2,
+			pi32 = pi*1.5,
+			pipol = pi/2,
+			pi4 = pi/4,
+			pi34 = pi4*3,
+			stopni15 = pi/12,
+			jedenstopien = pi/180,
+			polstopnia = pi/360,
+			jedna50stopnia = pi/3600,
+			sqrt2 = Math.sqrt(2),
+			sqrt2przez2 = sqrt2/2;
 
 var $disp,$canva,$ctx,$ImgD,$a,$b,$stroke,
 	 $BackgroundText,
@@ -52,6 +51,7 @@ var $disp,$canva,$ctx,$ImgD,$a,$b,$stroke,
 const wdth=750,
 		hght=750,
 		SelectionColor="#66f",
+		selectRectColor = 'rgba(70, 80, 255, 0.3)',
 		PlayerSize = 15,
 		MaxCharge = 1000,
 		MaxPos = 100;
@@ -78,9 +78,14 @@ var	SQR = square({x:449,y:449,bok:100,ang:0,color:'#ff0'}),
 					LastSelected:[],
 					Clicked:{},
 					IsDragging: false,
+					isClicked: false,
 					Background: {Path: "default", Img: new Image()},
 					mouseDragX:0,
-					mouseDragY:0
+					mouseDragY:0,
+					$selectRect: null,
+					$selectCtx: null,
+					$secondCanva: null,
+					$secondCtx: null
 			};
 
 if (document.addEventListener) {
@@ -92,9 +97,11 @@ function init(){
 	arguments.callee.done = true;
 	
 	document.onmousemove = mysz;
-	//document.onkeypress = klawa;
 	document.onkeyup = klawa;
-	
+	document.onmousedown = selectObjOnCanvas;
+	document.onmouseup = dropOnCanvas;
+	document.onmousemove = drawSelectRect;
+							
 	$BackgroundText = gEBI('BackgroundText');
 	$ObjListSelect = $('#ObjListSelect');
 	$ObjListParent = $('#ObjListParent');
@@ -123,12 +130,21 @@ function init(){
 	$canva = gEBI('canva');
 	$canva.width = wdth;
 	$canva.height = hght;
+
+	Data.$selectRect = gEBI('selectRect');
+	Data.$selectRect.width = 0;
+	Data.$selectRect.height = 0;
+	Data.$selectRect.style.backgroundColor = selectRectColor;
+	Data.$selectCtx = Data.$selectRect.getContext('2d');
 	
-	$canva.onmousedown = selectObjOnCanvas;
-	$canva.onmouseup = dropOnCanvas;
-	$canva.onmouseout = function(){
-								Data.IsDragging = false;
-							};
+	Data.$secondCanva = gEBI('secondCanva');
+	Data.$secondCanva.width = $canva.width;
+	Data.$secondCanva.height = $canva.height;
+	Data.$secondCanva.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+	Data.$secondCtx = Data.$secondCanva.getContext('2d');
+	Data.$secondCtx.lineWidth = 2;
+	Data.$secondCtx.strokeStyle = 'rgba(70, 80, 255, 0.7)';
+	
 	
 	$ctx = $canva.getContext('2d');
 	$ImgD = $ctx.getImageData(0,0,wdth-1,hght-1);
@@ -467,7 +483,7 @@ function Load(){
 	for(i in input){
 		input[i] = input[i].split(' ');
 	}
-	console.log(input);
+
 	for(i in Data.Arrays){
 		Data[Data.Arrays[i]] = [];
 	}
@@ -718,7 +734,7 @@ function cloneObject(dx, dy){
 		 drawing = CallDrawing;
 	
 	for(var i in Data.Selected){
-		Data.Selected[i].draw();
+		Data.Selected[i].draw($ctx, 'fill');
 	}
 	Data.LastSelected = Data.Selected;
 	Data.Selected = [];
@@ -843,12 +859,12 @@ function drawSelection(){
 	var i;
 	for(i in Data.LastSelected){
 		if(Data.LastSelected[i].draw){
-			Data.LastSelected[i].draw();
+			Data.LastSelected[i].draw($ctx, 'fill');
 		}
 	}
 	for(i in Data.Selected){
 		if(Data.Selected[i].draw){
-			Data.Selected[i].draw(SelectionColor);
+			Data.Selected[i].draw($ctx, 'fill', SelectionColor);
 		}
 	}
 }
@@ -1202,7 +1218,7 @@ function ClearCanvas(){
 	$ctx.fillStyle='rgba(0,0,0,0.6)';
 	$ctx.fillRect(0,0,wdth-1,hght-1);
 	if(Data.Background.Path != "default"){
-		$ctx.drawImage(Data.Background.Img,0,0);
+		$ctx.drawImage(Data.Background.Img, 0, 0);
 	}
 }
 
@@ -1211,11 +1227,11 @@ function ReDraw(){
 	var i, j;
 	for(i in Data.Arrays){
 		for(j in Data[Data.Arrays[i]]){
-			Data[Data.Arrays[i]][j].draw();
+			Data[Data.Arrays[i]][j].draw($ctx, 'fill');
 		}
 	}
 	for(i in Data.Selected){
-		Data.Selected[i].draw(SelectionColor);
+		Data.Selected[i].draw($ctx, 'fill', SelectionColor);
 	}
 }
 
@@ -1283,13 +1299,11 @@ function circleRadius(){return this.r0};
 
 function square(SQ){//{x:x0,y:y0,bok:bok0,ang:ang0,color:color}
 	function radius(fi){return sqr(this.r0,fi-this.ang);};
-	function draw(color){
+	function draw(ctx, style, color){
 		if(color==undefined){
-			drawSquare(this,this.color);
+			color = this.color;
 		}
-		else{
-			drawSquare(this,color);
-		}
+		drawSquare(ctx, this, style, color);
 	};
 	return{x:SQ.x,
 			 y:SQ.y,
@@ -1304,13 +1318,11 @@ function square(SQ){//{x:x0,y:y0,bok:bok0,ang:ang0,color:color}
 }
 
 function circle(B){//{x:x,y:y,r0:r0,color:color}
-	function draw(color){
+	function draw(ctx, style, color){
 		if(color==undefined){
-			drawCircle(this,this.color);
+			color = this.color;
 		}
-		else{
-			drawCircle(this,color);
-		}
+		drawCircle(ctx, this, style, color);
 	};
 	return{x:B.x,
 	       y:B.y,
@@ -1346,13 +1358,11 @@ function rectangle(R){	//{a:a,b:b,x:x,y:y,ang:ang,color:color}
 								res=Math.abs(this.r0/res);							
 							return res;
 		};
-	function draw(color){
+	function draw(ctx, style, color){
 		if(color==undefined){
-			drawRect(this,this.color);
+			color = this.color;
 		}
-		else{
-			drawRect(this,color);
-		}
+		drawRect(ctx, this, style, color);
 	};
 	return {
 		a: a,
@@ -1373,8 +1383,8 @@ function rectangle(R){	//{a:a,b:b,x:x,y:y,ang:ang,color:color}
 	}
 
 function player(Pl){
-	function draw(color){
-		drawPlayer(this, color);
+	function draw(ctx, style, color){
+		drawPlayer(ctx, this, style, color);
 	}
 	return {
 		x: Pl.x,
@@ -1388,8 +1398,8 @@ function player(Pl){
 }
 
 function entrance(Ent){
-	function draw(color){
-		drawEntrance(this, color);
+	function draw(ctx, style, color){
+		drawEntrance(ctx, this, style, color);
 	}
 	Ent = rectangle(Ent);
 	Ent.type = 'Entrance';
@@ -1398,8 +1408,8 @@ function entrance(Ent){
 }
 
 function exit(Ext){
-	function draw(color){
-		drawExit(this, color);
+	function draw(ctx, style, color){
+		drawExit(ctx, this, style, color);
 	}
 	Ext = rectangle(Ext);
 	Ext.type = 'Exit';
@@ -1408,8 +1418,8 @@ function exit(Ext){
 }
 
 function aswitch(S){	//{a:a,b:b,x:x,y:y,ang:ang,color:color,swType:switchtype,pos:pos,connected:{Doors:Array(), Switches:Array()}, mass:mass}
-	function draw(color){
-		drawSwitch(this, color);
+	function draw(ctx, style, color){
+		drawSwitch(ctx, this, style, color);
 	}
 	var Sw = rectangle(S);
 	Sw.type = 'Switch';
@@ -1427,8 +1437,8 @@ function aswitch(S){	//{a:a,b:b,x:x,y:y,ang:ang,color:color,swType:switchtype,po
 }
 
 function door(D){ //{a:a,b:b,x:x,y:y,ang:ang,color:color,doorType:doorType,pos:pos,openingTime:openingTime}
-	function draw(color){
-		drawDoor(this, color);
+	function draw(ctx, style, color){
+		drawDoor(ctx, this, style, color);
 	}
 	var Dr = rectangle(D);
 	Dr.type = 'Door';
@@ -1445,13 +1455,11 @@ function door(D){ //{a:a,b:b,x:x,y:y,ang:ang,color:color,doorType:doorType,pos:p
 }
 
 function particle(P){//{x:x,y:y,r0:r0,charge:charge,mass:mass}
-	function draw(color){
-		if(color != undefined){
-			drawParticle(this, color);
+	function draw(ctx, style, color){
+		if(color==undefined){
+			color = this.color;
 		}
-		else{
-			drawParticle(this, this.color);
-		}
+		drawParticle(ctx, this, style, color);
 	}
 	var c = P.charge / MaxCharge;
 	if(c > 1){
@@ -1486,176 +1494,166 @@ function particle(P){//{x:x,y:y,r0:r0,charge:charge,mass:mass}
 
 //-------------------------------------------------------------
 
-function drawSquareSTUPID(sq, color){
+function drawStyleAspect(ctx, style, color){
+	ctx.fillStyle = color;
+	ctx[style]();
+}
+
+function drawSquareSTUPID(ctx, sq, style, color){
 	var r, x, y;
 	x = sq.x + sq.r(0);
 	y = sq.y;
-	$ctx.moveTo(x,y);
-	$ctx.beginPath();
+	ctx.moveTo(x,y);
+	ctx.beginPath();
 	for(var i = jedna50stopnia; i < dwapi + jedna50stopnia; i += jedna50stopnia){
 		r=sq.r(i);
 		x=sq.x + r * Math.cos(i);
 		y=sq.y + r * Math.sin(i);
-		$ctx.lineTo(x,y);
+		ctx.lineTo(x,y);
 	}
-	$ctx.closePath();
-	$ctx.fillStyle = color;
-	$ctx.fill();
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
 }
 
-function drawSquare(sq, color){
+function drawSquare(ctx, sq, style, color){
 	var v = findSquareVertices(sq);
-	$ctx.moveTo(v[0].x, v[0].y);
-	$ctx.beginPath();
-	$ctx.lineTo(v[1].x, v[1].y);
-	$ctx.lineTo(v[2].x, v[2].y);
-	$ctx.lineTo(v[3].x, v[3].y);
-	$ctx.lineTo(v[0].x, v[0].y);
-	$ctx.closePath();
-	$ctx.fillStyle = color;
-	$ctx.fill();
+	ctx.moveTo(v[0].x, v[0].y);
+	ctx.beginPath();
+	ctx.lineTo(v[1].x, v[1].y);
+	ctx.lineTo(v[2].x, v[2].y);
+	ctx.lineTo(v[3].x, v[3].y);
+	ctx.lineTo(v[0].x, v[0].y);
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
 }
 
-function drawRectSTUPID(rc, color){
+function drawRectSTUPID(ctx, rc, style, color){
 	var r,x,y;
 	r=rc.r(0);
 	x=rc.x+r; //fi == 0
 	y=rc.y;
-	$ctx.moveTo(x,y);
-	$ctx.beginPath();
+	ctx.moveTo(x,y);
+	ctx.beginPath();
 	for(var i=jedna50stopnia; i<=dwapi+jedna50stopnia; i+=jedna50stopnia){
 		r=rc.r(i);
 		x=rc.x+r*Math.cos(i);
 		y=rc.y+r*Math.sin(i);
-		$ctx.lineTo(x,y);
+		ctx.lineTo(x,y);
 	}
-	$ctx.fillStyle=color;
-	$ctx.fill();
-	$ctx.stroke();
-	$ctx.closePath();
-	r=rc.r(pipol + rc.ang + rc.fi0 / 2);
-	$ctx.beginPath();
-	$ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
-	$ctx.closePath();
-	$ctx.fillStyle='#a00';
-	$ctx.fill();
-	r = rc.r(-rc.ang);
-	$ctx.beginPath();
-	$ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
-	$ctx.closePath();
-	$ctx.fillStyle='#00a';
-	$ctx.fill();
+	drawStyleAspect(ctx, style, color);
+	// ctx.closePath();
+	// r=rc.r(pipol + rc.ang + rc.fi0 / 2);
+	// ctx.beginPath();
+	// ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
+	// ctx.closePath();
+	// ctx.fillStyle='#a00';
+	// ctx.fill();
+	// r = rc.r(-rc.ang);
+	// ctx.beginPath();
+	// ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
+	// ctx.closePath();
+	// ctx.fillStyle='#00a';
+	// ctx.fill();
 }
 
-function drawRect(rc, color){
+function drawRect(ctx, rc, style, color){
 	var v = findRectVertices(rc);
-	$ctx.moveTo(v[0].x, v[0].y);
-	$ctx.beginPath();
-	$ctx.lineTo(v[1].x, v[1].y);
-	$ctx.lineTo(v[2].x, v[2].y);
-	$ctx.lineTo(v[3].x, v[3].y);
-	$ctx.lineTo(v[0].x, v[0].y);
-	$ctx.closePath();
-	$ctx.fillStyle=color;
-	$ctx.fill();
-	$ctx.stroke();
+	ctx.moveTo(v[0].x, v[0].y);
+	ctx.beginPath();
+	ctx.lineTo(v[1].x, v[1].y);
+	ctx.lineTo(v[2].x, v[2].y);
+	ctx.lineTo(v[3].x, v[3].y);
+	ctx.lineTo(v[0].x, v[0].y);
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
 	
-	r=rc.r(pipol + rc.ang + rc.fi0 / 2);
-	$ctx.beginPath();
-	$ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
-	$ctx.closePath();
-	$ctx.fillStyle='#a00';
-	$ctx.fill();
-	r = rc.r(-rc.ang);
-	$ctx.beginPath();
-	$ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
-	$ctx.closePath();
-	$ctx.fillStyle='#00a';
-	$ctx.fill();
+	// r=rc.r(pipol + rc.ang + rc.fi0 / 2);
+	// ctx.beginPath();
+	// ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
+	// ctx.closePath();
+	// ctx.fillStyle='#a00';
+	// ctx.fill();
+	// r = rc.r(-rc.ang);
+	// ctx.beginPath();
+	// ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
+	// ctx.closePath();
+	// ctx.fillStyle='#00a';
+	// ctx.fill();
 }
 
-function drawCircle(bl, color){
-	$ctx.beginPath();
-	$ctx.arc(bl.x,bl.y,bl.r(),0,dwapi,false);
-	$ctx.closePath();
-	$ctx.fillStyle = color;
-	$ctx.fill();
+function drawCircle(ctx, bl, style, color){
+	ctx.beginPath();
+	ctx.arc(bl.x,bl.y,bl.r(),0,dwapi,false);
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
 }
 
-function drawPlayer(Pl, color){
+function drawPlayer(ctx, Pl, style, color){
 	if(color != undefined){
-		$ctx.beginPath();
-		$ctx.arc(Pl.x, Pl.y, PlayerSize, 0, dwapi, false);
-		$ctx.closePath();
-		$ctx.fillStyle=color;
-		$ctx.fill();
-		$ctx.moveTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
-		$ctx.beginPath();
-		$ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang - pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang - pi34));
-		$ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang + pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang + pi34));
-		$ctx.lineTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
-		$ctx.closePath();
-		$ctx.fillStyle="#000";
-		$ctx.fill();
-		$ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(Pl.x, Pl.y, PlayerSize, 0, dwapi, false);
+		ctx.closePath();
+		drawStyleAspect(ctx, style, color);
+		ctx.moveTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
+		ctx.beginPath();
+		ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang - pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang - pi34));
+		ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang + pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang + pi34));
+		ctx.lineTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
+		ctx.closePath();
+		drawStyleAspect(ctx, style, "#000");
 	}
 	else{
-		$ctx.beginPath();
-		$ctx.arc(Pl.x,Pl.y,PlayerSize,0,dwapi,false);
-		$ctx.closePath();
-		$ctx.fillStyle="#000";
-		$ctx.fill();
-		$ctx.beginPath();
-		$ctx.arc(Pl.x,Pl.y,PlayerSize * 0.66,0,dwapi,false);
-		$ctx.closePath();
-		$ctx.fillStyle="#fff";
-		$ctx.fill();
-		$ctx.beginPath();
-		$ctx.arc(Pl.x,Pl.y,PlayerSize * 0.33,0,dwapi,false);
-		$ctx.closePath();
-		$ctx.fillStyle="#000";
-		$ctx.fill();
-		$ctx.moveTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
-		$ctx.beginPath();
-		$ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang - pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang - pi34));
-		$ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang + pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang + pi34));
-		$ctx.lineTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
-		$ctx.closePath();
-		$ctx.fillStyle="#f00";
-		$ctx.fill();
-		$ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(Pl.x,Pl.y,PlayerSize,0,dwapi,false);
+		ctx.closePath();
+		drawStyleAspect(ctx, style, "#000");
+		ctx.beginPath();
+		ctx.arc(Pl.x,Pl.y,PlayerSize * 0.66,0,dwapi,false);
+		ctx.closePath();
+		drawStyleAspect(ctx, style, "#fff");
+		ctx.beginPath();
+		ctx.arc(Pl.x,Pl.y,PlayerSize * 0.33,0,dwapi,false);
+		ctx.closePath();
+		drawStyleAspect(ctx, style, "#000");
+		ctx.moveTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
+		ctx.beginPath();
+		ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang - pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang - pi34));
+		ctx.lineTo(Pl.x + PlayerSize * 0.33 * Math.cos(Pl.ang + pi34), Pl.y + PlayerSize * 0.33 * Math.sin(Pl.ang + pi34));
+		ctx.lineTo(Pl.x + PlayerSize * 0.66 * Math.cos(Pl.ang), Pl.y + PlayerSize * 0.66 * Math.sin(Pl.ang));
+		ctx.closePath();
+		drawStyleAspect(ctx, style, "#000");
 	}
 }
 
-function drawEntrance(Ent, color){
+function drawEntrance(ctx, Ent, style, color){
 	var temp;
 	if(color === undefined){
 		color = Ent.color;
 	}
-	drawRect(Ent, color);
+	drawRect(ctx, Ent, style, color);
 	temp = Ent.r0;
 	Ent.r0 *= 0.66;
-	drawRect(Ent, '#000');
+	drawRect(ctx, Ent, style, '#000');
 	Ent.r0 = temp;
-	$ctx.fillStyle = "#f00";
-	$ctx.fillText('IN', Ent.x - 10, Ent.y + 10);
+	ctx.fillStyle = "#f00";
+	ctx.fillText('IN', Ent.x - 10, Ent.y + 10);
 }
 
-function drawExit(Ext, color){
+function drawExit(ctx, Ext, style, color){
 	var temp;
 	if(color === undefined){
 		color = Ext.color;
 	}
-	drawRect(Ext, color);
+	drawRect(ctx, Ext, style, color);
 	temp = Ext.r0;
 	Ext.r0 *= 0.66;
-	drawRect(Ext, '#000');
+	drawRect(ctx, Ext, style, '#000');
 	Ext.r0 = temp;
-	$ctx.fillStyle = "#f00";
-	$ctx.fillText('OUT', Ext.x - 10, Ext.y + 10);
+	ctx.fillStyle = "#f00";
+	ctx.fillText('OUT', Ext.x - 10, Ext.y + 10);
 }
 
-function drawSwitch(Sw, color){
+function drawSwitch(ctx, Sw, style, color){
 	if(color === undefined){
 		color = Sw.color;
 	}
@@ -1671,12 +1669,12 @@ function drawSwitch(Sw, color){
 
 			Op.x -= temp * Math.cos(-Sw.ang);
 			Op.y -= temp * Math.sin(-Sw.ang);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			
 			
 			Op.x += 2 * temp * Math.cos(-Sw.ang);
 			Op.y += 2 * temp * Math.sin(-Sw.ang);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			
 			Op = rectangle(Sw);
 			Op.a *= 0.1;
@@ -1688,23 +1686,23 @@ function drawSwitch(Sw, color){
 			
 			Op.x -= temp * Math.cos(ang);
 			Op.y -= temp * Math.sin(ang);
-			drawRect(Op, "#f00");
+			drawRect(ctx, Op, style, "#f00");
 				
 			Op.x += 2 * temp * Math.cos(ang);
 			Op.y += 2 * temp * Math.sin(ang);
-			drawRect(Op, "#0f0");
+			drawRect(ctx, Op, style, "#0f0");
 			
 			temp = Sw.a * 0.7 * Sw.pos / MaxPos - Sw.a * 0.35;
 			Op.x = Sw.x + temp * Math.cos(ang);
 			Op.y = Sw.y + temp * Math.sin(ang);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			break;
 		default:
-			drawRect(Sw, color);
+			drawRect(ctx, Sw, style, color);
 	}
 }
 
-function drawDoor(Dr, color){
+function drawDoor(ctx, Dr, style, color){
 	if(color === undefined){
 		color = Dr.color;
 	}
@@ -1719,7 +1717,7 @@ function drawDoor(Dr, color){
 			Op.x -= temp * Math.cos(ang);
 			Op.y -= temp * Math.sin(ang);
 			Op = rectangle(Op);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			
 			Op = rectangle(Dr);
 			temp = Dr.b * 0.45;
@@ -1727,21 +1725,21 @@ function drawDoor(Dr, color){
 			Op.x -= temp * Math.cos(-Op.ang);
 			Op.y -= temp * Math.sin(-Op.ang);
 			Op = rectangle(Op);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			
 			Op.x += 2 * temp * Math.cos(-Op.ang);
 			Op.y += 2 * temp * Math.sin(-Op.ang);
-			drawRect(Op, color);
+			drawRect(ctx, Op, style, color);
 			break;
 		default:
-			drawRect(Dr, color);
+			drawRect(ctx, Dr, style, color);
 	}
 	
 }
 
-function drawParticle(P, color){
-	drawCircle(P, color);
-	$ctx.fillStyle = "#000";
+function drawParticle(ctx, P, style, color){
+	drawCircle(ctx, P, style, color);
+	ctx.fillStyle = "#000";
 	
 	if(P.charge === 0){
 		color = 'n';
@@ -1750,7 +1748,7 @@ function drawParticle(P, color){
 	}else if(P.charge < 0){
 		color = '-';
 	}
-	$ctx.fillText(color, P.x - 8, P.y + 8);
+	ctx.fillText(color, P.x - 8, P.y + 8);
 }
 
 //-------------------------------------------------------------
@@ -1784,10 +1782,9 @@ function klawa(e){
 			}
 			break;
 		case 78://shift + n
-			if(e.shiftKey){
-				newObject();
+			if(!e.shiftKey){
+				break;
 			}
-			break;
 		case 107://+
 			newObject();
 			break;
@@ -1851,41 +1848,44 @@ function selectObjOnCanvas(e){
 		 Obj = false,
 		 index,
 		 i;
-
+	
 	Data.mouseDragX = e.pageX;
 	Data.mouseDragY = e.pageY;
-	
-	for(i in Data.Arrays){
-		if(!Obj){
-			for(index in Data[Data.Arrays[i]]){
-				if(isClicked(Data[Data.Arrays[i]][index],e)){
-					Obj = Data[Data.Arrays[i]][index];
-					break;
+	Data.isClicked = true;
+	if(e.pageX < $canva.width &&
+		 e.pageY < $canva.height){
+		for(i in Data.Arrays){
+			if(!Obj){
+				for(index in Data[Data.Arrays[i]]){
+					if(isClicked(Data[Data.Arrays[i]][index],e)){
+						Obj = Data[Data.Arrays[i]][index];
+						break;
+					}
 				}
 			}
+			else{
+				break;
+			}
 		}
-		else{
-			break;
-		}
-	}
-	
-	if(!Obj){
-		Data.Clicked = {};
-	}else{
-		Data.Clicked = Obj;
-	}
-	
-	if(Data.Selected.length === 0){
-		Data.IsDragging = false;
-	}else{
+		
 		if(!Obj){
+			Data.Clicked = {};
+		}else{
+			Data.Clicked = Obj;
+		}
+		
+		if(Data.Selected.length === 0){
 			Data.IsDragging = false;
 		}else{
-			Data.IsDragging = false;
-			for(i in Data.Selected){
-				if(Data.Selected[i] === Obj){
-					Data.IsDragging = true;
-					break;
+			if(!Obj){
+				Data.IsDragging = false;
+			}else{
+				Data.IsDragging = false;
+				for(i in Data.Selected){
+					if(Data.Selected[i] === Obj){
+						Data.IsDragging = true;
+						break;
+					}
 				}
 			}
 		}
@@ -1894,67 +1894,131 @@ function selectObjOnCanvas(e){
 
 function dropOnCanvas(e){
 	if (!e) e = window.event;
-	if(Data.IsDragging){
-		Data.IsDragging = false;
-		Data.mouseDragX = e.pageX - Data.mouseDragX;
-		Data.mouseDragY = e.pageY - Data.mouseDragY;
-		if(e.ctrlKey){
-			cloneObject(Data.mouseDragX, Data.mouseDragY);
+	Data.isClicked = false;
+	Data.$selectRect.width = 0;
+	Data.$selectRect.height = 0;
+	if(Data.mouseDragX < $canva.width &&
+		 Data.mouseDragY < $canva.height){
+		if(e.PageX > $canva.width){
+			e.PageX = $canva.width;
 		}
-		else{
-			for(var i in Data.Selected){
-				Data.Selected[i].x += Data.mouseDragX;
-				Data.Selected[i].y += Data.mouseDragY;
+		if(e.PageY > $canva.height){
+			e.PageY = $canva.height;
+		}
+		if(Data.IsDragging){
+			Data.IsDragging = false;
+			Data.mouseDragX = e.pageX - Data.mouseDragX;
+			Data.mouseDragY = e.pageY - Data.mouseDragY;
+			if(e.ctrlKey){//clone
+				cloneObject(Data.mouseDragX, Data.mouseDragY);
 			}
-			ReDraw();
+			else{//move
+				for(var i in Data.Selected){
+					Data.Selected[i].x += Data.mouseDragX;
+					Data.Selected[i].y += Data.mouseDragY;
+				}
+				ReDraw();
+			}
+			ShowObj(Data.Selected);
 		}
-		ShowObj(Data.Selected);
-	}
-	else{
-		var x = e.pageX - Data.mouseDragX,
-			 y = e.pageY - Data.mouseDragY,
-			 SelectionRect = rectangle({x: (e.pageX + Data.mouseDragX) / 2,
-												 y: (e.pageY + Data.mouseDragY) / 2,
-												 a: y,
-												 b: x,
-												 ang: 0,
-												 color: SelectionColor
-												}),
-		i, j, ang;
-		Data.LastSelected = Data.Selected;
-		Data.Selected = [];
-		
-		for(i in Data.Arrays){
-			for(j in Data[Data.Arrays[i]]){
-				x = SelectionRect.x - Data[Data.Arrays[i]][j].x;
-				y = SelectionRect.y - Data[Data.Arrays[i]][j].y;
-				ang = VectorAtan(x, y);
-				ang = Math.sqrt(x * x + y * y) - (SelectionRect.r(ang) + Data[Data.Arrays[i]][j].r(norm(ang + pi)));
-				if(ang < 0){
-					Data.Selected.push(Data[Data.Arrays[i]][j]);
+		else{//selection
+			var	x = e.pageX - Data.mouseDragX,
+					y = e.pageY - Data.mouseDragY,
+					SelectionRect = rectangle({x: (e.pageX + Data.mouseDragX) / 2,
+													 y: (e.pageY + Data.mouseDragY) / 2,
+													 a: y,
+													 b: x,
+													 ang: 0,
+													 color: SelectionColor
+													}),
+			i, j, ang;
+			Data.LastSelected = Data.Selected;
+			Data.Selected = [];
+			
+			for(i in Data.Arrays){
+				for(j in Data[Data.Arrays[i]]){
+					x = SelectionRect.x - Data[Data.Arrays[i]][j].x;
+					y = SelectionRect.y - Data[Data.Arrays[i]][j].y;
+					ang = VectorAtan(x, y);
+					ang = Math.sqrt(x * x + y * y) - (SelectionRect.r(ang) + Data[Data.Arrays[i]][j].r(norm(ang + pi)));
+					if(ang < 0){
+						Data.Selected.push(Data[Data.Arrays[i]][j]);
+					}
 				}
 			}
+			
+			if(Data.Clicked.x != undefined){
+				j = true;
+				for(i in Data.Selected){
+					if(Data.Selected[i] === Data.Clicked){
+						j = false;
+						break;
+					}
+				}
+				if(j){
+					Data.Selected.push(Data.Clicked);
+				}
+			}
+			
+			ShowObj(Data.Selected);
+			drawSelection();
+		}
+
+		SetSelectedOnListFromData();
+	}
+	clearSecondCanva(Data);
+}
+
+function clearSecondCanva(Module){
+	Module.$secondCtx.clearRect(0, 0,
+																Data.$secondCanva.width - 1,
+																Data.$secondCanva.height - 1);
+}
+
+function drawSelectRect(e){
+	var width, height;
+	if (!e) e = window.event;
+
+	if(Data.mouseDragX < $canva.width &&
+		 Data.mouseDragY < $canva.height &&
+		 Data.isClicked){
+		
+		var evX, evY, dx, dy; 
+		if(e.pageX > $canva.width){
+			evX = $canva.width;
+		}else{
+			evX = e.pageX;
+		}
+		if(e.pageY > $canva.height){
+			evY = $canva.height;
+		}else{
+			evY = e.pageY;
 		}
 		
-		if(Data.Clicked.x != undefined){
-			j = true;
+		if(Data.IsDragging){
+			clearSecondCanva(Data);
+			dx = evX - Data.mouseDragX;
+			dy = evY - Data.mouseDragY;
 			for(i in Data.Selected){
-				if(Data.Selected[i] === Data.Clicked){
-					j = false;
-					break;
+				if(Data.Selected[i].draw){
+					Data.Selected[i].x += dx;
+					Data.Selected[i].y += dy;
+					Data.Selected[i].draw(Data.$secondCtx, 'stroke', SelectionColor);
+					Data.Selected[i].x -= dx;
+					Data.Selected[i].y -= dy;
 				}
 			}
-			if(j){
-				Data.Selected.push(Data.Clicked);
-			}
+		}else{
+			Data.$selectRect.style.left = min(Data.mouseDragX, evX) + "px";
+			Data.$selectRect.style.top = min(Data.mouseDragY, evY) + "px";
+			width = abs(evX - Data.mouseDragX);
+			height = abs(evY - Data.mouseDragY);
+			Data.$selectRect.width = width;
+			Data.$selectRect.height = height;
+			Data.$selectRect.style.backgroundColor = selectRectColor;
+			Data.$selectCtx.clearRect(0, 0, width - 1, height - 1);
 		}
-		
-		ShowObj(Data.Selected);
-		drawSelection();
 	}
-
-	SetSelectedOnListFromData();
-
 }
 
 //-------------------------------------------------------------
@@ -1982,6 +2046,10 @@ function abs(a){
 	if(a>0)
 		return a;
 	return -a;
+}
+
+function min(a, b){
+	return a < b ? a : b;
 }
 
 function sign(a){

@@ -19,6 +19,10 @@ h3{
 .canva{
 	border: none;
 }
+.absoCanva{
+	position:absolute;
+	z-index: 10000;
+}
 .contents{
 	float:left;
 	margin:0px;

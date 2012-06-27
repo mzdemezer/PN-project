@@ -7,8 +7,11 @@
 	<link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
+<canvas id="selectRect" class="absoCanva"></canvas>
+<canvas id="secondCanva" class="absoCanva"></canvas>
 	<div class="contents canva">
 		<canvas id="canva">Zmieñ przegl¹darkê mule</canvas>
+		
 	</div>
 	
 	<div class="contents">
@@ -122,6 +125,17 @@
 	
 	<div class="container">
 		<pre id="disp">x=BOO y=BOO undefined</pre>
+	</div>
+	<div class="container">
+		<h3>HELP</h3>
+		<ul>
+			<li>shift l			- load level</li>
+			<li>shift s			- generate output</li>
+			<li>shift+n / +	- new object</li>
+			<li>shift c			- clone objects</li>
+			<li>shift+d/del	- delete objects</li>
+		</ul>
+		<p>You can select multiple objects and move them by dragging. You can also drag-copy with CTRL.</p>
 	</div>
 </body>
 </html>
