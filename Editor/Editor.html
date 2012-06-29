@@ -35,8 +35,8 @@
 				</div>
 			
 				<input class="check" type="checkbox" checked="checked" onchange="if(CallDrawing){CallDrawing = false;}else{CallDrawing = true; ReDraw();}" />Always ReDraw()<br />
-				<button onclick="GenerateOutput()">Output</button><br />
-				<button onclick="Load()">Load</button><br />
+				<button onclick="GenerateOutput(Data)">Output</button><br />
+				<button onclick="Load(Data)">Load</button><br />
 				<button onclick="Clear()">Clear</button><br />
 				<select id="ObjListSelect" onchange="SelectObject()">
 					<optgroup label="Players" id="OptPlayers">
@@ -114,9 +114,6 @@
 				<input type="text" class="text" id="BackgroundText" value="default" onchange="SetBackground(this.value);" />
 			</p>
 		</div>
-	</div>
-	<div class="contents">
-		<textarea id="output" rows="30" cols="60"></textarea>
 	</div>
 	<div class="contents">
 		<p>SieczkaBox</p>

@@ -46,7 +46,6 @@ var $disp,$canva,$ctx,$ImgD,$a,$b,$stroke,
 	 $r0P,
 	 $colorP,
 	 $SpanObjType,
-	 $output,
 	 $sieczka;
 const wdth=750,
 		hght=750,
@@ -163,7 +162,6 @@ function init(){
 	ObjRadioList['Door'] = gEBI('objTypeDoor');
 	ObjRadioList['Particle'] = gEBI('objTypeParticle');
 	
-	$output = gEBI('output');
 	$sieczka = gEBI('sieczka');
 	$SpanObjType = gEBI('SpanObjType');
 	$ParamsInputList = Array();
@@ -230,191 +228,131 @@ function roundToTwo(FloatNumber){
 
 //-------------------------------------------------------------
 
-function GenerateOutput(){
-	var op, op2, op3;
-	$output.value = Data.Background.Path + "\n"; 
-	if(Data.Background.Path === "default"){
+function GenerateOutput(Module){
+	var op, i, j;
+	if(Module.Background.Path === "default"){
 		$sieczka.value = "0\n";
 	}else{
-		$sieczka.value = Data.Background.Path + "\n";
+		$sieczka.value = Module.Background.Path + "\n";
 	}
 	
-	$output.value += "Players " + Data.Players.length + "\n";
-	$sieczka.value += Data.Players.length + "\n";
-	for(var i in Data.Players){
-		op = roundToTwo(Data.Players[i].x) + " " + 
-			  roundToTwo(Data.Players[i].y) + " " + 
-			  roundToTwo(Data.Players[i].ang) +
+	$sieczka.value += Module.Players.length + "\n";
+	for(i = 0; i < Module.Players.length; ++i){
+		$sieczka.value += roundToTwo(Module.Players[i].x) + " " + 
+			  roundToTwo(Module.Players[i].y) + " " + 
+			  roundToTwo(Module.Players[i].ang) +
 			  "\n";
-		$output.value += op;
-		$sieczka.value += op;
-	}
-	
-	$output.value += "Rectangles " + Data.Rectangles.length + "\n";
-	$sieczka.value += Data.Rectangles.length + "\n";
-	for(var i in Data.Rectangles){
-		op = roundToTwo(Data.Rectangles[i].x) + " " + 
-			  roundToTwo(Data.Rectangles[i].y) + " " + 
-			  roundToTwo(Data.Rectangles[i].a) + " " + 
-			  roundToTwo(Data.Rectangles[i].b) + " " + 
-			  roundToTwo(Data.Rectangles[i].ang) + " ";
-		op2 = op;
-		op += Data.Rectangles[i].color + 
-			  "\n";
-		op2 += ColorToNumbers(Data.Rectangles[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
-	}
-	
-	$output.value += "Circles " + Data.Circles.length + "\n";
-	$sieczka.value += Data.Circles.length + "\n";
-	for(var i in Data.Circles){
-		op = roundToTwo(Data.Circles[i].x) + " " + 
-			  roundToTwo(Data.Circles[i].y) + " " +
-			  roundToTwo(Data.Circles[i].r0) + " ";
-		op2 = op;
-		op += Data.Circles[i].color + 
-			  "\n";
-		op2 += ColorToNumbers(Data.Circles[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
-	}
-	
-	$output.value += "Squares " + Data.Squares.length + "\n";
-	$sieczka.value += Data.Squares.length + "\n";
-	for(var i in Data.Squares){
-		op = roundToTwo(Data.Squares[i].x) + " " +
-			  roundToTwo(Data.Squares[i].y) + " " +
-			  roundToTwo(Data.Squares[i].bok) + " " +
-			  roundToTwo(Data.Squares[i].ang) + " ";
-		op2 = op;
-		op += Data.Squares[i].color + 
-			  "\n";
-		op2 += ColorToNumbers(Data.Squares[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
-	}
-	
-	$output.value += "Entrances " + Data.Entrances.length + "\n";
-	$sieczka.value += Data.Entrances.length + "\n";
-	for(var i in Data.Entrances){
-		op = roundToTwo(Data.Entrances[i].x) + " " + 
-			  roundToTwo(Data.Entrances[i].y) + " " + 
-			  roundToTwo(Data.Entrances[i].a) + " " + 
-			  roundToTwo(Data.Entrances[i].b) + " " + 
-			  roundToTwo(Data.Entrances[i].ang) + " ";
-		op2 = op;
-		op += Data.Entrances[i].color + 
-			  "\n";
-		op2 += ColorToNumbers(Data.Entrances[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
-	}
-	
-	$output.value += "Exits " + Data.Exits.length + "\n";
-	$sieczka.value += Data.Exits.length + "\n";
-	for(var i in Data.Exits){
-		op = roundToTwo(Data.Exits[i].x) + " " + 
-			  roundToTwo(Data.Exits[i].y) + " " + 
-			  roundToTwo(Data.Exits[i].a) + " " + 
-			  roundToTwo(Data.Exits[i].b) + " " + 
-			  roundToTwo(Data.Exits[i].ang) + " ";
-		op2 = op;
-		op += Data.Exits[i].color + 
-			  "\n";
-		op2 += ColorToNumbers(Data.Exits[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
 	}
 
-	$output.value += "Switches " + Data.Switches.length + "\n";
-	$sieczka.value += Data.Switches.length + "\n";
-	for(var i in Data.Switches){
-		op = roundToTwo(Data.Switches[i].x) + " " + 
-							  roundToTwo(Data.Switches[i].y) + " " + 
-							  roundToTwo(Data.Switches[i].a) + " " + 
-							  roundToTwo(Data.Switches[i].b) + " " + 
-							  roundToTwo(Data.Switches[i].ang) + " ";
-		op2 = op;
-	   op += Data.Switches[i].swType + " ";
-		op2 += swTypeToNumber(Data.Switches[i].swType) + " ";
-		
-		op3 = roundToTwo(Data.Switches[i].pos) + " " +
-			   Data.Switches[i].connected.Doors.length;
-		op += op3 + " ";
-		op2 += op3 + "\n";
-		op3 = "";
-		
-		Data.Switches[i].connected.Doors.sort(sortfunc);
-		Data.Switches[i].connected.Switches.sort(sortfunc);
-		for(var j in Data.Switches[i].connected.Doors){
-			op3 += Data.Switches[i].connected.Doors[j] + " ";
-		}
-		if(op3 != ""){
-			op += op3;
-			op2 += op3.slice(0,-1) + "\n";
-		}
-		
-		op3 = Data.Switches[i].connected.Switches.length;
-		op += op3 + " ";
-		op2 += op3 + "\n";
-		
-		op3 = "";
-		for(var j in Data.Switches[i].connected.Switches){
-			op3 += Data.Switches[i].connected.Switches[j] + " ";
-		}
-		if(op3 != ""){
-			op += op3;
-			op2 += op3.slice(0,-1) + "\n";
-		}
-		op3 = roundToTwo(Data.Switches[i].mass) + " ";
-		
-		op += op3 + Data.Switches[i].color + 
+	$sieczka.value += Module.Rectangles.length + "\n";
+	for(i = 0; i < Module.Rectangles.length; ++i){
+		$sieczka.value += roundToTwo(Module.Rectangles[i].x) + " " + 
+			  roundToTwo(Module.Rectangles[i].y) + " " + 
+			  roundToTwo(Module.Rectangles[i].a) + " " + 
+			  roundToTwo(Module.Rectangles[i].b) + " " + 
+			  roundToTwo(Module.Rectangles[i].ang) + " " +
+				ColorToNumbers(Module.Rectangles[i].color) +
 			  "\n";
-		op2 += op3 + ColorToNumbers(Data.Switches[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
 	}
 	
-	$output.value += "Doors " + Data.Doors.length + "\n";
-	$sieczka.value += Data.Doors.length + "\n";
-	for(var i in Data.Doors){
-		op = roundToTwo(Data.Doors[i].x) + " " + 
-			  roundToTwo(Data.Doors[i].y) + " " + 
-			  roundToTwo(Data.Doors[i].a) + " " + 
-			  roundToTwo(Data.Doors[i].b) + " " + 
-			  roundToTwo(Data.Doors[i].ang) + " ";
-		op2 = op;
-		op += Data.Doors[i].doorType;
-		op2 += doorTypeToNumber(Data.Doors[i].doorType);
-		op3 = " " + roundToTwo(Data.Doors[i].pos) + " " +
-			   roundToTwo(Data.Doors[i].openingTime) + " ";
-		
-		op += op3 + Data.Doors[i].color + 
+	$sieczka.value += Module.Circles.length + "\n";
+	for(i = 0; i < Module.Circles.length; ++i){
+		$sieczka.value += roundToTwo(Module.Circles[i].x) + " " + 
+			  roundToTwo(Module.Circles[i].y) + " " +
+			  roundToTwo(Module.Circles[i].r0) + " " +
+				ColorToNumbers(Module.Circles[i].color) +
 			  "\n";
-		op2 += op3 + ColorToNumbers(Data.Doors[i].color) +
-			  "\n";
-		$output.value += op;
-		$sieczka.value += op2;
 	}
 	
-	$output.value += "Particles " + Data.Particles.length + "\n";
-	$sieczka.value += Data.Particles.length + "\n";
-	for(var i in Data.Particles){
-		op = roundToTwo(Data.Particles[i].x) + " " + 
-			  roundToTwo(Data.Particles[i].y) + " " + 
-			  roundToTwo(Data.Particles[i].r0) + " " + 
-			  roundToTwo(Data.Particles[i].mass) + " " + 
-			  roundToTwo(Data.Particles[i].charge) +
+	$sieczka.value += Module.Squares.length + "\n";
+	for(i = 0; i < Module.Squares.length; ++i){
+		$sieczka.value += roundToTwo(Module.Squares[i].x) + " " +
+			  roundToTwo(Module.Squares[i].y) + " " +
+			  roundToTwo(Module.Squares[i].bok) + " " +
+			  roundToTwo(Module.Squares[i].ang) + " " +
+				ColorToNumbers(Module.Squares[i].color) +
 			  "\n";
-		$output.value += op;
-		$sieczka.value += op;
+	}
+	
+	$sieczka.value += Module.Entrances.length + "\n";
+	for(i = 0; i < Module.Entrances.length; ++i){
+		$sieczka.value += roundToTwo(Module.Entrances[i].x) + " " + 
+			  roundToTwo(Module.Entrances[i].y) + " " + 
+			  roundToTwo(Module.Entrances[i].a) + " " + 
+			  roundToTwo(Module.Entrances[i].b) + " " + 
+			  roundToTwo(Module.Entrances[i].ang) + " " +
+				ColorToNumbers(Module.Entrances[i].color) +
+			  "\n";
+	}
+	
+	$sieczka.value += Module.Exits.length + "\n";
+	for(i = 0; i < Module.Exits.length; ++i){
+		$sieczka.value += roundToTwo(Module.Exits[i].x) + " " + 
+			  roundToTwo(Module.Exits[i].y) + " " + 
+			  roundToTwo(Module.Exits[i].a) + " " + 
+			  roundToTwo(Module.Exits[i].b) + " " + 
+			  roundToTwo(Module.Exits[i].ang) + " " +
+				ColorToNumbers(Module.Exits[i].color) +
+			  "\n";
+	}
+
+	$sieczka.value += Module.Switches.length + "\n";
+	for(i = 0; i < Module.Switches.length; ++i){
+		$sieczka.value += roundToTwo(Module.Switches[i].x) + " " + 
+							  roundToTwo(Module.Switches[i].y) + " " + 
+							  roundToTwo(Module.Switches[i].a) + " " + 
+							  roundToTwo(Module.Switches[i].b) + " " + 
+							  roundToTwo(Module.Switches[i].ang) + " " + 
+								swTypeToNumber(Module.Switches[i].swType) + " " + 
+								roundToTwo(Module.Switches[i].pos) + " " +
+								Module.Switches[i].connected.Doors.length + "\n";
+
+		Module.Switches[i].connected.Doors.sort(sortfunc);
+		Module.Switches[i].connected.Switches.sort(sortfunc);
+		op = "";
+		for(j = 0; j < Module.Switches[i].connected.Doors.length; ++j){
+			op += Module.Switches[i].connected.Doors[j] + " ";
+		}
+		if(op != ""){
+			$sieczka.value += op.slice(0, -1) + "\n";
+		}
+
+		$sieczka.value += Module.Switches[i].connected.Switches.length + "\n";
+		
+		op = "";
+		for(j = 0; j < Module.Switches[i].connected.Switches.length; ++j){
+			op += Module.Switches[i].connected.Switches[j] + " ";
+		}
+		if(op != ""){
+			$sieczka.value += op.slice(0, -1) + "\n";
+		}
+		
+		$sieczka.value +=	roundToTwo(Module.Switches[i].mass) + " " +
+											ColorToNumbers(Module.Switches[i].color) + "\n";
+	}
+	
+	$sieczka.value += Module.Doors.length + "\n";
+	for(i = 0; i < Module.Doors.length; ++i){
+		$sieczka.value += roundToTwo(Module.Doors[i].x) + " " + 
+			  roundToTwo(Module.Doors[i].y) + " " + 
+			  roundToTwo(Module.Doors[i].a) + " " + 
+			  roundToTwo(Module.Doors[i].b) + " " + 
+			  roundToTwo(Module.Doors[i].ang) + " " +
+				doorTypeToNumber(Module.Doors[i].doorType) + " " +
+				roundToTwo(Module.Doors[i].pos) + " " +
+			  roundToTwo(Module.Doors[i].openingTime) + " " +
+				ColorToNumbers(Module.Doors[i].color) +
+			  "\n";
+	}
+
+	$sieczka.value += Module.Particles.length + "\n";
+	for(i = 0; i < Module.Particles.length; ++i){
+		$sieczka.value += roundToTwo(Module.Particles[i].x) + " " + 
+			  roundToTwo(Module.Particles[i].y) + " " + 
+			  roundToTwo(Module.Particles[i].r0) + " " + 
+			  roundToTwo(Module.Particles[i].mass) + " " + 
+			  roundToTwo(Module.Particles[i].charge) +
+			  "\n";
 	}
 }
 
@@ -458,6 +396,22 @@ function ColorToNumbers(color){
 	return color;
 }
 
+function numbersToColor(n, arr){
+	switch(n){
+		case "3":
+			return 	"rgb(" +
+							arr[0] + ", " +
+							arr[1] + ", " +
+							arr[2] + ")";
+		case "4":
+			return 	"rgba(" +
+							arr[0] + ", " +
+							arr[1] + ", " +
+							arr[2] + ", " +
+							arr[3] + ")";
+	}
+}
+
 function doorTypeToNumber(doorType){
 	switch(doorType){
 		case '1wingSlide': return 0;
@@ -472,110 +426,165 @@ function swTypeToNumber(swType){
 	}
 }
 
-function Load(){
-	var input = $output.value.split('\n'),
+function Load(Module){
+	var input = $sieczka.value.split('\n'),
 		 i,
 		 j,
-		 drawing = CallDrawing;
-	
+		 k,
+		 op,
+		 numOfSwitches,
+		 drawing = CallDrawing,
+		 connected;
+
 	CallDrawing = false;
 	
 	for(i in input){
 		input[i] = input[i].split(' ');
 	}
-
-	for(i in Data.Arrays){
-		Data[Data.Arrays[i]] = [];
+	
+	for(i in Module.Arrays){
+		Module[Module.Arrays[i]] = [];
 	}
-	Data.Selected = [];
-	Data.LastSelected = [];
+	Module.Selected = [];
+	Module.LastSelected = [];
 	
 	SetBackground(input[0][0]);
 	
-	for(i = 1; i < input.length; i += (input[i][1] - 0) + 1){
-		switch(input[i][0]){
-				case "Players":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						Data.Add(player({x: input[j][0] - 0, y: input[j][1] - 0, ang: input[j][2] - 0}));
-					}
-					break;
-				case "Rectangles":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 6; k < input[j].length; ++k){
-							input[j][5] += input[j][k];
-						}
-						Data.Add(rectangle({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, color: input[j][5]}));
-					}
-					break;
-				case "Circles":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 4; k < input[j].length; ++k){
-							input[j][3] += input[j][k];
-						}
-						Data.Add(circle({x: input[j][0] - 0, y: input[j][1] - 0, r0: input[j][2] - 0, color: input[j][3]}));
-					}
-					break;
-				case "Squares":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 5; k < input[j].length; ++k){
-							input[j][4] += input[j][k];
-						}
-						Data.Add(square({x: input[j][0] - 0, y: input[j][1] - 0, bok: input[j][2] - 0, ang: input[j][3] - 0, color: input[j][4]}));
-					}
-					break;
-				case "Entrances":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 6; k < input[j].length; ++k){
-							input[j][5] += input[j][k];
-						}
-						Data.Add(entrance({x: input[j][0] - 0, y: input[j][1] - 0,
-												a: input[j][2] - 0, b: input[j][3] - 0,
-												ang: input[j][4] - 0, color: input[j][5]}));
-					}
-					break;
-				case "Exits":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 6; k < input[j].length; ++k){
-							input[j][5] += input[j][k];
-						}
-						Data.Add(exit({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, color: input[j][5]}));
-					}
-					break;
-				case "Switches":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						var connected = {	Doors: [],
-												Switches: []
-											 };
-						for(var k = 8; k < (input[j][7] - 0) + 8; k+=1){
-							connected.Doors.push(input[j][k] - 0);
-						}
-						var swlngthPos = k;
-						for(k+=1; k <= (input[j][swlngthPos] - 0) + swlngthPos; k+=1){
-							connected.Switches.push(input[j][k] - 0);
-						}
-						connected.Doors.sort(sortfunc);
-						connected.Switches.sort(sortfunc);
-						for(var l = k + 2; l < input[j].length; ++l){
-							input[j][k + 1] += input[j][l];
-						}
-						Data.Add(aswitch({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, connected: connected, swType: input[j][5], pos: input[j][6] - 0, mass: input[j][k] - 0, color: input[j][k + 1]}));
-					}
-					break;
-				case "Doors":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						for(var k = 9; k < input[j].length; ++k){
-							input[j][8] += input[j][k];
-						}
-						Data.Add(door({x: input[j][0] - 0, y: input[j][1] - 0, a: input[j][2] - 0, b: input[j][3] - 0, ang: input[j][4] - 0, doorType: input[j][5], pos: input[j][6] - 0, openingTime: input[j][7] - 0, color: input[j][8]}));
-					}
-					break;
-				case "Particles":
-					for(j = i + 1; j <= i + (input[i][1] - 0); j+=1){
-						Data.Add(particle({x: input[j][0] - 0, y: input[j][1] - 0, r0: input[j][2] - 0, mass: input[j][3] - 0, charge: input[j][4] - 0}));
-					}
-					break;
-		}
+	i = 1;
+	for(j = i + 1; j <= i + (input[i][0] - 0); j += 1){
+		Module.Add(player({	x: input[j][0] - 0,
+												y: input[j][1] - 0,
+												ang: input[j][2] - 0
+												}
+											));
 	}
+	
+	i += (input[i][0] - 0) + 1;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(rectangle({x: input[j][0] - 0,
+													y: input[j][1] - 0,
+													a: input[j][2] - 0,
+													b: input[j][3] - 0,
+													ang: input[j][4] - 0,
+													color: numbersToColor(input[j][5], input[j + 1])
+													}
+												));
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(circle({	x: input[j][0] - 0,
+												y: input[j][1] - 0,
+												r0: input[j][2] - 0,
+												color: numbersToColor(input[j][3], input[j + 1])}
+											));
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(square({	x: input[j][0] - 0,
+												y: input[j][1] - 0,
+												bok: input[j][2] - 0,
+												ang: input[j][3] - 0,
+												color: numbersToColor(input[j][4], input[j + 1])
+											}
+										));
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(entrance({	x: input[j][0] - 0,
+													y: input[j][1] - 0,
+													a: input[j][2] - 0,
+													b: input[j][3] - 0,
+													ang: input[j][4] - 0,
+													color: numbersToColor(input[j][5], input[j + 1])
+												}
+											));
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(exit({	x: input[j][0] - 0,
+											y: input[j][1] - 0,
+											a: input[j][2] - 0,
+											b: input[j][3] - 0,
+											ang: input[j][4] - 0,
+											color: numbersToColor(input[j][5], input[j + 1])
+										}
+									));
+	}
+	
+	i = j;
+	for(j = i + 1, numOfSwitches = 0;
+			numOfSwitches < input[i][0] - 0;
+			j += 2, numOfSwitches += 1){
+		connected = {	Doors: [],
+									Switches: []
+								 };
+		op = j + 1;
+		console.log([op, input[op][0] - 0]);
+		for(k = 0; k < input[op][0] - 0; k += 1){
+			connected.Doors.push(input[op + 1][k] - 0);
+		}
+		if(input[op][0] - 0){
+			op += 2;
+		}else{
+			op += 1;
+		}console.log(input[op][0] - 0);
+		for(k = 0; k < input[op][0] - 0; k += 1){
+			connected.Switches.push(input[op + 1][k] - 0);
+		}
+		if([op, input[op][0] - 0]){
+			op += 1;
+		}
+		op += 1;
+		connected.Doors.sort(sortfunc);
+		connected.Switches.sort(sortfunc);
+		console.log(connected);
+		Module.Add(aswitch({x: input[j][0] - 0,
+												y: input[j][1] - 0,
+												a: input[j][2] - 0,
+												b: input[j][3] - 0,
+												ang: input[j][4] - 0,
+												swType: "slide",//input[j][5],//
+												pos: input[j][6] - 0,
+												connected: connected,
+												mass: input[op][0] - 0,
+												color: numbersToColor(input[op][1], input[op + 1])
+												}
+											));
+		j = op;
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0) * 2; j += 2){
+		Module.Add(door({	x: input[j][0] - 0,
+											y: input[j][1] - 0,
+											a: input[j][2] - 0,
+											b: input[j][3] - 0,
+											ang: input[j][4] - 0,
+											doorType: "1wingSlide",//input[j][5],//
+											pos: input[j][6] - 0,
+											openingTime: input[j][7] - 0,
+											color: numbersToColor(input[j][8], input[j + 1])
+										}
+									));
+	}
+	
+	i = j;
+	for(j = i + 1; j <= i + (input[i][0] - 0); j += 1){
+		Module.Add(particle({	x: input[j][0] - 0,
+													y: input[j][1] - 0, 
+													r0: input[j][2] - 0,
+													mass: input[j][3] - 0,
+													charge: input[j][4] - 0
+												}
+											));
+	}
+
+		
+
 	
 	ListOut();
 	SetSelectedOnListFromData();
@@ -1790,12 +1799,12 @@ function klawa(e){
 			break;
 		case 76://shift + l
 			if(e.shiftKey){
-				Load();
+				Load(Data);
 			}
 			break;
 		case 83://shift + s
 			if(e.shiftKey){
-				GenerateOutput();
+				GenerateOutput(Data);
 			}
 			break;
 		case 97://numbers on numeric keyboard
@@ -1978,7 +1987,9 @@ function clearSecondCanva(Module){
 function drawSelectRect(e){
 	var width, height;
 	if (!e) e = window.event;
-
+	
+	mysz(e);
+	
 	if(Data.mouseDragX < $canva.width &&
 		 Data.mouseDragY < $canva.height &&
 		 Data.isClicked){
@@ -2016,6 +2027,7 @@ function drawSelectRect(e){
 			Data.$selectRect.width = width;
 			Data.$selectRect.height = height;
 			Data.$selectRect.style.backgroundColor = selectRectColor;
+
 			Data.$selectCtx.clearRect(0, 0, width - 1, height - 1);
 		}
 	}
