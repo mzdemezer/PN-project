@@ -198,7 +198,7 @@ function init(){
 		ShowObj(Data.Selected);
 	//...up to here
 	
-	ReDraw();
+	ReDraw(Data);
 }
 
 //-------------------------------------------------------------
@@ -426,6 +426,20 @@ function swTypeToNumber(swType){
 	}
 }
 
+function numberToSwType(num){
+	switch(num){
+		case 0: return 'slide';
+		default: return 'slide';
+	}
+}
+
+function numberToDoorType(num){
+	switch(num){
+		case 0: return '1wingSlide';
+		default: return '1wingSlide';
+	}
+}
+
 function Load(Module){
 	var input = $sieczka.value.split('\n'),
 		 i,
@@ -448,7 +462,7 @@ function Load(Module){
 	Module.Selected = [];
 	Module.LastSelected = [];
 	
-	SetBackground(input[0][0]);
+	SetBackground(Module, input[0][0]);
 	
 	i = 1;
 	for(j = i + 1; j <= i + (input[i][0] - 0); j += 1){
@@ -523,15 +537,14 @@ function Load(Module){
 									Switches: []
 								 };
 		op = j + 1;
-		console.log([op, input[op][0] - 0]);
-		for(k = 0; k < input[op][0] - 0; k += 1){
-			connected.Doors.push(input[op + 1][k] - 0);
+		console.log([j, input[j][7] - 0]);
+		for(k = 0; k < input[j][7] - 0; k += 1){
+			connected.Doors.push(input[op][k] - 0);
 		}
-		if(input[op][0] - 0){
-			op += 2;
-		}else{
+		if(input[j][7] - 0){
 			op += 1;
-		}console.log(input[op][0] - 0);
+		}
+		console.log(input[op][0] - 0);
 		for(k = 0; k < input[op][0] - 0; k += 1){
 			connected.Switches.push(input[op + 1][k] - 0);
 		}
@@ -547,7 +560,7 @@ function Load(Module){
 												a: input[j][2] - 0,
 												b: input[j][3] - 0,
 												ang: input[j][4] - 0,
-												swType: "slide",//input[j][5],//
+												swType: numberToSwType(input[j][5] - 0),
 												pos: input[j][6] - 0,
 												connected: connected,
 												mass: input[op][0] - 0,
@@ -564,7 +577,7 @@ function Load(Module){
 											a: input[j][2] - 0,
 											b: input[j][3] - 0,
 											ang: input[j][4] - 0,
-											doorType: "1wingSlide",//input[j][5],//
+											doorType: numberToDoorType(input[j][5] - 0),
 											pos: input[j][6] - 0,
 											openingTime: input[j][7] - 0,
 											color: numbersToColor(input[j][8], input[j + 1])
@@ -590,7 +603,7 @@ function Load(Module){
 	SetSelectedOnListFromData();
 	ShowObj(Data.Selected);
 	CallDrawing = drawing;
-	ReDraw();
+	ReDraw(Data);
 }
 
 function Clear(){
@@ -603,7 +616,7 @@ function Clear(){
 	Data.Selected = [];
 	Data.LastSelected = [];
 	ShowObj(Data.Selected);
-	ReDraw();
+	ReDraw(Data);
 }
 
 function delObject(){
@@ -623,7 +636,7 @@ function delObject(){
 		Data.Selected = [];
 		
 		if(CallDrawing){
-			ReDraw();
+			ReDraw(Data);
 		}
 		
 		$OptGroups["$Opt" + GroupName].children().last().empty().detach();
@@ -651,7 +664,7 @@ function delObject(){
 		
 		Data.Selected = [];
 		if(CallDrawing){
-			ReDraw();
+			ReDraw(Data);
 		}
 		
 	}
@@ -673,7 +686,7 @@ function addObject(newObj){
 	ShowObj(Data.Selected);
 	SetSelectedOnListFromData();
 	if(CallDrawing){
-		ReDraw();
+		ReDraw(Data);
 	}
 }
 
@@ -789,7 +802,7 @@ function cloneObject(dx, dy){
 	ShowObj(Data.Selected);
 	SetSelectedOnListFromData();
 	CallDrawing = drawing;
-	ReDraw();
+	ReDraw(Data);
 }
 
 //-------------------------------------------------------------
@@ -1178,7 +1191,7 @@ function Change(which){
 		
 		ShowObj(Data.Selected);
 		if(CallDrawing){
-			ReDraw();
+			ReDraw(Data);
 		}
 	}
 }
@@ -1221,39 +1234,49 @@ function setSeventh(text, etiq){
 
 //-------------------------------------------------------------
 
-function ClearCanvas(){
+function ClearCanvas(Module){
 	$ctx.fillStyle='rgba(255,128,0,255)';
 	$ctx.fillRect(0,0,wdth-1,hght-1);
 	$ctx.fillStyle='rgba(0,0,0,0.6)';
 	$ctx.fillRect(0,0,wdth-1,hght-1);
-	if(Data.Background.Path != "default"){
-		$ctx.drawImage(Data.Background.Img, 0, 0);
+	if(Module.Background.Path != "default"){
+		$ctx.drawImage(Module.Background.Img, 0, 0);
 	}
 }
 
-function ReDraw(){
-	ClearCanvas();
+function ReDraw(Module){
+	ClearCanvas(Module);
 	var i, j;
-	for(i in Data.Arrays){
-		for(j in Data[Data.Arrays[i]]){
-			Data[Data.Arrays[i]][j].draw($ctx, 'fill');
+	for(i in Module.Arrays){
+		for(j in Module[Module.Arrays[i]]){
+			Module[Module.Arrays[i]][j].draw($ctx, 'fill');
 		}
 	}
-	for(i in Data.Selected){
-		Data.Selected[i].draw($ctx, 'fill', SelectionColor);
+	for(i in Module.Selected){
+		Module.Selected[i].draw($ctx, 'fill', SelectionColor);
 	}
 }
 
-function SetBackground(Path){
-	Data.Background.Img.src = Path;
-	if(Data.Background.Img.width > 0){
-		Data.Background.Path = Path;
-	}else{
-		Data.Background.Path = "default";
+function SetBackground(Module, Path){
+	Module.Background.Img.src = Path;
+	Module.Background.Img.onload = function(){
+		if(Module.Background.Img.width > 0){
+			Module.Background.Path = Path;
+		}else{
+			Module.Background.Path = "default";
+		}
+		$BackgroundText.value = Module.Background.Path
+		if(CallDrawing){
+			ReDraw(Module);
+		}
 	}
-	$BackgroundText.value = Data.Background.Path
-	if(CallDrawing){
-		ReDraw();
+	Module.Background.Img.onerror = function(){
+		Module.Background.Path = "default";
+		$BackgroundText.value = "default";
+		Module.Background.Img.src = null;
+		if(CallDrawing){
+			ReDraw(Module);
+		}
 	}
 }
 
@@ -1926,7 +1949,7 @@ function dropOnCanvas(e){
 					Data.Selected[i].x += Data.mouseDragX;
 					Data.Selected[i].y += Data.mouseDragY;
 				}
-				ReDraw();
+				ReDraw(Data);
 			}
 			ShowObj(Data.Selected);
 		}
