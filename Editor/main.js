@@ -1,4 +1,41 @@
-﻿//TODO:
+﻿Function.prototype.method = function (name, func) {
+	this.prototype[name] = func;
+	return this;
+};
+
+Array.method('indexMin', function(compareFunc){
+	var minIndex = 0
+		, i;
+		
+	compareFunc = compareFunc || sortfunc;
+
+	for(i = 1; i < this.length; i += 1){
+		if(compareFunc(this[minIndex], this[i]) > 0){
+			minIndex = i;
+		}
+	}
+	
+	return minIndex;
+});
+
+Array.method('min', function(compareFunc){
+	return this[this.indexMin(compareFunc)];
+});
+
+Array.method('extract', function(i){
+	var elem = this[i];
+	this.splice(i, 1);
+	return elem;
+});
+
+Array.method('extractMin', function(compareFunc){
+	return this.extract(this.indexMin(compareFunc));
+});
+
+// points = [{x:0, y:0}, {x:0, y:5}, {x: 10, y: 10}, {x: 1, y: 5}];
+// console.log(convexHull(points));
+
+//TODO:
 /*
 - two ways of drawing objects - dotted border or filled (aspect)
 
@@ -49,8 +86,9 @@ var $disp,$canva,$ctx,$ImgD,$a,$b,$stroke,
 	 $sieczka;
 const wdth=750,
 		hght=750,
-		SelectionColor="#66f",
+		SelectionColor='rgba(96, 96, 255, 0.85)',
 		selectRectColor = 'rgba(70, 80, 255, 0.3)',
+		copyColor = 'rgba(0, 255, 0, 0.9)',
 		PlayerSize = 15,
 		MaxCharge = 1000,
 		MaxPos = 100;
@@ -63,44 +101,250 @@ var	SQR = square({x:449,y:449,bok:100,ang:0,color:'#ff0'}),
 		checkedOne = "Circle",
 		CallDrawing = false,
 		Data = { Arrays:["Squares", "Players", "Circles", "Rectangles", "Entrances", "Exits", "Switches", "Doors", "Particles"],
-					Squares:Array(),
-					Rectangles:Array(),
-					Circles:Array(),
-					Players:Array(),
-					Entrances:Array(),
-					Exits:Array(),
-					Switches:Array(),
-					Doors:Array(),
-					Particles:Array(),
-					Add: AddObjectToData,
-					Selected:[],
-					LastSelected:[],
-					Clicked:{},
-					IsDragging: false,
-					isClicked: false,
-					Background: {Path: "default", Img: new Image()},
-					mouseDragX:0,
-					mouseDragY:0,
-					$selectRect: null,
-					$selectCtx: null,
-					$secondCanva: null,
-					$secondCtx: null
+					Squares:	Array(),
+					Rectangles:	Array(),
+					Circles:	Array(),
+					Players:	Array(),
+					Entrances:	Array(),
+					Exits:	Array(),
+					Switches:	Array(),
+					Doors:	Array(),
+					Particles:	Array(),
+					Add:	AddObjectToData,
+					Selected:	[],
+					LastSelected:	[],
+					selectedCentroid: null,
+					Clicked:	{},
+					IsDragging:	false,
+					isClicked:	false,
+					Background:	{Path: "default", Img: new Image()},
+					mouseDragX:	0,
+					mouseDragY:	0,
+					lastMouseEvent: null,
+					$selectRect:	null,
+					$selectCtx:	null,
+					$secondCanva:	null,
+					$secondCtx:	null,
+					rotate:	false,
+					userRotPoint: {x: 0, y: 0},
+					rotationPoint: null,
+					transArgs: null,
+					$rotCheck:	null,
+					$callDrawCheck:	null,
+					selectPoint: false,
+					$radRotIndie: null,
+					$radRotPoint: null,
+					$radRotCentroid: null,
+					$radRotUserPoint: null,
+					$userPointX: null,
+					$userPointY: null,
+					$canvaCentralText: null,
+					$thirdCanva: null,
+					$thirdCtx: null
 			};
 
 if (document.addEventListener) {
-  document.addEventListener('DOMContentLoaded', init, false);
+  document.addEventListener('DOMContentLoaded',	function(){
+	init(Data);
+														},
+														false);
 }
 
-function init(){
+function init(Module){
 	if (arguments.callee.done) return;
 	arguments.callee.done = true;
+	var shiftDown = false;
 	
-	document.onmousemove = mysz;
-	document.onkeyup = klawa;
-	document.onmousedown = selectObjOnCanvas;
-	document.onmouseup = dropOnCanvas;
-	document.onmousemove = drawSelectRect;
-							
+	function startSelectPoint(){
+		Module.selectPoint = true;
+		Module.$canvaCentralText.style.left = $canva.width * 0.23 + "px";
+		Module.$canvaCentralText.textContent = "Click on the map to select point";
+		clearSecondCanva(Module);
+		drawModuleCentroid(Module, 'fill');
+	};
+
+	document.onkeydown = function(e){
+		if(!shiftDown){
+			if(!e){
+				e = window.event;
+			}
+
+			switch(e.keyCode){
+				case 16://shift
+					shiftDown = true;
+					if(Module.selectedCentroid && !Module.selectPoint){
+						drawTransformedSelection(Module, 'stroke', copyColor);
+					}
+					break;
+			}
+		}
+	};
+	document.onkeypress = function(e){
+		var color;
+		if(!Module.rotate){
+			if(!e){
+				e = window.event;
+			}
+//Module.lastMouseEvent = {x: evX, y: evY};
+			switch(e.keyCode){
+				case 82://r
+				color = copyColor;
+				case 114:
+					Module.rotate = true;
+					if(Module.selectedCentroid && !Module.selectPoint){
+						if(Module.isClicked){
+							Module.getLastMouseArgs();
+						}else{
+							Module.transArgs = {ang: 0.0000001};
+						}
+						Module.$selectRect.width = 0;
+						Module.$selectRect.height = 0;
+						if(color == null){
+							color = SelectionColor;
+						}
+						drawTransformedSelection(Module, 'stroke', color);
+					}
+				break;
+			}
+		}
+	};
+	document.onkeyup = function(e){
+		var color;
+		if(!e){
+			e = window.event;
+		}
+
+		switch(e.keyCode){
+			// case 17://ctrl
+
+			case 46://shift + del
+			case 68://shift + d
+				if(e.shiftKey && !Module.selectPoint){
+					delObject();
+				}
+				break;
+			case 67://shift + c
+				if(e.shiftKey && !Module.selectPoint){
+					cloneObject(Module, 'move', {x: -30, y: 30});
+				}
+				break;
+			case 78://shift + n
+				if(!e.shiftKey){
+					break;
+				}
+			case 107://+
+				if(!Module.selectPoint){
+					newObject();
+				}
+				break;
+			case 76://shift + l
+				if(e.shiftKey && !Module.selectPoint){
+					Load(Module);
+				}
+				break;
+			case 83://shift + s
+				if(e.shiftKey && !Module.selectPoint){
+					GenerateOutput(Module);
+				}
+				break;
+			case 16: //shift
+				shiftDown = false;
+				if(!Module.selectPoint){
+					drawTransformedSelection(Module, 'stroke', SelectionColor);
+				}
+				break;
+			case 86://shift + v
+				if(e.shiftKey && !Module.selectPoint){
+					startSelectPoint();
+				}
+				break;
+			case 82://r
+				Module.rotate = false;
+				if(!Module.selectPoint){
+					if(Module.isClicked){
+						if(Module.selectedCentroid && Module.IsDragging){
+							Module.getLastMouseArgs();
+							if(shiftDown){
+								color = copyColor;
+							}else{
+								color = SelectionColor;
+							}
+							drawTransformedSelection(Module, 'stroke', color);
+						}else{
+							drawSelectRect(Module);
+							clearSecondCanva(Module);
+							drawModuleCentroid(Module, 'fill');
+						}
+					}else{
+						clearSecondCanva(Module);
+						drawModuleCentroid(Module, 'fill');
+					}
+				}
+				break;
+			case 97://numbers on numeric keyboard
+				chooseObjType('Circle');
+				break;
+			case 98:
+				chooseObjType('Square');
+				break;
+			case 99:
+				chooseObjType('Rectangle');
+				break;
+			case 100:
+				chooseObjType('Player');
+				break;
+			case 101:
+				chooseObjType('Entrance');
+				break;
+			case 102:
+				chooseObjType('Exit');
+				break;
+			case 103:
+				chooseObjType('Switch');
+				break;
+			case 104:
+				chooseObjType('Door');
+				break;
+			case 105:
+				chooseObjType('Particle');
+				break;
+		}
+	};
+	
+	document.onmousedown = function(e){
+		if(!Module.selectPoint){
+			selectObjOnCanvas(e, Module);
+		}
+	};
+	document.onmouseup = function(e){
+		if(Module.selectPoint){
+			if(e.pageX < $canva.width &&
+				e.pageY < $canva.height){
+				Module.userRotPoint.x = e.pageX;
+				Module.userRotPoint.y = e.pageY;
+				Module.$userPointX.value = Module.userRotPoint.x;
+				Module.$userPointY.value = Module.userRotPoint.y;
+				drawUserRotationPoint(Module);
+				Module.setRotationPoint();
+				Module.$canvaCentralText.textContent = "";
+				Module.selectPoint = false;
+			}
+		}else{
+			dropOnCanvas(e, Module);
+		}
+	};
+	document.onmousemove = function(e){
+		if(!Module.selectPoint){
+			drawAtMouseMove(e, Module);
+		}
+	};
+	
+	Module.$rotCheck = gEBI("rotateCheck");
+	Module.$callDraw = gEBI("callDraw");
+	Module.$callDraw.onclick = function(){
+		ReDraw(Module);
+	};
+
 	$BackgroundText = gEBI('BackgroundText');
 	$ObjListSelect = $('#ObjListSelect');
 	$ObjListParent = $('#ObjListParent');
@@ -125,25 +369,62 @@ function init(){
 	$colorP = $('#colorP');
 	$massP = $('#massP');
 	
+	Module.$radRotIndie = gEBI('radRotIndie');
+	Module.$radRotPoint = gEBI('radRotPoint');
+	Module.$radRotCentroid = gEBI('radRotCentroid');
+	Module.$radRotUserPoint = gEBI('radRotUserPoint');
+	Module.$radRotIndie.onchange = function(){
+		Module.rotationPoint = 'indie';
+	};
+	Module.$radRotPoint.onchange = function(){
+		if(Module.$radRotCentroid.checked){
+			Module.$radRotCentroid.onchange();
+		}else{
+			Module.$radRotUserPoint.onchange();
+		}
+	};
+	Module.$radRotCentroid.onchange = function(){
+		Module.$radRotPoint.checked = true;
+		Module.rotationPoint = Module.selectedCentroid;
+	};
+	Module.$radRotUserPoint.onchange = function(){
+		Module.$radRotPoint.checked = true;
+		Module.rotationPoint = Module.userRotPoint;
+		drawUserRotationPoint(Module);
+	};
+	Module.setRotationPoint = function(){
+		if(Module.$radRotIndie.checked){
+			Module.$radRotIndie.onchange();
+		}else{
+			Module.$radRotPoint.onchange();
+		}
+	};
+
 	$disp = gEBI('disp');
 	$canva = gEBI('canva');
 	$canva.width = wdth;
 	$canva.height = hght;
 
-	Data.$selectRect = gEBI('selectRect');
-	Data.$selectRect.width = 0;
-	Data.$selectRect.height = 0;
-	Data.$selectRect.style.backgroundColor = selectRectColor;
-	Data.$selectCtx = Data.$selectRect.getContext('2d');
+	Module.$selectRect = gEBI('selectRect');
+	Module.$selectRect.width = 0;
+	Module.$selectRect.height = 0;
+	Module.$selectRect.style.backgroundColor = selectRectColor;
+	Module.$selectCtx = Module.$selectRect.getContext('2d');
 	
-	Data.$secondCanva = gEBI('secondCanva');
-	Data.$secondCanva.width = $canva.width;
-	Data.$secondCanva.height = $canva.height;
-	Data.$secondCanva.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-	Data.$secondCtx = Data.$secondCanva.getContext('2d');
-	Data.$secondCtx.lineWidth = 2;
-	Data.$secondCtx.strokeStyle = 'rgba(70, 80, 255, 0.7)';
+	Module.$secondCanva = gEBI('secondCanva');
+	Module.$secondCanva.width = $canva.width;
+	Module.$secondCanva.height = $canva.height;
+	Module.$secondCanva.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+	Module.$secondCtx = Module.$secondCanva.getContext('2d');
+	Module.$secondCtx.lineWidth = 2;
+	Module.$secondCtx.strokeStyle = SelectionColor;
 	
+	Module.$thirdCanva = gEBI('thirdCanva');
+	Module.$thirdCanva.width = $canva.width;
+	Module.$thirdCanva.height = $canva.height;
+	Module.$thirdCanva.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+	Module.$thirdCtx = Module.$thirdCanva.getContext('2d');
+	Module.$thirdCtx.lineWidth = 2;
 	
 	$ctx = $canva.getContext('2d');
 	$ImgD = $ctx.getImageData(0,0,wdth-1,hght-1);
@@ -151,8 +432,11 @@ function init(){
 	$ctx.lineWidth = 1.6;
 	$ctx.font = '25px Verdana';
 	
+	Module.$canvaCentralText = gEBI("canvaCentralText");
+	Module.$canvaCentralText.style.top = $canva.height * 0.45 + "px";
+	
 	ObjRadioList = Array();
-	ObjRadioList['Circle'] = gEBI('objTypeCirlce');
+	ObjRadioList['Circle'] = gEBI('objTypeCircle');
 	ObjRadioList['Square'] = gEBI('objTypeSquare');
 	ObjRadioList['Rectangle'] = gEBI('objTypeRectangle');
 	ObjRadioList['Player'] = gEBI('objTypePlayer');
@@ -177,6 +461,28 @@ function init(){
 	$ParamsInputList['Color'] = gEBI('ColorText');
 	$ParamsInputList['Mass'] = gEBI('MassText');
 	
+	Module.$userPointX = gEBI("userPointX");
+	Module.$userPointY = gEBI("userPointY");
+	Module.$userPointX.onchange = function(){
+		var value = Module.$userPointX.value - 0;
+		if(isNaN(value)){
+			Module.$userPointX.value = Module.userRotPoint.x;
+		}else{
+			Module.userRotPoint.x = value;
+			drawUserRotationPoint(Module);
+		}
+	};
+	Module.$userPointY.onchange = function(){
+		var value = Module.$userPointY.value - 0;
+		if(isNaN(value)){
+			Module.$userPointY.value = Module.userRotPoint.y;
+		}else{
+			Module.userRotPoint.y = value;
+			drawUserRotationPoint(Module);
+		}
+	};
+	gEBI("setUserPoint").onclick = startSelectPoint;
+
 	//This will go away...
 		
 		addObject(SQR);
@@ -191,14 +497,47 @@ function init(){
 								color: '#000'}
 								));
 		}
-		
+
+		Module.transArgs = {x: 0, y: 0, ang: 0};
 		CallDrawing = true;
 		ListOut();
 		SetSelectedOnListFromData();
-		ShowObj(Data.Selected);
+		ShowObj(Module.Selected);
 	//...up to here
-	
-	ReDraw(Data);
+
+	var mouseDownArg;
+	Module.computeMouseDownArgs = function(x, y){
+		var point;
+		if(this.rotationPoint === 'indie'){
+			point = this.selectedCentroid;
+		}else{
+			point = this.rotationPoint;
+		}
+		this.mouseDragX = x;
+		this.mouseDragY = y;
+		mouseDownArg = VectorAtan(x - point.x, y - point.y);
+	};
+	Module.computeTransArgs = function(x, y){
+		var point;
+		if(this.rotate){
+			if(this.rotationPoint === 'indie'){
+				point = this.selectedCentroid;
+			}else{
+				point = this.rotationPoint;
+			}
+			this.transArgs = {ang: VectorAtan(x - point.x, y - point.y) - mouseDownArg};
+		}else{
+			this.transArgs = {x: x - this.mouseDragX,
+			y: y - this.mouseDragY};
+		}
+	};
+	Module.getLastMouseArgs = function(){
+		var p = Module.lastMouseEvent;
+		Module.computeTransArgs(p.x, p.y);
+	};
+
+	drawUserRotationPoint(Module);
+	ReDraw(Module);
 }
 
 //-------------------------------------------------------------
@@ -451,12 +790,13 @@ function Load(Module){
 		 connected;
 
 	CallDrawing = false;
-	
-	for(i in input){
+	k = input.length;
+	for(i = 0; i < k; ++i){
 		input[i] = input[i].split(' ');
 	}
 	
-	for(i in Module.Arrays){
+	k = Module.Arrays.length;
+	for(i = 0; i < k; ++i){
 		Module[Module.Arrays[i]] = [];
 	}
 	Module.Selected = [];
@@ -601,16 +941,22 @@ function Load(Module){
 	
 	ListOut();
 	SetSelectedOnListFromData();
-	ShowObj(Data.Selected);
+	ShowObj(Module.Selected);
 	CallDrawing = drawing;
-	ReDraw(Data);
+	ReDraw(Module);
 }
 
 function Clear(){
-	for(var i in Data.Arrays){
+	var i
+		, len;
+	
+	len = Data.Arrays.length;
+	for(i = 0; i < len; ++i){
 		Data[Data.Arrays[i]] = [];
 	}
-	for(i in $OptGroups){
+	
+	len = $OptGroups.length;
+	for(i = 0; i < len; ++i){
 		$OptGroups[i].empty();
 	}
 	Data.Selected = [];
@@ -632,13 +978,7 @@ function delObject(){
 			Data[GroupName][i] = Data[GroupName][i + 1];
 		}
 		Data[GroupName].length = last;
-		
-		Data.Selected = [];
-		
-		if(CallDrawing){
-			ReDraw(Data);
-		}
-		
+
 		$OptGroups["$Opt" + GroupName].children().last().empty().detach();
 	}else{
 		for(j = 0; j < Data.Selected.length; j+=1){
@@ -662,12 +1002,12 @@ function delObject(){
 			}
 		}
 		
-		Data.Selected = [];
-		if(CallDrawing){
-			ReDraw(Data);
-		}
-		
 	}
+	Data.Selected = [];
+	Data.selectedCentroid = null;
+	Module.setRotationPoint();
+
+	ReDraw(Data);
 	SetSelectedOnListFromData();
 	ShowObj(Data.Selected);
 }
@@ -683,11 +1023,11 @@ function addObject(newObj){
 	AddToList(newObj, Data.Add(newObj));
 	Data.LastSelected = Data.Selected;
 	Data.Selected = [newObj];
+	Data.selectedCentroid = centroid({x: newObj.x, y: newObj.y});
+	Data.setRotationPoint();
 	ShowObj(Data.Selected);
 	SetSelectedOnListFromData();
-	if(CallDrawing){
-		ReDraw(Data);
-	}
+	ReDraw(Data);
 }
 
 function AddToList(Obj, index){
@@ -700,9 +1040,10 @@ function AddToList(Obj, index){
 function ListOut(){
 	$ObjListSelect.detach();
 	
-	var i,j, objName, groupName;
+	var i, j, len, objName, groupName;
 	
-	for(i in Data.Arrays){
+	len = Data.Arrays.length;
+	for(i = 0; i < len; ++i){
 		objName = GroupToObjName(Data.Arrays[i]);
 		
 		groupName = "$Opt" + Data.Arrays[i];
@@ -751,19 +1092,39 @@ function newObject(){
 	addObject(newObj);	
 }
 
-function cloneObject(dx, dy){
-	var newObj,
-		 drawing = CallDrawing;
+function cloneObject(Module, transType, args){
+	var newObj
+		, drawing = CallDrawing
+		, i
+		,	len;
 	
-	for(var i in Data.Selected){
-		Data.Selected[i].draw($ctx, 'fill');
+	len = Module.Selected.length;
+	for(i = 0; i < len; ++i){//to powinno stąd wypaść...
+		Module.Selected[i].draw($ctx, 'fill');
 	}
-	Data.LastSelected = Data.Selected;
-	Data.Selected = [];
+	Module.LastSelected = Module.Selected;
+	Module.Selected = [];
 	CallDrawing = false;
-	for(i in Data.LastSelected){
-		if(Data.LastSelected[i]){
-			switch(Data.LastSelected[i].type){
+	
+	
+	if(Module.selectedCentroid){
+		cloneTransformedSelection(Module, transType, args);
+		if(transType === 'move'){
+			movePoint(Module.selectedCentroid, args.x, args.y);
+		}
+	}
+	
+	ShowObj(Module.Selected);
+	SetSelectedOnListFromData();
+	CallDrawing = drawing;
+	ReDraw(Module);
+}
+
+function cloneTransformedSelection(Module, transType, args){
+	function clone(Obj){
+		var newObj;
+		if(Obj){
+			switch(Obj.type){
 				case "Circle": 
 					newObj = circle;
 					break;
@@ -792,17 +1153,31 @@ function cloneObject(dx, dy){
 					newObj = particle;
 					break;	
 			}
-			newObj = newObj(Data.LastSelected[i]);
-			newObj.x += dx;
-			newObj.y += dy;
-			AddToList(newObj, Data.Add(newObj));
-			Data.Selected.push(newObj);
+			newObj = newObj(Obj);
+			AddToList(newObj, Module.Add(newObj));
+			Module.Selected.push(newObj);
 		}
 	}
-	ShowObj(Data.Selected);
-	SetSelectedOnListFromData();
-	CallDrawing = drawing;
-	ReDraw(Data);
+	
+	if(transType == null){
+		if(Module.rotate){
+			transType = 'turn';
+		}else{
+			transType = 'move';
+		}
+		args = Module.transArgs;
+	}
+	
+	switch(transType){
+		case 'turn':
+			turnArray(Module.LastSelected, Module.rotationPoint, args.ang, clone);
+			break;
+		case 'move':
+			moveArray(Module.LastSelected, args.x, args.y, clone);
+			break;
+	}
+	Module.selectedCentroid = findCentroid(Module.Selected);
+	Module.setRotationPoint();
 }
 
 //-------------------------------------------------------------
@@ -812,6 +1187,8 @@ function SelectObject(){
 	
 	Data.LastSelected = Data.Selected;
 	Data.Selected = [Obj];
+	Data.selectedCentroid = centroid({x: Obj.x, y: Obj.y});
+	Module.setRotationPoint();
 	ShowObj(Data.Selected);
 	
 	drawSelection();
@@ -878,22 +1255,33 @@ function GetSelectListNameFromObj(Obj, index){
 }
 
 function drawSelection(){
-	var i;
-	for(i in Data.LastSelected){
+	var i
+		,	len;
+	
+	len = Data.LastSelected.length;
+	for(i = 0; i < len; ++i){
 		if(Data.LastSelected[i].draw){
 			Data.LastSelected[i].draw($ctx, 'fill');
 		}
 	}
-	for(i in Data.Selected){
+	
+	len = Data.Selected.length;
+	for(i = 0; i < len; ++i){
 		if(Data.Selected[i].draw){
 			Data.Selected[i].draw($ctx, 'fill', SelectionColor);
 		}
 	}
+	
+	clearSecondCanva(Data);
+	drawModuleCentroid(Data, 'fill');
 }
 
 function ShowObj(Objects){
+	var Obj
+		,	i
+		,	len;
 	if(Objects.length > 0){
-		var Obj = Objects[0];
+		Obj = Objects[0];
 		
 		$SpanObjType.textContent = Obj.type;
 		$ParamsInputList['First'].value = Obj.x;
@@ -998,7 +1386,9 @@ function ShowObj(Objects){
 	}
 	else{
 		$ObjListSelect[0].value = 'none';
-		for(i in $ParamsInputList){
+		
+		len = $ParamsInputList.length;
+		for(i = 0; i < len; ++i){
 			$ParamsInputList[i].value = '';
 			
 		}
@@ -1010,21 +1400,19 @@ function ShowObj(Objects){
 //-------------------------------------------------------------
 
 function Change(which){
-	var NewValue = $ParamsInputList[which].value,
-		 i;
+	var NewValue = $ParamsInputList[which].value
+		,	i
+		,	j
+		,	len;
 	if(Data.Selected.length > 0){
 		switch(which){
 			case 'First':
 				NewValue -= Data.Selected[0].x;
-				for(i in Data.Selected){
-					Data.Selected[i].x += NewValue;
-					}
+				transformSelection(Data, {x: NewValue, y: 0, type: 'move'});
 				break;
 			case 'Second':
 				NewValue -= Data.Selected[0].y;
-				for(i in Data.Selected){
-					Data.Selected[i].y += NewValue;
-					}
+				transformSelection(Data, {x: 0, y: NewValue, type: 'move'});
 				break;
 			case 'Third':
 				switch(Data.Selected[0].type){
@@ -1060,10 +1448,11 @@ function Change(which){
 						break;
 					case 'Particle':
 						NewValue -= 0;
-						for(i in Data.Selected){
+						len = Data.Selected.length;
+						for(i = 0; i < len; ++i){
 							if(Data.Selected[i].type === 'Particle'){
 								Data.Selected[i].charge = NewValue;
-								var j = GetObjectIndex(Data.Selected[i]);
+								j = GetObjectIndex(Data.Selected[i]);
 								Data.Selected[i] = particle(Data.Selected[i]);
 								Data.Particles[j] = Data.Selected[i];
 							}
@@ -1164,14 +1553,11 @@ function Change(which){
 			case 'Angle':
 				NewValue -= 0;
 				NewValue = norm(NewValue);
-				for(i in Data.Selected){
-					if(Data.Selected[i].ang != undefined){
-						Data.Selected[i].ang = NewValue;
-					}
-				}
+				transformSelection(Data, {ang: NewValue - Data.Selected[0].ang, type: 'turn'});
 				break;
 			case 'Color':
-				for(i in Data.Selected){
+				len = Data.Selected.length;
+				for(i = 0; i < len; ++i){
 					if( (Data.Selected[i].type != "Player") && 
 					 (Data.Selected[i].type != "Particle") ){
 						Data.Selected[i].color = NewValue;
@@ -1179,7 +1565,8 @@ function Change(which){
 				}
 				break;
 			case 'Mass':
-				for(i in Data.Selected){
+				len = Data.Selected.length;
+				for(i = 0; i < len; ++i){
 					if( (Data.Selected[i].type == "Particle") ||
 						 (Data.Selected[i].type == "Switch") ){
 						Data.Selected[i].mass = NewValue;
@@ -1190,9 +1577,7 @@ function Change(which){
 		
 		
 		ShowObj(Data.Selected);
-		if(CallDrawing){
-			ReDraw(Data);
-		}
+		ReDraw(Data);
 	}
 }
 
@@ -1245,15 +1630,27 @@ function ClearCanvas(Module){
 }
 
 function ReDraw(Module){
-	ClearCanvas(Module);
-	var i, j;
-	for(i in Module.Arrays){
-		for(j in Module[Module.Arrays[i]]){
-			Module[Module.Arrays[i]][j].draw($ctx, 'fill');
+	var i
+		,	j
+		,	len
+		,	len2;
+	if(CallDrawing){
+		ClearCanvas(Module);
+	
+		len = Module.Arrays.length;
+		for(i = 0; i < len; ++i){
+			len2 = Module[Module.Arrays[i]].length;
+			for(j = 0; j < len2; ++j){
+				Module[Module.Arrays[i]][j].draw($ctx, 'fill');
+			}
 		}
-	}
-	for(i in Module.Selected){
-		Module.Selected[i].draw($ctx, 'fill', SelectionColor);
+		len = Module.Selected.length;
+		for(i = 0; i < len; ++i){
+			Module.Selected[i].draw($ctx, 'fill', SelectionColor);
+		}
+
+		clearSecondCanva(Module);
+		drawModuleCentroid(Module, 'fill');
 	}
 }
 
@@ -1266,17 +1663,13 @@ function SetBackground(Module, Path){
 			Module.Background.Path = "default";
 		}
 		$BackgroundText.value = Module.Background.Path
-		if(CallDrawing){
-			ReDraw(Module);
-		}
+		ReDraw(Module);
 	}
 	Module.Background.Img.onerror = function(){
 		Module.Background.Path = "default";
 		$BackgroundText.value = "default";
 		Module.Background.Img.src = null;
-		if(CallDrawing){
-			ReDraw(Module);
-		}
+		ReDraw(Module);
 	}
 }
 
@@ -1524,10 +1917,18 @@ function particle(P){//{x:x,y:y,r0:r0,charge:charge,mass:mass}
 	}
 }
 
+function centroid(arg){
+	return {	x: arg.x
+					,	y: arg.y
+					,	draw: function(ctx, style, color){
+							drawCentroid(ctx, this, style);
+						}
+					};
+}
 //-------------------------------------------------------------
 
 function drawStyleAspect(ctx, style, color){
-	ctx.fillStyle = color;
+	ctx[style + 'Style'] = color;
 	ctx[style]();
 }
 
@@ -1573,19 +1974,6 @@ function drawRectSTUPID(ctx, rc, style, color){
 		ctx.lineTo(x,y);
 	}
 	drawStyleAspect(ctx, style, color);
-	// ctx.closePath();
-	// r=rc.r(pipol + rc.ang + rc.fi0 / 2);
-	// ctx.beginPath();
-	// ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
-	// ctx.closePath();
-	// ctx.fillStyle='#a00';
-	// ctx.fill();
-	// r = rc.r(-rc.ang);
-	// ctx.beginPath();
-	// ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
-	// ctx.closePath();
-	// ctx.fillStyle='#00a';
-	// ctx.fill();
 }
 
 function drawRect(ctx, rc, style, color){
@@ -1598,19 +1986,6 @@ function drawRect(ctx, rc, style, color){
 	ctx.lineTo(v[0].x, v[0].y);
 	ctx.closePath();
 	drawStyleAspect(ctx, style, color);
-	
-	// r=rc.r(pipol + rc.ang + rc.fi0 / 2);
-	// ctx.beginPath();
-	// ctx.arc(rc.x+r*Math.cos(pipol + rc.ang + rc.fi0 / 2),rc.y+r*Math.sin(pipol + rc.ang + rc.fi0 / 2),1,0,dwapi,false);
-	// ctx.closePath();
-	// ctx.fillStyle='#a00';
-	// ctx.fill();
-	// r = rc.r(-rc.ang);
-	// ctx.beginPath();
-	// ctx.arc(rc.x + r * Math.cos(-rc.ang),rc.y + r * Math.sin(-rc.ang),1,0,dwapi,false);
-	// ctx.closePath();
-	// ctx.fillStyle='#00a';
-	// ctx.fill();
 }
 
 function drawCircle(ctx, bl, style, color){
@@ -1783,6 +2158,67 @@ function drawParticle(ctx, P, style, color){
 	ctx.fillText(color, P.x - 8, P.y + 8);
 }
 
+function drawPoint(ctx, point, style, color){
+	ctx.beginPath();
+	ctx.arc(point.x, point.y, 3, 0, dwapi, false);
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
+
+	ctx.beginPath();
+	ctx.arc(point.x, point.y, 2, 0, dwapi, false);
+	ctx.closePath();
+	drawStyleAspect(ctx, style, color);
+}
+
+function drawCentroid(ctx, Cent, style){
+	drawPoint(ctx, Cent, style, 'rgba(255, 0, 0, 0.9)');
+}
+
+function drawModuleCentroid(Module, style){
+	if(Module.selectedCentroid){
+		Module.selectedCentroid.draw(Module.$secondCtx, style);
+	}
+}
+
+function drawTransformedSelection(Module, style, color){
+	var x
+		,	y;
+	function drawObj(obj){
+		obj.draw(Module.$secondCtx, style, color);
+	}
+	
+	clearSecondCanva(Module);
+	if(Module.Selected.length > 0){
+		transformSelection(Module, Module.transArgs, drawObj);
+		drawModuleCentroid(Module, 'fill');
+	}
+}
+
+function transformSelection(Module, args, func){
+	if(Module.selectedCentroid){
+		Module.Selected.push(Module.selectedCentroid);
+	}
+	if(args.type == null){
+		if(Module.rotate){
+			args.type = 'turn';
+		}else{
+			args.type = 'move';
+		}
+	}
+	switch(args.type){
+		case 'turn':
+			turnArray(Module.Selected, Module.rotationPoint, args.ang, func);
+			break;
+		case 'move':
+			moveArray(Module.Selected, args.x, args.y, func);
+			break;
+	}
+	
+	if(Module.selectedCentroid){
+		Module.Selected.pop();
+	}
+}
+
 //-------------------------------------------------------------
 
 function mysz(e) {
@@ -1795,71 +2231,6 @@ function chooseObjType(type){
 	checkedOne = type;
 	$('#objType' + checkedOne)[0].checked = true;
 }
-
-function klawa(e){
-	if(!e){
-		e = window.event;
-	}
-
-	switch(e.keyCode){
-		case 46://shift + del
-		case 68://shift + d
-			if(e.shiftKey){
-				delObject();
-			}
-			break;
-		case 67://shift + c
-			if(e.shiftKey){
-				cloneObject(-30, 30);
-			}
-			break;
-		case 78://shift + n
-			if(!e.shiftKey){
-				break;
-			}
-		case 107://+
-			newObject();
-			break;
-		case 76://shift + l
-			if(e.shiftKey){
-				Load(Data);
-			}
-			break;
-		case 83://shift + s
-			if(e.shiftKey){
-				GenerateOutput(Data);
-			}
-			break;
-		case 97://numbers on numeric keyboard
-			chooseObjType('Circle');
-			break;
-		case 98:
-			chooseObjType('Square');
-			break;
-		case 99:
-			chooseObjType('Rectangle');
-			break;
-		case 100:
-			chooseObjType('Player');
-			break;
-		case 101:
-			chooseObjType('Entrance');
-			break;
-		case 102:
-			chooseObjType('Exit');
-			break;
-		case 103:
-			chooseObjType('Switch');
-			break;
-		case 104:
-			chooseObjType('Door');
-			break;
-		case 105:
-			chooseObjType('Particle');
-			break;
-	}
-}
-
 
 function isClicked(Obj,e){
 	var dx,
@@ -1874,23 +2245,33 @@ function isClicked(Obj,e){
 	return false;
 }
 
-function selectObjOnCanvas(e){
+function selectObjOnCanvas(e, Module){//mousedown
 	if (!e) e = window.event;
-	var relTarg = e.relatedTarget || e.fromElement,
-		 Obj = false,
-		 index,
-		 i;
+	var relTarg = e.relatedTarget || e.fromElement
+		,	Obj = false
+		,	j
+		,	i
+		,	len
+		,	len2;
 	
-	Data.mouseDragX = e.pageX;
-	Data.mouseDragY = e.pageY;
-	Data.isClicked = true;
+	Module.mouseDragX = e.pageX;
+	Module.mouseDragY = e.pageY;
+	Module.isClicked = true;
 	if(e.pageX < $canva.width &&
 		 e.pageY < $canva.height){
-		for(i in Data.Arrays){
+		Module.lastMouseEvent = {x: e.pageX, y: e.pageY};
+		if(Module.selectedCentroid){
+			Module.computeMouseDownArgs(e.pageX, e.pageY);
+			Module.transArgs = {x: 0, y: 0, ang: 0};
+		}
+		//finding if any object was clicked
+		len = Module.Arrays.length;
+		for(i = 0; i < len; ++i){
 			if(!Obj){
-				for(index in Data[Data.Arrays[i]]){
-					if(isClicked(Data[Data.Arrays[i]][index],e)){
-						Obj = Data[Data.Arrays[i]][index];
+				len2 = Module[Module.Arrays[i]].length;
+				for(j = 0; j < len2; ++j){
+					if(isClicked(Module[Module.Arrays[i]][j],e)){
+						Obj = Module[Module.Arrays[i]][j];
 						break;
 					}
 				}
@@ -1901,21 +2282,22 @@ function selectObjOnCanvas(e){
 		}
 		
 		if(!Obj){
-			Data.Clicked = {};
+			Module.Clicked = {};
 		}else{
-			Data.Clicked = Obj;
+			Module.Clicked = Obj;
 		}
 		
-		if(Data.Selected.length === 0){
-			Data.IsDragging = false;
+		if(Module.Selected.length === 0){
+			Module.IsDragging = false;
 		}else{
 			if(!Obj){
-				Data.IsDragging = false;
+				Module.IsDragging = false;
 			}else{
-				Data.IsDragging = false;
-				for(i in Data.Selected){
-					if(Data.Selected[i] === Obj){
-						Data.IsDragging = true;
+				Module.IsDragging = false;
+				len = Module.Selected.length;
+				for(i = 0; i < len; ++i){
+					if(Module.Selected[i] === Obj){
+						Module.IsDragging = true;
 						break;
 					}
 				}
@@ -1924,100 +2306,126 @@ function selectObjOnCanvas(e){
 	}
 }
 
-function dropOnCanvas(e){
+function dropOnCanvas(e, Module){//mouseup
+	var i
+		,	j
+		,	ang
+		,	x
+		,	y
+		,	SelectionRect
+		,	len
+		,	len2;
+	
 	if (!e) e = window.event;
-	Data.isClicked = false;
-	Data.$selectRect.width = 0;
-	Data.$selectRect.height = 0;
-	if(Data.mouseDragX < $canva.width &&
-		 Data.mouseDragY < $canva.height){
+	Module.isClicked = false;
+	Module.$selectRect.width = 0;
+	Module.$selectRect.height = 0;
+	if(Module.mouseDragX < $canva.width &&
+		 Module.mouseDragY < $canva.height){
+		clearSecondCanva(Module);
 		if(e.PageX > $canva.width){
 			e.PageX = $canva.width;
 		}
 		if(e.PageY > $canva.height){
 			e.PageY = $canva.height;
 		}
-		if(Data.IsDragging){
-			Data.IsDragging = false;
-			Data.mouseDragX = e.pageX - Data.mouseDragX;
-			Data.mouseDragY = e.pageY - Data.mouseDragY;
-			if(e.ctrlKey){//clone
-				cloneObject(Data.mouseDragX, Data.mouseDragY);
+		if(Module.IsDragging ||
+			(Module.rotate && Module.selectedCentroid)){
+			Module.IsDragging = false;
+			Module.computeTransArgs(e.pageX, e.pageY);
+			if(e.shiftKey){//clone
+				cloneObject(Module);
+			}else{//move
+				transformSelection(Module, Module.transArgs);
+				ReDraw(Module);
 			}
-			else{//move
-				for(var i in Data.Selected){
-					Data.Selected[i].x += Data.mouseDragX;
-					Data.Selected[i].y += Data.mouseDragY;
-				}
-				ReDraw(Data);
-			}
-			ShowObj(Data.Selected);
-		}
-		else{//selection
-			var	x = e.pageX - Data.mouseDragX,
-					y = e.pageY - Data.mouseDragY,
-					SelectionRect = rectangle({x: (e.pageX + Data.mouseDragX) / 2,
-													 y: (e.pageY + Data.mouseDragY) / 2,
+			ShowObj(Module.Selected);
+		}else{//selection
+			x = e.pageX - Module.mouseDragX;
+			y = e.pageY - Module.mouseDragY;
+			SelectionRect = rectangle({x: (e.pageX + Module.mouseDragX) / 2,
+													 y: (e.pageY + Module.mouseDragY) / 2,
 													 a: y,
 													 b: x,
 													 ang: 0,
 													 color: SelectionColor
-													}),
-			i, j, ang;
-			Data.LastSelected = Data.Selected;
-			Data.Selected = [];
+													});
+			Module.LastSelected = Module.Selected;
+			Module.Selected = [];
 			
-			for(i in Data.Arrays){
-				for(j in Data[Data.Arrays[i]]){
-					x = SelectionRect.x - Data[Data.Arrays[i]][j].x;
-					y = SelectionRect.y - Data[Data.Arrays[i]][j].y;
+			len = Module.Arrays.length;
+			for(i = 0; i < len; ++i){
+				len2 = Module[Module.Arrays[i]].length;
+				for(j = 0; j < len2; ++j){
+					x = SelectionRect.x - Module[Module.Arrays[i]][j].x;
+					y = SelectionRect.y - Module[Module.Arrays[i]][j].y;
 					ang = VectorAtan(x, y);
-					ang = Math.sqrt(x * x + y * y) - (SelectionRect.r(ang) + Data[Data.Arrays[i]][j].r(norm(ang + pi)));
+					ang = Math.sqrt(x * x + y * y) - (SelectionRect.r(ang) + Module[Module.Arrays[i]][j].r(norm(ang + pi)));
 					if(ang < 0){
-						Data.Selected.push(Data[Data.Arrays[i]][j]);
+						Module.Selected.push(Module[Module.Arrays[i]][j]);
 					}
 				}
 			}
 			
-			if(Data.Clicked.x != undefined){
+			if(Module.Clicked.x != undefined){
 				j = true;
-				for(i in Data.Selected){
-					if(Data.Selected[i] === Data.Clicked){
+				len = Module.Selected.length;
+				for(i = 0; i < len; ++i){
+					if(Module.Selected[i] === Module.Clicked){
 						j = false;
 						break;
 					}
 				}
 				if(j){
-					Data.Selected.push(Data.Clicked);
+					Module.Selected.push(Module.Clicked);
 				}
 			}
 			
-			ShowObj(Data.Selected);
+			Module.selectedCentroid = findCentroid(Module.Selected);
+			Module.setRotationPoint();
+
+			ShowObj(Module.Selected);
 			drawSelection();
 		}
-
+		Module.transArgs = {x: 0, y: 0, ang: 0};
 		SetSelectedOnListFromData();
 	}
-	clearSecondCanva(Data);
+
 }
 
 function clearSecondCanva(Module){
 	Module.$secondCtx.clearRect(0, 0,
-																Data.$secondCanva.width - 1,
-																Data.$secondCanva.height - 1);
+		Module.$secondCanva.width - 1,
+		Module.$secondCanva.height - 1);
 }
 
-function drawSelectRect(e){
-	var width, height;
+function clearThirdCanva(Module){
+	Module.$thirdCtx.clearRect(0, 0,
+		Module.$thirdCanva.width - 1,
+		Module.$thirdCanva.height - 1);
+}
+
+function drawUserRotationPoint(Module){
+	clearThirdCanva(Module);
+	drawPoint(Module.$thirdCtx, Module.userRotPoint, 'fill', 'rgba(0, 255, 0, 0.6)');
+}
+
+function drawAtMouseMove(e, Module){
+	var i
+		,	len
+		,	evX
+		,	evY
+		,	dx
+		,	dy
+		,	color;
 	if (!e) e = window.event;
 	
 	mysz(e);
 	
-	if(Data.mouseDragX < $canva.width &&
-		 Data.mouseDragY < $canva.height &&
-		 Data.isClicked){
-		
-		var evX, evY, dx, dy; 
+	if(Module.mouseDragX < $canva.width &&
+		 Module.mouseDragY < $canva.height &&
+		 Module.isClicked){
+
 		if(e.pageX > $canva.width){
 			evX = $canva.width;
 		}else{
@@ -2028,37 +2436,41 @@ function drawSelectRect(e){
 		}else{
 			evY = e.pageY;
 		}
-		
-		if(Data.IsDragging){
-			clearSecondCanva(Data);
-			dx = evX - Data.mouseDragX;
-			dy = evY - Data.mouseDragY;
-			for(i in Data.Selected){
-				if(Data.Selected[i].draw){
-					Data.Selected[i].x += dx;
-					Data.Selected[i].y += dy;
-					Data.Selected[i].draw(Data.$secondCtx, 'stroke', SelectionColor);
-					Data.Selected[i].x -= dx;
-					Data.Selected[i].y -= dy;
-				}
-			}
-		}else{
-			Data.$selectRect.style.left = min(Data.mouseDragX, evX) + "px";
-			Data.$selectRect.style.top = min(Data.mouseDragY, evY) + "px";
-			width = abs(evX - Data.mouseDragX);
-			height = abs(evY - Data.mouseDragY);
-			Data.$selectRect.width = width;
-			Data.$selectRect.height = height;
-			Data.$selectRect.style.backgroundColor = selectRectColor;
+		Module.lastMouseEvent = {x: evX, y: evY};
 
-			Data.$selectCtx.clearRect(0, 0, width - 1, height - 1);
+		if(e.shiftKey){
+			color = 'rgba(0, 255, 0, 0.9)';
+		}else{
+			color = SelectionColor;
+		}
+		if(Module.IsDragging ||
+			(Module.rotate && Module.selectedCentroid)){
+			Module.computeTransArgs(evX, evY);
+			drawTransformedSelection(Module, 'stroke', color);
+		}else if(Module.isClicked){
+			drawSelectRect(Module);
 		}
 	}
 }
 
+function drawSelectRect(Module){
+	var width
+		,	height;
+
+	Module.$selectRect.style.left = min(Module.mouseDragX, Module.lastMouseEvent.x) + "px";
+	Module.$selectRect.style.top = min(Module.mouseDragY, Module.lastMouseEvent.y) + "px";
+	width = abs(Module.lastMouseEvent.x - Module.mouseDragX);
+	height = abs(Module.lastMouseEvent.y - Module.mouseDragY);
+	Module.$selectRect.width = width;
+	Module.$selectRect.height = height;
+	Module.$selectRect.style.backgroundColor = selectRectColor;
+
+	Module.$selectCtx.clearRect(0, 0, width - 1, height - 1);
+}
+
 //-------------------------------------------------------------
 
-function sortfunc(a,b){
+function sortfunc(a, b){
 	return a - b;
 }
 
@@ -2137,5 +2549,208 @@ function VectorAtan(x,y){
     }
 }
 
+function rotateObj(Obj, ang){
+	if(Obj.ang != undefined){
+		if(Obj.a != undefined){//rectangle
+			Obj.ang -= ang;
+		}else{
+			Obj.ang += ang;
+		}
+	}
+}
+
+// Simplest, no ifs
+function cachedTurn(point, dx, dy, ang, sn, cs){
+	rotateObj(point, ang);
+	point.x -= dx;
+	point.y -= dy;
+
+	ang = point.x * cs - point.y * sn;
+	point.y = point.x * sn + point.y * cs;
+	point.x = ang;
+	
+	point.x += dx;
+	point.y += dy;
+}
+
+//Simple wrapper for one object
+function turnObj(point, p0, ang){
+	cachedTurn(point, p0.x, p0.y, ang, Math.sin(ang), Math.cos(ang));
+}
+
+// Allows turning objects around point  p0.
+// If func parameter is passed then objects
+// will be turned then func will be exectuted
+// and the array will return to status quo.
+function turnArray(arr, p0, ang, func){
+	var i
+		,	len
+		,	dx
+		,	dy
+		,	sn
+		,	cs
+		,	turnType
+		,	oldX
+		,	oldY
+		,	oldAng;
+	if(ang){
+		if(p0 === 'indie'){
+			turnType = function(obj, dx, dy, ang, sn, cs){
+				rotateObj(obj, ang);
+			}
+		}else{
+			sn = Math.sin(ang);
+			cs = Math.cos(ang);
+			dx = p0.x;
+			dy = p0.y;
+			turnType = cachedTurn;
+		}
+		
+		len = arr.length;
+		if(func){
+			for(i = 0; i < len; ++i){
+				oldX = arr[i].x;
+				oldY = arr[i].y;
+				oldAng = arr[i].ang;
+				turnType(arr[i], dx, dy, ang, sn, cs);
+				func(arr[i]);
+				arr[i].x = oldX;
+				arr[i].y = oldY;
+				arr[i].ang = oldAng;
+			}
+		}else{
+			for(i = 0; i < len; ++i){
+				turnType(arr[i], dx, dy, ang, sn, cs);
+			}
+		}
+	}
+}
+
+function movePoint(point, dx, dy){
+	point.x += dx;
+	point.y += dy;
+}
+
+//Another transformation with the same logical structure
+function moveArray(arr, dx, dy, func){
+	var i
+		,	len
+		,	oldX
+		,	oldY;
+	len = arr.length;
+	if(func){
+		for(i = 0; i < len; ++i){
+			oldX = arr[i].x;
+			oldY = arr[i].y;
+			movePoint(arr[i], dx, dy);
+			func(arr[i]);
+			arr[i].x = oldX;
+			arr[i].y = oldY;
+		}
+	}else{
+		for(i = 0; i < len; ++i){
+			movePoint(arr[i], dx, dy);
+		}
+	}
+}
 //var b; for(var i = -100; i < 100; i+= 0.1){ for(var j = -100; j < 100; j+= 0.1){ b = VectorAtan(i, j); if((b > dwapi) || (b < 0)) console.log([i, j, b]);}}
 //no logs, no need to normalize returned angle
+
+function vectorProduct(v1, v2){
+	return v1.x * v2.y - v2.x * v1.y;
+}
+
+// for vectors v1->v2, v2->v3 returns
+// negative value if going from first
+// to second vector means turning left
+// and positive otherwise
+function turnSide(v1, v2, v3){
+	return vectorProduct({x: v3.x - v1.x,
+												y: v3.y - v1.y},
+											 {x: v2.x - v1.x,
+												y: v2.y - v1.y});
+}
+
+function compPointsByY(A, B){
+	if(A.y === B.y){
+		return A.x - B.x;
+	}else{
+		return A.y - B.y;
+	}
+}
+
+function compPointsByAng(A, B){
+	if(A.ang === B.ang){
+		return compPointsByY(B, A);
+	}else{
+		return A.ang - B.ang;
+	}
+}
+
+function convexHull(points){
+	return convexHullGraham(points);
+}
+
+function convexHullGraham(argPoints){
+	var p0
+		,	i
+		,	len
+		,	pi
+		,	stack
+		, points = [];
+	len = argPoints.length;
+	
+	if(len < 3){
+		stack = [];
+	}else{
+		p0 = 0;
+		for(i = 0; i < len; ++i){
+			points[i] = {x: argPoints[i].x, y: argPoints[i].y};
+			if(compPointsByY(points[p0], points[i]) > 0){
+				p0 = i;
+			}
+		}
+		p0 = points.extract(p0);
+		
+		len = points.length;
+		for(i = 0; i < len; ++i){
+			pi = points[i];
+			pi.ang = VectorAtan(pi.x - p0.x, pi.y - p0.y);
+		}
+		points.sort(compPointsByAng);
+		for(i = 0; i < len; ++i){
+			delete points[i].ang;
+		}
+		
+		stack = [p0, points[0], points[1]];
+		len = points.length;
+		for(i = 2; i < len; ++i){
+			while(turnSide(stack[stack.length - 2], stack[stack.length - 1], points[i]) > 0){
+				stack.pop();
+			}
+			stack.push(points[i]);
+		}
+	}
+	return stack;
+}
+
+function findCentroid(points){
+	var convHull
+		,	center;
+
+	if(points.length !== 0){
+		convHull = convexHull(points);
+		if(convHull.length === 0){
+			convHull = points;
+		}
+
+		center = convHull.reduce(function(pre, cur, i, arr){
+			return {x: cur.x + pre.x, y: cur.y + pre.y};
+		}, {x: 0, y: 0});
+		center.x /= convHull.length;
+		center.y /= convHull.length;
+		return centroid(center);
+	}else{
+		return null;
+	}
+}

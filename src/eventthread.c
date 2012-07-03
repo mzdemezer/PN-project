@@ -553,7 +553,7 @@ void request_end_level(game_shared_data *Data){
     void draw_game_to_background(game_shared_data *arg){
         draw_content_to_background(draw_game, arg);
     };
-    special_call(draw_game_to_background, Data);
+    call_in_main_thread(draw_game_to_background, Data);
     Data->last_score = clear_score(&Data->level.score);
 
     if(Data->last_score.level_number > 1){

@@ -46,7 +46,7 @@ bool load_and_initialize_level(game_shared_data *Data){
     if(!load_level_from_file(Data)){
         return false;
     }else{
-        special_call(draw_level_background, (void*)Data);
+        call_in_main_thread(draw_level_background, (void*)Data);
         Data->loading_state = 10;
         initialize_level(&Data->level);
         return true;

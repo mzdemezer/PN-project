@@ -1,44 +1,54 @@
 body{
-	margin: 0px;
-	padding: 0px;
-	background-color: #F80;
+	margin:	0px;
+	padding:	0px;
+	background-color:	#F80;
 }
 div{
-	border: 1px solid black;
+	border:	1px	solid	black;
 }
 h2{
-	margin: 2px;
+	margin:	2px;
 }
 h3{
-	margin: 2px;
+	margin:	2px;
 }
 .check{
-	margin: 1px;
-	padding: 0px;
+	margin:	1px;
+	padding:	0px;
 }
 .canva{
-	border: none;
+	border:	none;
 }
 .absoCanva{
-	position:absolute;
-	z-index: 10000;
+	position:	absolute;
+	z-index:	10000;
+}
+#canvaCentralText{
+	position:	absolute;
+	z-index:	5000;
+	color: red;
 }
 .contents{
-	float:left;
-	margin:0px;
-	padding:0px;
+	float:	left;
+	margin:	0px;
+	padding:	0px;
 }
 .container{
-	display:block;
-	margin:0px;
-	padding:0px;
-	clear:left;
+	display:	block;
+	margin:	0px;
+	padding:	0px;
+	clear:	left;
 }
 canvas{
-	margin: 0px;
-	padding: 0px;
+	margin:	0px;
+	padding:	0px;
 }
 .etiq{
-	margin:0px;
-	padding:0px;
+	margin:	0px;
+	padding:	0px;
+}
+ul.plain{
+	margin:	1px;
+	padding:	0.5em;
+	list-style-type:	none;
 }

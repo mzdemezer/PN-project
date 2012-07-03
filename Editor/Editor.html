@@ -9,7 +9,9 @@
 <body>
 <canvas id="selectRect" class="absoCanva"></canvas>
 <canvas id="secondCanva" class="absoCanva"></canvas>
+<canvas id="thirdCanva" class="absoCanva"></canvas>
 	<div class="contents canva">
+		<h1 id="canvaCentralText"></h1>
 		<canvas id="canva">Zmieñ przegl¹darkê mule</canvas>
 		
 	</div>
@@ -30,14 +32,32 @@
 			<div id="ObjListParent" class="contents">
 				<div class="contents">
 					<button onclick="newObject()">New</button><br />
-					<button onclick="cloneObject(-30, 30)">Clone</button><br />
+					<button onclick="cloneObject(Data, 'move', {x:-30, y:30})">Clone</button><br />
 					<button onclick="delObject()">Del</button>
 				</div>
 			
-				<input class="check" type="checkbox" checked="checked" onchange="if(CallDrawing){CallDrawing = false;}else{CallDrawing = true; ReDraw(Data);}" />Always ReDraw()<br />
+				<button id="callDraw">ReDraw()</button><br />
 				<button onclick="GenerateOutput(Data)">Output</button><br />
 				<button onclick="Load(Data)">Load</button><br />
 				<button onclick="Clear()">Clear</button><br />
+				<div class="contents">
+					<ul class="plain">
+						<li><input class="radio" type="radio" name="rotType" id="radRotIndie" />Individual rotations</li>
+						<li><input class="radio" type="radio" name="rotType" id="radRotPoint" checked="checked" />Rotations around:<br />
+							<ul class="plain">
+								<li><input class="radio" type="radio" name="rotPoint" id="radRotCentroid" checked="checked" />centroid</li>
+								<input class="radio" type="radio" name="rotPoint" id="radRotUserPoint" />chosen point</li>
+							</ul>
+							<p class="etiq">
+								x
+								<input type="text" size="5" maxLength="7" id="userPointX" value="0" />
+								y
+								<input type="text" size="5" maxLength="7" class="shortText" id="userPointY" value="0" />
+							</p>
+							<button id="setUserPoint">Set point</button>
+						</li>
+					<ul>
+				</div>
 				<select id="ObjListSelect" onchange="SelectObject()">
 					<optgroup label="Players" id="OptPlayers">
 					</optgroup>	
@@ -131,8 +151,9 @@
 			<li>shift+n / +	- new object</li>
 			<li>shift c			- clone objects</li>
 			<li>shift+d/del	- delete objects</li>
+			<li>shift+v			- set rotation point</li>
 		</ul>
-		<p>You can select multiple objects and move them by dragging. You can also drag-copy with CTRL.</p>
+		<p>You can select multiple objects and move them or rotate (hold r) by dragging. You can also drag-copy with SHIFT.</p>
 	</div>
 </body>
 </html>

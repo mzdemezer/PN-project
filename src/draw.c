@@ -56,7 +56,7 @@ void synchronized_draw(void (*func)(game_shared_data *), game_shared_data *Data)
     void sp_func(game_shared_data *arg){
         draw(func, arg);
     };
-    special_call(sp_func, Data);
+    call_in_main_thread(sp_func, Data);
 }
 
 /**

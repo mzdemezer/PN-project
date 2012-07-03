@@ -622,7 +622,6 @@ void* compute_electrostatics(ALLEGRO_THREAD *thread, void *argument){
     int i, j;
     double q1, q2, dx, dy, r, r1, r2, d;
 
-
     StopThread(1, Data, thread);
     while(!al_get_thread_should_stop(thread)){
         /**

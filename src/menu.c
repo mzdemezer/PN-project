@@ -271,7 +271,7 @@ void resolution_activate(void* argument){
     switch(arg->call_type){
         case meatACCEPT:
             if(Data->chosen_resolution != Data->reso_chosen_in_menu){
-                special_call(change_resolution, Data);
+                call_in_main_thread(change_resolution, Data);
             }
             break;
         case meatUP:
@@ -400,7 +400,7 @@ void fullscreen_activate(void *argument){
         case meatACCEPT:
             if(Data->fullscreen != Data->fullscreen_in_menu){
                 Data->fullscreen = Data->fullscreen_in_menu;
-                special_call(change_screen_mode, Data);
+                call_in_main_thread(change_screen_mode, Data);
             }
             break;
         case meatUP:
