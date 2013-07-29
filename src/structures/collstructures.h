@@ -4,7 +4,7 @@
 
 #define EMPTY_COLLISION_TIME 10
 typedef struct collision_data{
-    double time;
+    long double time;
     short int who, with;
     bool with_movable;
 }collision_data;

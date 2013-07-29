@@ -1,0 +1,24 @@
+- rysowanie wyjœcia
+- Sprite na silniki (gimp, wiatr, niebieskie p³omienie - tylko p³omienie na spricie i potem sumowaæ; wiêksze i mniejsze z przodu)
+- plik konfiguracyjny - wielkoœæ sprite'a, œcie¿ka sprite'a; fizyka w pliku konfiguracyjnym, ale makra zostaj¹ - wartoœci domyœlne
+- Switches, doors - rysowanie i funkcjonowanie. Prze³¹cznik mo¿e siê np. uaktywniaæ jak dojedzie do >=95% albo <=5%
+
+- tablica collectables
+- statyczne miejsca specjalne - jak do³adowanie tarczy, ¿ycia, energii (ponad stan), etc.
+- strzelanie - balistyczne i lasery (odbijanie - znaleŸæ pierwsze przeciêcie pó³prostej - jej strefy mo¿na ³atwo znaleŸæ, i znaleŸæ po prostu pierwsz¹ niepust¹ i zobaczyæ, czy siê zderza z czymœ); zasada zachowania pêdu; interfejs do usuwania obiektu z tablicy - mo¿e to byæ wrzucenie indeksu do zbioru brudnych, które potem sprz¹ta garbage-collector - na koniec iteracji
+- portale - oddzia³ywania dzia³aj¹ce równie¿ przez nie :)
+- generatory cz¹stek i portale do nicoœci
+- wiatr w strefach, konfigurowany z edytora
+- inne opcje edytora... (i dopracowaæ wizualnie i eventy!)
+- czarna dziura - to co w ni¹ wpadnie znika, a ona powiêksza swoj¹ masê
+- funkcje rysuj¹ce od czasu dla ciekawszych obiektów!? - migotanie, rozb³yski, etc.
+- AI - wartownicy, szara materia - myœl¹ca, k³êbi¹ca siê jak rój, wystrzeliwuj¹ca siê w kierunku celu
+- wie¿yczki (obiekty przeciwnika te¿ mog¹ mieæ tarcze)
+- pole(grawitacyjne? hmmm - mo¿e generator orbituj¹cy) wprawiaj¹ce w ruch wirowy i do centrum (animacja.... - niewyraŸny cieñ wir.png i obracaæ!)
+- poœrednie cele do wykoniania - np. zniszczenie fragmentu mózgu-matrioszki, uratowanie cywilów, eskorta (na lince :) ) innego statku; sojusznicy
+
+- Algorytm rozsuwania - cebula?
+- dŸwiêk - silnika, generatorów, jakaœ muzyka
+
+- w³¹czanie/wy³¹czanie anty-aliasingu? - po chuj? oO
+- Ustawienie schematu na w¹tki dodatkowe - ¿eby nie trzeba by³o wstawiaæ stop_thread - to nie daje mo¿liwoœci tylko jednego inita dla w¹tku... w¹tek kolizyjny w tym wypadku nie mo¿e sobie po prostu raz skonstruowaæ zbiorów; trzeba by³oby dodatkowo podawaæ funkcjê inicjuj¹c¹ i koñcz¹c¹ - du¿o kombinowania i mno¿enia bytów tylko po to, ¿eby zwin¹æ jeden schemat, który jak siê okazuje wcale nie jest a¿ tak jednorodny

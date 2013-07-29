@@ -65,7 +65,7 @@ typedef struct keyboard_structure{
 
 
 typedef struct scale_structure{
-    double scale_x, scale_y,
+    long double scale_x, scale_y,
           scale_w, scale_h,
           trans_x, trans_y,
           scale;

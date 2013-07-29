@@ -261,7 +261,7 @@ void initialize_zones_with_movable(level_data *level, short int *zones, short in
     It only looks bad, but it seems quite optimal
     actually :P
     */
-void change_zones_for_movable(level_data *level, short int index, double t){
+void change_zones_for_movable(level_data *level, short int index, long double t){
     short int oldz[4], xleft, xright;
     int i, j;
     movable_object *obj = &level->movable_objects[index];
@@ -615,7 +615,7 @@ void add_point(level_data *level, point *A){
     }
 }
 
-void add_circle(level_data *level, double r, point center){
+void add_circle(level_data *level, long double r, point center){
     short int zones[4];
     get_zone(center.x - r, center.y - r, zones);
     get_zone(center.x + r, center.y + r, zones + 2);
@@ -638,7 +638,7 @@ void add_circle(level_data *level, double r, point center){
         C->r = r;
         short int i, j, key = level->number_of_primitive_objects;
         add_primitive_object(level, potCIRCLE, C);
-        double r0 = (SQRT2 / 2) * ZONE_SIZE,
+        long double r0 = (SQRT2 / 2) * ZONE_SIZE,
               dx, dy;
         for(i = zones[0]; i <= zones[2]; ++i){
             for(j = zones[1]; j <= zones[3]; ++j){

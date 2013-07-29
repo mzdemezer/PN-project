@@ -119,10 +119,10 @@ void test_get_outer_zones_of_segment12(CuTest *tc){
     bool f;
     short int zones[4];
     f = get_outer_zones_of_segment(&A, &B, zones);
-    CuAssertTrue(tc, f && zones[0] == (short int)(((double)(ZONE_FACTOR * 2)) / 3) &&
-                          zones[1] == (short int)(((double)(ZONE_FACTOR * 2)) / 3) &&
+    CuAssertTrue(tc, f && zones[0] == (short int)(((long double)(ZONE_FACTOR * 2)) / 3) &&
+                          zones[1] == (short int)(((long double)(ZONE_FACTOR * 2)) / 3) &&
                           zones[2] == ZONE_FACTOR - 1 &&
-                          zones[3] == (short int)(((double)(ZONE_FACTOR * 4)) / 9));
+                          zones[3] == (short int)(((long double)(ZONE_FACTOR * 4)) / 9));
 }
 
 void test_get_outer_zones_of_segment13(CuTest *tc){
@@ -131,9 +131,9 @@ void test_get_outer_zones_of_segment13(CuTest *tc){
     bool f;
     short int zones[4];
     f = get_outer_zones_of_segment(&A, &B, zones);
-    CuAssertTrue(tc, f && zones[0] == (short int)((double)(ZONE_FACTOR / 2)) &&
+    CuAssertTrue(tc, f && zones[0] == (short int)((long double)(ZONE_FACTOR / 2)) &&
                           zones[1] == ZONE_FACTOR - 1 &&
-                          zones[2] == (short int)((double)(ZONE_FACTOR / 2)) &&
+                          zones[2] == (short int)((long double)(ZONE_FACTOR / 2)) &&
                           zones[3] == 0);
 }
 

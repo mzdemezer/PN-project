@@ -26,34 +26,34 @@
 #define MACH_SPEED 300
 
 inline int int_abs(int);
-inline double double_abs(double);
-inline double double_min(double, double);
-inline double double_max(double, double);
+inline long double double_abs(long double);
+inline long double double_min(long double, long double);
+inline long double double_max(long double, long double);
 inline short int short_min(short int, short int);
 inline short int short_max(short int, short int);
 inline int int_max(int, int);
 int rzad(int);
-inline int sign(double);
+inline int sign(long double);
 inline short short_sign(short);
-double norm(double fi);
-double vector_angle(double, double);
+long double norm(long double fi);
+long double vector_angle(long double, long double);
 
-double square_equation(double r0, double fi);
-double rectangle_equation(double r0, double fi, double fi0, double fi02, double wsp1, double wsp2);
+long double square_equation(long double r0, long double fi);
+long double rectangle_equation(long double r0, long double fi, long double fi0, long double fi02, long double wsp1, long double wsp2);
 
-void get_line_from_points(double x1, double y1, double x2, double y2, line *);
-void get_line_from_point_and_vector(double x, double y, double vx, double vy, line *);
-inline double point_distance_from_line(double x0, double y0, line *L);
-void common_point(const line* L1, const line* L2, double *x, double *y);
+void get_line_from_points(long double x1, long double y1, long double x2, long double y2, line *);
+void get_line_from_point_and_vector(long double x, long double y, long double vx, long double vy, line *);
+inline long double point_distance_from_line(long double x0, long double y0, line *L);
+void common_point(const line* L1, const line* L2, long double *x, long double *y);
 
-inline double vector_product(double x1, double y1, double x2, double y2);
-bool vectors_on_two_sides(double vector_pr1, double vector_pr2);
+inline long double vector_product(long double x1, long double y1, long double x2, long double y2);
+bool vectors_on_two_sides(long double vector_pr1, long double vector_pr2);
 bool do_segments_intersect(const point *A1, const point *A2,
                            const point *B1, const point *B2);
 bool get_segment_intersection(const point *A1, const point *A2,
                               const point *B1, const point *B2,
                               point *I);
 
-double coefficient_multiplier(double v);
+long double coefficient_multiplier(long double v);
 
 #endif

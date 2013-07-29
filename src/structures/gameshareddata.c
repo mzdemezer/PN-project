@@ -12,7 +12,7 @@
     */
 
 void calculate_scales(game_shared_data *Data){
-    Data->scales.scale = double_min(Data->display_data.width / (double)SCREEN_BUFFER_WIDTH, Data->display_data.height / (double)SCREEN_BUFFER_HEIGHT);
+    Data->scales.scale = double_min(Data->display_data.width / (long double)SCREEN_BUFFER_WIDTH, Data->display_data.height / (long double)SCREEN_BUFFER_HEIGHT);
 
     Data->scales.scale_w = SCREEN_BUFFER_WIDTH * Data->scales.scale;
     Data->scales.scale_h = SCREEN_BUFFER_HEIGHT * Data->scales.scale;
@@ -242,7 +242,7 @@ bool construct_game_shared_data(game_shared_data *Data, int max_fps){
     Data->display = NULL;
     Data->display = al_create_display(Data->display_data.width, Data->display_data.height);
     if(!Data->display){
-        fprintf(stderr, "Problems when creating the display");
+        fprintf(stderr, "Problems when creating the display\n");
         return false;
     }
     if(al_get_display_option(Data->display, ALLEGRO_SAMPLE_BUFFERS)){

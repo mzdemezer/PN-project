@@ -7,18 +7,18 @@
 	<link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-<canvas id="selectRect" class="absoCanva"></canvas>
-<canvas id="secondCanva" class="absoCanva"></canvas>
-<canvas id="thirdCanva" class="absoCanva"></canvas>
+<canvas id="selectRect" class="absoCanva help"></canvas>
+<canvas id="secondCanva" class="absoCanva help"></canvas>
+<canvas id="thirdCanva" class="absoCanva help"></canvas>
 	<div class="contents canva">
 		<h1 id="canvaCentralText"></h1>
 		<canvas id="canva">Zmieñ przegl¹darkê mule</canvas>
 		
 	</div>
 	
-	<div class="contents">
+	<div class="contents help">
 		<div>
-			<div class="contents">
+			<div class="contents help">
 				<input class="radio" type="radio" name="objType" id="objTypeCircle" onmouseup="checkedOne = 'Circle'" checked="checked" />Circle<br />
 				<input class="radio" type="radio" name="objType" id="objTypeSquare" onmouseup="checkedOne = 'Square';" />Square<br />
 				<input class="radio" type="radio" name="objType" id="objTypeRectangle" onmouseup="checkedOne = 'Rectangle';" />Rectangle<br />
@@ -30,35 +30,36 @@
 				<input class="radio" type="radio" name="objType" id="objTypeParticle" onmouseup="checkedOne = 'Particle';" />Particle<br />
 			</div>
 			<div id="ObjListParent" class="contents">
-				<div class="contents">
+				<div class="contents help">
 					<button onclick="newObject()">New</button><br />
 					<button onclick="cloneObject(Data, 'move', {x:-30, y:30})">Clone</button><br />
 					<button onclick="delObject()">Del</button>
 				</div>
-			
-				<button id="callDraw">ReDraw()</button><br />
-				<button onclick="GenerateOutput(Data)">Output</button><br />
-				<button onclick="Load(Data)">Load</button><br />
-				<button onclick="Clear()">Clear</button><br />
+				<div class="help">
+					<button id="callDraw">ReDraw()</button><br />
+					<button onclick="GenerateOutput(Data)">Output</button><br />
+					<button onclick="Load(Data)">Load</button><br />
+					<button onclick="Clear()">Clear</button><br />
+				</div>
 				<div class="contents">
 					<ul class="plain">
-						<li><input class="radio" type="radio" name="rotType" id="radRotIndie" />Individual rotations</li>
-						<li><input class="radio" type="radio" name="rotType" id="radRotPoint" checked="checked" />Rotations around:<br />
+						<li class="help"><input class="radio" type="radio" name="rotType" id="radRotIndie" />Individual rotations</li>
+						<li class="help"><input class="radio" type="radio" name="rotType" id="radRotPoint" checked="checked" />Rotations around:<br />
 							<ul class="plain">
-								<li><input class="radio" type="radio" name="rotPoint" id="radRotCentroid" checked="checked" />centroid</li>
-								<input class="radio" type="radio" name="rotPoint" id="radRotUserPoint" />chosen point</li>
+								<li class="help"><input class="radio" type="radio" name="rotPoint" id="radRotCentroid" checked="checked" />centroid</li>
+								<li class="help"><input class="radio" type="radio" name="rotPoint" id="radRotUserPoint" />chosen point</li>
 							</ul>
 							<p class="etiq">
-								x
+								<span class="help">x</span>
 								<input type="text" size="5" maxLength="7" id="userPointX" value="0" />
-								y
+								<span class="help">y</span>
 								<input type="text" size="5" maxLength="7" class="shortText" id="userPointY" value="0" />
 							</p>
-							<button id="setUserPoint">Set point</button>
+							<button id="setUserPoint" class="help">Set point</button>
 						</li>
 					<ul>
 				</div>
-				<select id="ObjListSelect" onchange="SelectObject()">
+				<select id="ObjListSelect" class="help" onchange="SelectObject()">
 					<optgroup label="Players" id="OptPlayers">
 					</optgroup>	
 					<optgroup label="Circles" id="OptCircles">
@@ -80,7 +81,7 @@
 				</select>
 			</div>
 		</div>
-		<div width="250px">
+		<div width="250px" class="help">
 			<h2>Parameters</h2>
 			<h3>Object type: &nbsp;&nbsp;<span id="SpanObjType"></span></h3>
 			<p class="etiq" id="firstP">
@@ -128,22 +129,22 @@
 				<input type="text" class="text" id="MassText" value="0" onchange="Change('Mass')" />
 			</p>
 		</div>
-		<div>
+		<div class="help">
 			<p class="etiq" id="backgroundP">
 				Background
 				<input type="text" class="text" id="BackgroundText" value="default" onchange="SetBackground(Data, this.value);" />
 			</p>
 		</div>
 	</div>
-	<div class="contents">
-		<p>SieczkaBox</p>
+	<div class="contents" class="help">
+		<p class="help">SieczkaBox</p>
 		<textarea id="sieczka" rows="20" cols="20"></textarea>
 	</div>
 	
-	<div class="container">
+	<div class="container help">
 		<pre id="disp">x=BOO y=BOO undefined</pre>
 	</div>
-	<div class="container">
+	<aside class="container help">
 		<h3>HELP</h3>
 		<ul>
 			<li>shift l			- load level</li>
@@ -154,6 +155,6 @@
 			<li>shift+v			- set rotation point</li>
 		</ul>
 		<p>You can select multiple objects and move them or rotate (hold r) by dragging. You can also drag-copy with SHIFT.</p>
-	</div>
+	</aside>
 </body>
 </html>

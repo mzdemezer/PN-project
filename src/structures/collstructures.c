@@ -498,7 +498,7 @@ void coll_in_order(coll_node *root, coll_node *nil){
     if(root != nil){
         coll_in_order(root->left, nil);
 
-        printf("%f\n", root->key.time);
+        printf("%Lf\n", root->key.time);
 
         coll_in_order(root->right, nil);
     }

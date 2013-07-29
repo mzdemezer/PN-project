@@ -4,7 +4,7 @@
 /**
     Private methods
     */
-bool rectangle_wsp(double fi, double fi0);
+bool rectangle_wsp(long double fi, long double fi0);
 
 /**
     Code
@@ -17,7 +17,7 @@ inline int int_abs(int a){
     }
 }
 
-inline double double_abs(double a){
+inline long double double_abs(long double a){
     if(a < 0){
         return -a;
     }else{
@@ -26,7 +26,7 @@ inline double double_abs(double a){
 }
 
 
-inline double double_min(double a, double b){
+inline long double double_min(long double a, long double b){
     if(a < b){
         return a;
     }else{
@@ -34,7 +34,7 @@ inline double double_min(double a, double b){
     }
 }
 
-inline double double_max(double a, double b){
+inline long double double_max(long double a, long double b){
     if(a > b){
         return a;
     }else{
@@ -76,7 +76,7 @@ int rzad(int a){
     return res;
 }
 
-inline int sign(double a){
+inline int sign(long double a){
     if(a == 0){
         return 0;
     }else if(a > 0){
@@ -100,7 +100,7 @@ inline short short_sign(short a){
     Ensures that  fi  angle is in [0, dwaPI)
     */
 
-double norm(double fi){
+long double norm(long double fi){
 	if(fi > 0){
 		while(fi - dwaPI > eps){
 			fi -= dwaPI;
@@ -115,9 +115,9 @@ double norm(double fi){
 	return fi;
 }
 
-double square_equation(double r0, double fi){
+long double square_equation(long double r0, long double fi){
 	fi -= PI4;
-	double s = sin(fi),
+	long double s = sin(fi),
           c = cos(fi);
 	s = (s + sign(s * c) * c);
 	if(s == 0){
@@ -133,7 +133,7 @@ double square_equation(double r0, double fi){
     fi0 - angle between two closer verticies and center of the rectangle
     */
 
-bool rectangle_wsp(double fi, double fi0){
+bool rectangle_wsp(long double fi, long double fi0){
     fi = norm(fi);
     if( ((fi >= PIpol) && (fi <= PIpol + fi0)) ||
         ((fi >= PI32)  && (fi <= PI32  + fi0)) ){
@@ -143,9 +143,9 @@ bool rectangle_wsp(double fi, double fi0){
     }
 }
 
-double rectangle_equation(double r0, double fi, double fi0, double fi02, double wsp1, double wsp2){
+long double rectangle_equation(long double r0, long double fi, long double fi0, long double fi02, long double wsp1, long double wsp2){
     fi += fi02;
-    double res = sin(fi);
+    long double res = sin(fi);
 
     if(rectangle_wsp(fi, fi0)){
         res -= wsp1 * cos(fi);
@@ -159,9 +159,9 @@ double rectangle_equation(double r0, double fi, double fi0, double fi02, double 
     return res;
 }
 
-double vector_angle(double x, double y){
+long double vector_angle(long double x, long double y){
    if(x != 0){
-		double b;
+		long double b;
 		b = atan(double_abs(y / x));
 		if(y == 0){
 			if(x < 0){
@@ -194,20 +194,20 @@ double vector_angle(double x, double y){
 
 
 
-void get_line_from_points(double x1, double y1, double x2, double y2, line *L){
+void get_line_from_points(long double x1, long double y1, long double x2, long double y2, line *L){
     L->A = y1 - y2;
     L->B = x2 - x1;
     L->C = x1 * y2 - x2 * y1;
     L->sqrtAB = sqrt(L->A * L->A + L->B * L->B);
 }
 
-void get_line_from_point_and_vector(double x, double y, double vx, double vy, line *L){
+void get_line_from_point_and_vector(long double x, long double y, long double vx, long double vy, line *L){
     L->A = -vy;
     L->B = vx;
     L->C = x * vy - y * vx;
 }
 
-inline double point_distance_from_line(double x0, double y0, line *L){
+inline long double point_distance_from_line(long double x0, long double y0, line *L){
     if(L->sqrtAB == 0){
         return -1;
     }else{
@@ -215,7 +215,7 @@ inline double point_distance_from_line(double x0, double y0, line *L){
     }
 }
 
-void common_point(const line* L1, const line* L2, double *x, double *y){
+void common_point(const line* L1, const line* L2, long double *x, long double *y){
     *y = (L1->C * L2->A - L1->A * L2->C) / (L2->B * L1->A - L1->B * L2->A);
     *x = -(L1->C + L1->B * *y) / L1->A;
 }
@@ -223,11 +223,11 @@ void common_point(const line* L1, const line* L2, double *x, double *y){
 /**
     for vectors [x1, y1] and [x2, y2]
     */
-inline double vector_product(double x1, double y1, double x2, double y2){
+inline long double vector_product(long double x1, long double y1, long double x2, long double y2){
     return x1 * y2 - x2 * y1;
 }
 
-bool vectors_on_two_sides(double vector_pr1, double vector_pr2){
+bool vectors_on_two_sides(long double vector_pr1, long double vector_pr2){
     if(vector_pr1 == 0 || vector_pr2 == 0){
         return true;
     }else if((vector_pr1 > 0 && vector_pr2 < 0) ||
@@ -240,7 +240,7 @@ bool vectors_on_two_sides(double vector_pr1, double vector_pr2){
 
 bool do_segments_intersect(const point *A1, const point *A2,
                            const point *B1, const point *B2){
-    double v_x = A2->x - A1->x,
+    long double v_x = A2->x - A1->x,
            v_y = A2->y - A1->y,
            b_x = B1->x - A1->x,
            b_y = B1->y - A1->y;
@@ -267,7 +267,7 @@ bool get_segment_intersection(const point *A1, const point *A2,
                               const point *B1, const point *B2,
                               point *I){
     if(do_segments_intersect(A1, A2, B1, B2)){
-        double dxA = A1->x - A2->x,
+        long double dxA = A1->x - A2->x,
                dxB = B1->x - B2->x,
                dyA = A1->y - A2->y,
                dyB = B1->y - B2->y,
@@ -293,7 +293,7 @@ bool get_segment_intersection(const point *A1, const point *A2,
     }
 }
 
-double coefficient_multiplier(double v){
+long double coefficient_multiplier(long double v){
     v = double_abs(v) / MACH_SPEED;
     if(v < 1){
         return exp(v * 1.3862943611198906);

@@ -76,8 +76,16 @@ bool load_level_from_file(game_shared_data *Data){
 
     read_line(buffer, level);
 
-    strcpy(Data->level.filename, "Data/Levels/");
-    strcpy(Data->level.filename + 12, buffer);
+    strcpy(Data->level.filename, "./Data/Levels/");
+    strcpy(Data->level.filename + 14, buffer);
+		Data->level.filename[strlen(Data->level.filename) - 1] = '\0';
+		printf("Background path: %d '%s'\n", strlen(Data->level.filename), Data->level.filename);
+		{
+			int _i, _len;
+			for (_i = 0, _len = strlen(Data->level.filename); _i < _len; ++_i) {
+				printf("#%d: %02d = '%c'\n", _i, (int)(Data->level.filename[_i]), Data->level.filename[_i]);
+			}
+		}
 
     /**
         Loading Objects
@@ -93,7 +101,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_movable_object(&Data->level, motPLAYER, (void*)Data->level.player);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf", &Data->level.player->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf", &Data->level.player->center.x,
                                    &Data->level.player->center.y,
                                    &Data->level.player->ang);
 
@@ -113,7 +121,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_fixed_object(&Data->level, fotRECTANGLE, (void*)Factory.new_rectangle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.new_rectangle->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf %d", &Factory.new_rectangle->center.x,
                                                 &Factory.new_rectangle->center.y,
                                                 &Factory.new_rectangle->a,
                                                 &Factory.new_rectangle->b,
@@ -137,7 +145,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_fixed_object(&Data->level, fotCIRCLE, (void*)Factory.new_circle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %d",   &Factory.new_circle->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %d",   &Factory.new_circle->center.x,
                                             &Factory.new_circle->center.y,
                                             &Factory.new_circle->r,
                                             &op0);
@@ -158,7 +166,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_fixed_object(&Data->level, fotSQUARE, (void*)Factory.new_square);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %d",    &Factory.new_square->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %d",    &Factory.new_square->center.x,
                                             &Factory.new_square->center.y,
                                             &Factory.new_square->bok,
                                             &Factory.new_square->ang,
@@ -180,7 +188,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_fixed_object(&Data->level, fotENTRANCE, (void*)Factory.new_entrance);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.new_entrance->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf %d", &Factory.new_entrance->center.x,
                                             &Factory.new_entrance->center.y,
                                             &Factory.new_entrance->a,
                                             &Factory.new_entrance->b,
@@ -202,7 +210,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_fixed_object(&Data->level, fotEXIT, (void*)Factory.new_exit);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf %d", &Factory.new_exit->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf %d", &Factory.new_exit->center.x,
                                             &Factory.new_exit->center.y,
                                             &Factory.new_exit->a,
                                             &Factory.new_exit->b,
@@ -225,7 +233,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_movable_object(&Data->level, motSWITCH, (void*)Factory.new_switch);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf %d %d %d",   &Factory.new_switch->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf %d %d %d",   &Factory.new_switch->center.x,
                                                     &Factory.new_switch->center.y,
                                                     &Factory.new_switch->a,
                                                     &Factory.new_switch->b,
@@ -265,7 +273,7 @@ bool load_level_from_file(game_shared_data *Data){
             Reading mass and color
             */
         read_line(buffer, level);
-        sscanf(buffer, "%lf %d", &Factory.new_switch->mass,
+        sscanf(buffer, "%Lf %d", &Factory.new_switch->mass,
                                 &op0);
         read_color(buffer, level, &Factory.new_switch->color, op0, "Invalid level input: switch#%d color\n", i);
 
@@ -285,7 +293,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_movable_object(&Data->level, motDOOR, (void*)Factory.new_door);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf %d %d %lf %d",    &Factory.new_door->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf %d %d %Lf %d",    &Factory.new_door->center.x,
                                                         &Factory.new_door->center.y,
                                                         &Factory.new_door->a,
                                                         &Factory.new_door->b,
@@ -313,7 +321,7 @@ bool load_level_from_file(game_shared_data *Data){
         add_movable_object(&Data->level, motPARTICLE, (void*)Factory.new_particle);
 
         read_line(buffer, level);
-        sscanf(buffer, "%lf %lf %lf %lf %lf",    &Factory.new_particle->center.x,
+        sscanf(buffer, "%Lf %Lf %Lf %Lf %Lf",    &Factory.new_particle->center.x,
                                             &Factory.new_particle->center.y,
                                             &Factory.new_particle->r,
                                             &Factory.new_particle->mass,

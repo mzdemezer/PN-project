@@ -212,7 +212,7 @@ void CuAssertIntEquals_LineMsg(CuTest* tc, const char* file, int line, const cha
 }
 
 void CuAssertDblEquals_LineMsg(CuTest* tc, const char* file, int line, const char* message,
-	double expected, double actual, double delta)
+	long double expected, long double actual, long double delta)
 {
 	char buf[STRING_MAX];
 	if (fabs(expected - actual) <= delta) return;

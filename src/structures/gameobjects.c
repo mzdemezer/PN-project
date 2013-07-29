@@ -56,7 +56,7 @@ void construct_square(fixed_object *object){
     object->draw = draw_square;
     object->r = radius_square;
     Data->r = Data->bok * SQRT2 / 2;
-    double fi = PI4 + Data->ang;
+    long double fi = PI4 + Data->ang;
     Data->v1 = construct_point();
     Data->v1->x = Data->center.x + Data->r * cos(fi);
     Data->v1->y = Data->center.y + Data->r * sin(fi);
@@ -84,7 +84,7 @@ void construct_square(fixed_object *object){
     */
 void construct_rectangle(fixed_object *object){
     #define Data ((fixed_rectangle*)object->object_data)
-    double fi;
+    long double fi;
     object->draw = draw_rectangle;
     object->r = radius_rectangle;
 
@@ -172,7 +172,7 @@ void construct_player(movable_object *object){
 
 void construct_particle(movable_object *object){
     #define Data ((movable_particle*)(object->object_data))
-    double col;
+    long double col;
     int low;
     object->draw = draw_particle;
     object->r = radius_circle;
@@ -223,21 +223,21 @@ void construct_movable(movable_object *object){
 /**
     Radius functions
     */
-double radius_square(void *object_data, double fi){
+long double radius_square(void *object_data, long double fi){
     #define Data ((fixed_square*)object_data)
     return square_equation(Data->r, fi - Data->ang);
     #undef Data
 }
 
-double radius_circle(void *object_data, double fi){
+long double radius_circle(void *object_data, long double fi){
     return ((fixed_circle*)object_data)->r;
 }
 
-double radius_player(void *object_data, double fi){
+long double radius_player(void *object_data, long double fi){
     return PLAYER_RADIUS;
 }
 
-double radius_rectangle(void *object_data, double fi){
+long double radius_rectangle(void *object_data, long double fi){
     #define Data ((fixed_rectangle*)object_data)
     return rectangle_equation(Data->r, fi - Data->ang, Data->fi0, Data->fi02, Data->wsp1, Data->wsp2);
     #undef Data

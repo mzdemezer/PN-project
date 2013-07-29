@@ -20,7 +20,7 @@ void destroy_zone(zone *zn){
     RB_destroy_tree(&zn->movable);
 }
 
-void get_zone(double x, double y, short int *zn){
+void get_zone(long double x, long double y, short int *zn){
     /**
         Closure: [0 ; SCREEN_BUFFER_HEIGHT) ---> [0 ; SCREEN_BUFFER_HEIGHT]
         */
@@ -42,7 +42,7 @@ void get_zone(double x, double y, short int *zn){
     }
 }
 
-void get_zone_for_object(double x, double y, double dx, double dy, double r0, short int *zn){
+void get_zone_for_object(long double x, long double y, long double dx, long double dy, long double r0, short int *zn){
     dx = double_abs(dx) + r0;
     dy = double_abs(dy) + r0;
     get_zone(x - dx, y - dy, zn);

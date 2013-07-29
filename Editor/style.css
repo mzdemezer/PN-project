@@ -52,3 +52,10 @@ ul.plain{
 	padding:	0.5em;
 	list-style-type:	none;
 }
+
+.help {
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}

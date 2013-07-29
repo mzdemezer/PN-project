@@ -1005,7 +1005,7 @@ function delObject(){
 	}
 	Data.Selected = [];
 	Data.selectedCentroid = null;
-	Module.setRotationPoint();
+	Data.setRotationPoint();
 
 	ReDraw(Data);
 	SetSelectedOnListFromData();
@@ -1040,7 +1040,7 @@ function AddToList(Obj, index){
 function ListOut(){
 	$ObjListSelect.detach();
 	
-	var i, j, len, objName, groupName;
+	var i, j, len, len2, objName, groupName;
 	
 	len = Data.Arrays.length;
 	for(i = 0; i < len; ++i){
@@ -1049,8 +1049,9 @@ function ListOut(){
 		groupName = "$Opt" + Data.Arrays[i];
 		$OptGroups[groupName].empty();
 		
-		for(j in Data[Data.Arrays[i]]){
-			$("<option></option>").text(objName + " " + j).appendTo($OptGroups[groupName]);
+		for(j = 0, len2 = Data[Data.Arrays[i]].length; j < len2; ++j){
+			$("<option></option>").text(objName + " " + j)
+				.appendTo($OptGroups[groupName]);
 		}
 	}
 	$ObjListParent.append($ObjListSelect);

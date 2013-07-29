@@ -8,13 +8,13 @@
     Private methods
     */
 void StopThread(int i, game_shared_data *Data, ALLEGRO_THREAD *thread);
-bool get_drag_data(movable_object *obj, double *vx, double *vy, double *Cx, double *S);
-bool get_grav_data(movable_object *obj, double *mass, double *r);
-bool get_elec_data(movable_object *obj, double *charge, double *r);
+bool get_drag_data(movable_object *obj, long double *vx, long double *vy, long double *Cx, long double *S);
+bool get_grav_data(movable_object *obj, long double *mass, long double *r);
+bool get_elec_data(movable_object *obj, long double *charge, long double *r);
 
 #define TIME_LIMIT 60
 #define TIME_SCORE_MULTIPLIER 50
-int count_score(double HP, int level_number, double time){
+int count_score(long double HP, int level_number, long double time){
     time = (level_number * 30 + TIME_LIMIT) - time;
     if(time < 0){
         time = 0;
@@ -122,8 +122,8 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
 
     int i, j;
     bool f;
-    double Cx, S, vx, vy;
-    double op;
+    long double Cx, S, vx, vy;
+    long double op;
 
     /**
         Initialization
@@ -161,7 +161,7 @@ void* main_iteration(ALLEGRO_THREAD *thread, void *argument){
     }
     bool parity = false,
          imparity = true;
-    double half_dt;
+    long double half_dt;
 
     printf("In game: after main-iter-init, starting to operate\n");
     Data->level.start_time = al_get_time();
@@ -566,7 +566,7 @@ void* compute_gravity(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((game_shared_data*)argument)
     #define acc Data->level.acc
     int i, j;
-    double m1, m2, dx, dy, r1, r2, d, r;
+    long double m1, m2, dx, dy, r1, r2, d, r;
 
     StopThread(0, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -620,7 +620,7 @@ void* compute_electrostatics(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((game_shared_data*)argument)
     #define acc Data->level.acc
     int i, j;
-    double q1, q2, dx, dy, r, r1, r2, d;
+    long double q1, q2, dx, dy, r, r1, r2, d;
 
     StopThread(1, Data, thread);
     while(!al_get_thread_should_stop(thread)){
@@ -677,7 +677,7 @@ void* compute_collisions(ALLEGRO_THREAD *thread, void *argument){
     #define Data ((game_shared_data*)argument)
     #define acc Data->level.acc
 
-    double time;
+    long double time;
     int i, j, k, l;
     collision_data coll;
     short int temp;
@@ -816,7 +816,7 @@ void* compute_collisions(ALLEGRO_THREAD *thread, void *argument){
 /**
     Private methods
     */
-bool get_drag_data(movable_object *obj, double *vx, double *vy, double *Cx, double *S){
+bool get_drag_data(movable_object *obj, long double *vx, long double *vy, long double *Cx, long double *S){
     switch(obj->type){
         case motPLAYER:
             #define obj_data ((movable_player*)obj->object_data)
@@ -839,7 +839,7 @@ bool get_drag_data(movable_object *obj, double *vx, double *vy, double *Cx, doub
     }
 }
 
-bool get_grav_data(movable_object *obj, double *mass, double *r){
+bool get_grav_data(movable_object *obj, long double *mass, long double *r){
     switch(obj->type){
         case motPLAYER:
             #define obj_data ((movable_player*)obj->object_data)
@@ -858,7 +858,7 @@ bool get_grav_data(movable_object *obj, double *mass, double *r){
     }
 }
 
-bool get_elec_data(movable_object *obj, double *charge, double *r){
+bool get_elec_data(movable_object *obj, long double *charge, long double *r){
     switch(obj->type){
         case motPLAYER:
             #define obj_data ((movable_player*)obj->object_data)

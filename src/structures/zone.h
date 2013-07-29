@@ -21,8 +21,8 @@ typedef struct zone{
 void construct_zone(zone *zn);
 void clear_zone(zone *zn);
 void destroy_zone(zone *zn);
-void get_zone(double x, double y, short int *zn);
-void get_zone_for_object(double x, double y, double dx, double dy, double r0, short int *zn);
+void get_zone(long double x, long double y, short int *zn);
+void get_zone_for_object(long double x, long double y, long double dx, long double dy, long double r0, short int *zn);
 void add_primitive_to_zone(zone* zn, short int key);
 
 #endif

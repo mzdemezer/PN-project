@@ -9,15 +9,15 @@
 /**
     Private methods
     */
-void player_get_dx_dy(movable_object *obj, double dt);
-void particle_get_dx_dy(movable_object *obj, double dt);
-double count_hp_loss(double d_vx, double d_vy);
-void count_hp_and_shield(movable_player *player, double d_vx, double d_vy, float multiplier);
+void player_get_dx_dy(movable_object *obj, long double dt);
+void particle_get_dx_dy(movable_object *obj, long double dt);
+long double count_hp_loss(long double d_vx, long double d_vy);
+void count_hp_and_shield(movable_player *player, long double d_vx, long double d_vy, float multiplier);
 
 /**
     Code
     */
-void collide(level_data *level, short int who, short int with, bool with_movable, double dt){
+void collide(level_data *level, short int who, short int with, bool with_movable, long double dt){
     #define WHO_PLAYER ((movable_player*)level->movable_objects[who].object_data)
     #define WHO_PARTICLE ((movable_particle*)level->movable_objects[who].object_data)
     #define WITH_PLAYER ((movable_player*)level->movable_objects[with].object_data)
@@ -26,7 +26,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     #define WITH_SEGMENT ((segment*)level->primitive_objects[with].object_data)
     #define WITH_CIRCLE ((circle*)level->primitive_objects[with].object_data)
     #define WITH_EXIT ((prim_exit*)level->primitive_objects[with].object_data)
-    double player_d_vx,
+    long double player_d_vx,
            player_d_vy,
            with_d_vx,
            with_d_vy,
@@ -241,7 +241,7 @@ void collide(level_data *level, short int who, short int with, bool with_movable
     #undef WITH_EXIT
 }
 
-double count_hp_loss(double d_vx, double d_vy){
+long double count_hp_loss(long double d_vx, long double d_vy){
     d_vx = d_vx * d_vx + d_vy * d_vy;
     if( !(double_abs(d_vx) < eps) ){
         return d_vx * PLAYER_DAMAGE_MULTIPLIER;
@@ -250,7 +250,7 @@ double count_hp_loss(double d_vx, double d_vy){
     }
 }
 
-void count_hp_and_shield(movable_player *player, double d_vx, double d_vy, float multiplier){
+void count_hp_and_shield(movable_player *player, long double d_vx, long double d_vy, float multiplier){
     d_vx = count_hp_loss(d_vx, d_vy) * multiplier;
     if(player->shield > player->r0){
         player->shield -= d_vx * PLAYER_SHIELD_DAMAGE_MULITIPLIER;
@@ -303,7 +303,7 @@ void coll_clear_trash(level_data *level, coll_node *node, coll_node *nil){
     }
 }
 
-void move_objects(level_data *level, double t){
+void move_objects(level_data *level, long double t){
     int i;
     for(i = 0; i < level->number_of_movable_objects; ++i){
         ((point*)level->movable_objects[i].object_data)->x += level->movable_objects[i].dx * t;
@@ -321,7 +321,7 @@ void collision_min_for_object(level_data *level, short int who){
 }
 
 void find_next_collision(level_data *level, short int index,
-                         fast_read_set *primitive_done, fast_read_set *movable_done, double time_passed){
+                         fast_read_set *primitive_done, fast_read_set *movable_done, long double time_passed){
     collision_data new_coll;
     int i, j, k;
     level->movable_objects[index].coll_with_fixed.time = EMPTY_COLLISION_TIME;
@@ -375,7 +375,7 @@ collision_data get_collision_with_primitive(movable_object *who, primitive_objec
     #define WITH_CIRCLE ((circle*)with_what->object_data)
     #define WITH_EXIT ((fixed_exit*)(((prim_exit*)with_what->object_data)->fixed_data))
     collision_data new_coll;
-    double dr;
+    long double dr;
     new_coll.time = EMPTY_COLLISION_TIME;
     new_coll.with_movable = false;
     switch(who->type){
@@ -456,7 +456,7 @@ collision_data get_collision_with_movable(movable_object *who, movable_object *w
     #define WITH_PARTICLE ((movable_particle*)with_whom->object_data)
     collision_data new_coll;
     new_coll.time = EMPTY_COLLISION_TIME;
-    double dr;
+    long double dr;
     switch(who->type){
         case motPLAYER:
             if(WHO_PLAYER->shield + WHO_PLAYER->shield_push > WHO_PLAYER->r0){
@@ -534,7 +534,7 @@ collision_data get_collision_with_movable(movable_object *who, movable_object *w
     with fixed objects - that's the limit if the object
     doesn't collide with other movable one.
     */
-void get_and_check_mov_coll_if_valid(level_data *level, short int who, short int with, double time_passed){
+void get_and_check_mov_coll_if_valid(level_data *level, short int who, short int with, long double time_passed){
     collision_data coll = get_collision_with_movable(&level->movable_objects[who], &level->movable_objects[with]);
     coll.time += time_passed;
     if(coll.time >= 0 && coll.time <= 1){
@@ -577,7 +577,7 @@ void get_and_check_mov_coll_if_valid(level_data *level, short int who, short int
     */
 
 void for_each_higher_check_collision(level_data *level, fast_read_set *movable_done,
-                                     short int who, RB_node *node, RB_node *nil, double time_passed){
+                                     short int who, RB_node *node, RB_node *nil, long double time_passed){
     while(node != nil &&
           node->key < who){
         node = node->right;
@@ -595,7 +595,7 @@ void for_each_higher_check_collision(level_data *level, fast_read_set *movable_d
 }
 
 void in_order_check_collision(level_data *level, fast_read_set *movable_done,
-                              short int who, RB_node *node, RB_node *nil, double time_passed){
+                              short int who, RB_node *node, RB_node *nil, long double time_passed){
     if(node != nil){
         in_order_check_collision(level, movable_done, who, node->left, nil, time_passed);
 
@@ -621,9 +621,9 @@ void in_order_check_collision(level_data *level, fast_read_set *movable_done,
     This function is good both for mobile and immobile balls or points,
     that change size or not :)
     */
-double check_collision_between_two_balls(double x, double y, double dx, double dy,
-                                         double d, double dr){
-    double a = dx * dx + dy * dy - dr * dr,
+long double check_collision_between_two_balls(long double x, long double y, long double dx, long double dy,
+                                         long double d, long double dr){
+    long double a = dx * dx + dy * dy - dr * dr,
         b = 2 * (x * dx + y * dy - d * dr);
     if(a == 0){//linear
         if(b == 0){
@@ -688,8 +688,8 @@ double check_collision_between_two_balls(double x, double y, double dx, double d
     point collides - if the collision point
     is within segment constraints
     */
-double check_collision_between_ball_and_segment(double x, double y, double dx, double dy, double r, double dr, segment *seg){
-    double cs = cos(seg->ang),
+long double check_collision_between_ball_and_segment(long double x, long double y, long double dx, long double dy, long double r, long double dr, segment *seg){
+    long double cs = cos(seg->ang),
            sn = sin(seg->ang),
            d_into = sign(dy * cs - dx * sn),
     dt = seg->line_equation.A * dx + seg->line_equation.B * dy + d_into * seg->line_equation.sqrtAB * dr;
@@ -713,8 +713,8 @@ double check_collision_between_ball_and_segment(double x, double y, double dx, d
     }
 }
 
-double check_exit(double dx, double dy, fixed_exit *ex){
-    double fi = vector_angle(dx, dy);
+long double check_exit(long double dx, long double dy, fixed_exit *ex){
+    long double fi = vector_angle(dx, dy);
     if(sqrt(dx * dx + dy * dy) - radius_rectangle(ex, fi) < 0){
         return 0.01;
     }
@@ -725,14 +725,14 @@ double check_exit(double dx, double dy, fixed_exit *ex){
 /**
     Colliding
     */
-void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *v2x, double *v2y,
-                                              double dx, double dy, double m1, double m2, double dr, double restitution){
+void get_velocities_after_two_balls_collision(long double *v1x, long double *v1y, long double *v2x, long double *v2y,
+                                              long double dx, long double dy, long double m1, long double m2, long double dr, long double restitution){
     *v1x -= *v2x;
     *v1y -= *v2y;
     dy = vector_angle(dx, dy);
     dx = cos(dy);
     dy = sin(dy);
-    double v_into = *v1x * dx + *v1y * dy,
+    long double v_into = *v1x * dx + *v1y * dy,
            v_perp = *v1y * dx - *v1x * dy,
            mc = m1 + m2;
            v_into += dr * sign(v_into);
@@ -748,11 +748,11 @@ void get_velocities_after_two_balls_collision(double *v1x, double *v1y, double *
 /**
     I treat fixed points as ininitely small balls
     */
-void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, double dx, double dy, double dr, double restitution){
-    double ang = vector_angle(dx, dy),
+void get_velocity_after_ball_to_fixed_ball_collision(long double *vx, long double *vy, long double dx, long double dy, long double dr, long double restitution){
+    long double ang = vector_angle(dx, dy),
            cs = cos(ang);
            ang = sin(ang);
-    double v_into = *vx * cs + *vy * ang,
+    long double v_into = *vx * cs + *vy * ang,
            v_perp = *vy * cs - *vx * ang;
     v_into += dr * sign(v_into);
     v_into *= -restitution;
@@ -760,8 +760,8 @@ void get_velocity_after_ball_to_fixed_ball_collision(double *vx, double *vy, dou
     *vy = v_into * ang + v_perp * cs;
 }
 
-void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *seg, double dr, double restitution){
-    double cs = cos(seg->ang),
+void get_velocity_after_ball_to_wall_collision(long double *vx, long double *vy, segment *seg, long double dr, long double restitution){
+    long double cs = cos(seg->ang),
            sn = sin(seg->ang),
            v_into = *vy * cs - *vx * sn, //y
            v_perp = *vx * cs + *vy * sn; //x
@@ -774,8 +774,8 @@ void get_velocity_after_ball_to_wall_collision(double *vx, double *vy, segment *
 /**
     Separating
     */
-bool separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y2, double m2, double d){
-    double dx = *x2 - *x1,
+bool separate_two_balls(long double *x1, long double *y1, long double m1, long double *x2, long double *y2, long double m2, long double d){
+    long double dx = *x2 - *x1,
            dy = *y2 - *y1,
            ang = vector_angle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
@@ -803,8 +803,8 @@ bool separate_two_balls(double *x1, double *y1, double m1, double *x2, double *y
 
     Of course works also for fixed points
     */
-bool separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2, double d){
-    double dx = x2 - *x1,
+bool separate_ball_from_fixed_ball(long double *x1, long double *y1, long double x2, long double y2, long double d){
+    long double dx = x2 - *x1,
            dy = y2 - *y1,
            ang = vector_angle(dx, dy);
     dx = sqrt(dx * dx + dy * dy);
@@ -820,13 +820,13 @@ bool separate_ball_from_fixed_ball(double *x1, double *y1, double x2, double y2,
     return false;
 }
 
-bool separate_ball_from_segment(double *x, double *y, double d, segment *seg){
-    double dist = point_distance_from_line(*x, *y, &seg->line_equation);
+bool separate_ball_from_segment(long double *x, long double *y, long double d, segment *seg){
+    long double dist = point_distance_from_line(*x, *y, &seg->line_equation);
     if(dist == -1){
         return separate_ball_from_fixed_ball(x, y, seg->A.x, seg->A.y, d);
     }else{
         if(dist < d){
-            double ang = vector_angle(seg->line_equation.A, seg->line_equation.B),
+            long double ang = vector_angle(seg->line_equation.A, seg->line_equation.B),
                    cs = cos(ang);
                    ang = sin(ang);
             point helpy = {*x + 2 * d * cs,
@@ -849,7 +849,7 @@ bool separate_ball_from_segment(double *x, double *y, double d, segment *seg){
     }
 }
 
-void check_dx_dy(double *dx, double *dy){
+void check_dx_dy(long double *dx, long double *dy){
     if(double_abs(*dx) > MAX_DISPLACEMENT){
         *dx = MAX_DISPLACEMENT * sign(*dx);
     }
@@ -861,7 +861,7 @@ void check_dx_dy(double *dx, double *dy){
 /**
     Private methods
     */
-void player_get_dx_dy(movable_object *obj, double dt){
+void player_get_dx_dy(movable_object *obj, long double dt){
     #define Data ((movable_player*)obj->object_data)
     obj->dx = Data->vx * dt;
     obj->dy = Data->vy * dt;
@@ -869,7 +869,7 @@ void player_get_dx_dy(movable_object *obj, double dt){
     #undef Data
 }
 
-void particle_get_dx_dy(movable_object *obj, double dt){
+void particle_get_dx_dy(movable_object *obj, long double dt){
     #define Data ((movable_particle*)obj->object_data)
     obj->dx = Data->vx * dt;
     obj->dy = Data->vy * dt;

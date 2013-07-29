@@ -1,0 +1,515 @@
+# depslib dependency file v1.0
+1333211401 source:d:\programowanie\c\gra\the game\the game\main.c
+	<stdio.h>
+	<allegro5/allegro.h>
+	<allegro5/allegro_audio.h>
+	<allegro5/allegro_acodec.h>
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\allegro.h
+	"allegro5/base.h"
+	"allegro5/system.h"
+	"allegro5/memory.h"
+	"allegro5/debug.h"
+	"allegro5/error.h"
+	"allegro5/utf8.h"
+	"allegro5/altime.h"
+	"allegro5/events.h"
+	"allegro5/mouse.h"
+	"allegro5/timer.h"
+	"allegro5/keyboard.h"
+	"allegro5/joystick.h"
+	"allegro5/threads.h"
+	"allegro5/display.h"
+	"allegro5/transformations.h"
+	"allegro5/bitmap_io.h"
+	"allegro5/bitmap.h"
+	"allegro5/tls.h"
+	"allegro5/file.h"
+	"allegro5/fshook.h"
+	"allegro5/path.h"
+	"allegro5/fmaths.h"
+	"allegro5/config.h"
+	"allegro5/alcompat.h"
+
+1330889767 c:\mingw\allegro 5.0.6\include\allegro5\base.h
+	<errno.h>
+	<limits.h>
+	<limits.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<time.h>
+	<string.h>
+	<sys/types.h>
+	<fortify/fortify.h>
+	<dmalloc.h>
+	"allegro5/internal/alconfig.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\internal\alconfig.h
+	"allegro5/platform/alplatf.h"
+	"allegro5/platform/aldjgpp.h"
+	"allegro5/platform/alwatcom.h"
+	"allegro5/platform/almngw32.h"
+	"allegro5/platform/aldmc.h"
+	"allegro5/platform/albcc32.h"
+	"allegro5/platform/almsvc.h"
+	"allegro5/platform/albecfg.h"
+	"allegro5/platform/aliphonecfg.h"
+	"allegro5/platform/alosxcfg.h"
+	"allegro5/platform/alqnxcfg.h"
+	"allegro5/platform/alwizcfg.h"
+	"allegro5/platform/alucfg.h"
+	"allegro5/platform/astdint.h"
+	"allegro5/platform/astdbool.h"
+
+1300094117 c:\mingw\allegro 5.0.6\include\allegro5\platform\alplatf.h
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\alwatcom.h
+	<io.h>
+	<i86.h>
+	<conio.h>
+	<fcntl.h>
+	<direct.h>
+	<malloc.h>
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\almngw32.h
+	<io.h>
+	<fcntl.h>
+	<direct.h>
+	<malloc.h>
+	"allegro5/platform/alplatf.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\aldmc.h
+	<io.h>
+	<fcntl.h>
+	<stdint.h>
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\albcc32.h
+	<io.h>
+	<fcntl.h>
+	<direct.h>
+	<malloc.h>
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\almsvc.h
+	<io.h>
+	<fcntl.h>
+	<direct.h>
+	<malloc.h>
+	"allegro5/platform/alplatf.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\aliphonecfg.h
+	<fcntl.h>
+	<unistd.h>
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\alosxcfg.h
+	"allegro5/platform/alplatf.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\alwizcfg.h
+	<fcntl.h>
+	<unistd.h>
+	"allegro5/platform/alplatf.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\alucfg.h
+	<fcntl.h>
+	<unistd.h>
+	"alunix.h"
+	"allegro5/platform/alplatf.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\alunix.h
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\astdint.h
+	<inttypes.h>
+	<stdint.h>
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\platform\astdbool.h
+	<stdbool.h>
+
+1330889767 c:\mingw\allegro 5.0.6\include\allegro5\system.h
+	"allegro5/config.h"
+	"allegro5/path.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\config.h
+	"allegro5/file.h"
+
+1330889767 c:\mingw\allegro 5.0.6\include\allegro5\file.h
+	"allegro5/base.h"
+	"allegro5/path.h"
+	"allegro5/utf8.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\path.h
+	"allegro5/base.h"
+
+1296733086 c:\mingw\allegro 5.0.6\include\allegro5\utf8.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\memory.h
+
+1330889767 c:\mingw\allegro 5.0.6\include\allegro5\debug.h
+	<assert.h>
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\error.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\altime.h
+	"allegro5/base.h"
+
+1300093972 c:\mingw\allegro 5.0.6\include\allegro5\events.h
+	"allegro5/base.h"
+
+1296207711 c:\mingw\allegro 5.0.6\include\allegro5\mouse.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\timer.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\keyboard.h
+	"allegro5/base.h"
+	"allegro5/keycodes.h"
+
+1296207711 c:\mingw\allegro 5.0.6\include\allegro5\keycodes.h
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\joystick.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\threads.h
+	"allegro5/altime.h"
+
+1296207711 c:\mingw\allegro 5.0.6\include\allegro5\display.h
+	"allegro5/color.h"
+	"allegro5/bitmap.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\color.h
+
+1330889767 c:\mingw\allegro 5.0.6\include\allegro5\bitmap.h
+	"allegro5/color.h"
+
+1292547729 c:\mingw\allegro 5.0.6\include\allegro5\transformations.h
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\bitmap_io.h
+	"allegro5/bitmap.h"
+	"allegro5/file.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\tls.h
+	"allegro5/base.h"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\fshook.h
+	"allegro5/base.h"
+	"allegro5/path.h"
+	<sys/types.h>
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\fmaths.h
+	"allegro5/base.h"
+	"allegro5/fixed.h"
+	"allegro5/inline/fmaths.inl"
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\fixed.h
+	"allegro5/base.h"
+
+1289832121 c:\mingw\allegro 5.0.6\include\allegro5\inline\fmaths.inl
+
+1289832122 c:\mingw\allegro 5.0.6\include\allegro5\alcompat.h
+
+1289832131 c:\mingw\allegro 5.0.6\include\allegro5\allegro_image.h
+
+1296207715 c:\mingw\allegro 5.0.6\include\allegro5\allegro_native_dialog.h
+	"allegro5/allegro.h"
+
+1330889772 c:\mingw\allegro 5.0.6\include\allegro5\allegro_font.h
+	"allegro5/allegro.h"
+
+1330889772 c:\mingw\allegro 5.0.6\include\allegro5\allegro_ttf.h
+	"allegro5/allegro.h"
+	"allegro5/allegro_font.h"
+
+1330889771 c:\mingw\allegro 5.0.6\include\allegro5\allegro_audio.h
+	"allegro5/allegro.h"
+
+1289832132 c:\mingw\allegro 5.0.6\include\allegro5\allegro_acodec.h
+	"allegro5/allegro.h"
+	"allegro5/allegro_audio.h"
+
+1340560111 source:d:\programowanie\c\gra\mygame\src\main.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<locale.h>
+	"main.h"
+	"game.h"
+	"Tests/CuTest.h"
+
+1340560111 d:\programowanie\c\gra\mygame\src\main.h
+	<allegro5/allegro.h>
+	<allegro5/allegro_font.h>
+	<allegro5/allegro_ttf.h>
+	<allegro5/allegro_image.h>
+	<allegro5/allegro_primitives.h>
+	"structures.h"
+	"structures/gameshareddata.h"
+	"draw.h"
+	"mathematics.h"
+	"stringprocessing.h"
+	"collisions.h"
+	"eventthread.h"
+
+1340560111 source:d:\programowanie\c\gra\mygame\src\menu.c
+	<stdio.h>
+	<stdlib.h>
+	<allegro5/allegro.h>
+	"main.h"
+	"menu.h"
+	"loading.h"
+	"mathematics.h"
+	"stringprocessing.h"
+
+1339932659 source:d:\programowanie\c\gra\mygame\src\game.c
+	<stdio.h>
+	<math.h>
+	<allegro5/allegro.h>
+	"main.h"
+	"game.h"
+
+1339856973 d:\programowanie\c\gra\mygame\src\menu.h
+
+1339932575 d:\programowanie\c\gra\mygame\src\game.h
+
+1333965425 d:\programowanie\c\gra\mygame\src\menu.c
+	"main.h"
+
+1340560110 source:d:\programowanie\c\gra\mygame\src\loading.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<allegro5/allegro.h>
+	"main.h"
+	"loading.h"
+	"draw.h"
+
+1339173699 d:\programowanie\c\gra\mygame\src\loading.h
+
+1330889772 c:\mingw\allegro 5.0.6\include\allegro5\allegro_primitives.h
+	<allegro5/allegro.h>
+
+1279789868 d:\programowanie\c\gra\mygame\src\tests\cutest.h
+	<setjmp.h>
+	<stdarg.h>
+
+1336581602 d:\programowanie\c\gra\mygame\src\tests\alltests.c
+	<stdio.h>
+	"CuTest.h"
+
+1336580792 source:d:\programowanie\c\gra\mygame\src\tests\cutest.c
+	<assert.h>
+	<setjmp.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<math.h>
+	"CuTest.h"
+
+1339095437 source:d:\programowanie\c\gra\mygame\src\tests\gamesuite.c
+	"CuTest.h"
+	"../main.h"
+	"../game.h"
+
+1336580724 d:\programowanie\c\gra\mygame\src\tests\gamesuite.c
+	"CuTest.h"
+	"../game.h"
+
+1339098007 source:d:\programowanie\c\gra\mygame\src\tests\alltests.c
+	<stdio.h>
+	"CuTest.h"
+
+1337100748 source:d:\programowanie\c\gra\mygame\src\tests\menusuite.c
+	"CuTest.h"
+	"../main.h"
+	"../menu.h"
+	<string.h>
+
+1339091737 source:d:\programowanie\c\gra\mygame\src\tests\mainsuite.c
+	"CuTest.h"
+	"../main.h"
+	<stdio.h>
+	<math.h>
+
+1339069537 d:\programowanie\c\gra\mygame\src\structures.h
+	"structures/RBtree.h"
+	"structures/collstructures.h"
+	"structures/fastreadset.h"
+	"structures/zone.h"
+	"structures/gameobjects.h"
+	"structures/level.h"
+
+1339018272 d:\programowanie\c\gra\mygame\src\structures\rbtree.h
+	<stdbool.h>
+
+1339018268 source:d:\programowanie\c\gra\mygame\src\structures\rbtree.c
+	<stdio.h>
+	<stdlib.h>
+	"RBtree.h"
+
+1339097137 d:\programowanie\c\gra\mygame\src\structures\collstructures.h
+	<stdbool.h>
+
+1339097127 source:d:\programowanie\c\gra\mygame\src\structures\collstructures.c
+	<stdio.h>
+	<stdlib.h>
+	"collstructures.h"
+
+1339018136 d:\programowanie\c\gra\mygame\src\structures\fastreadset.h
+	<stdbool.h>
+	"../structures.h"
+
+1339092354 d:\programowanie\c\gra\mygame\src\structures\zone.h
+	"RBtree.h"
+
+1339015234 source:d:\programowanie\c\gra\mygame\src\structures\fastreadset.c
+	<stdlib.h>
+	"fastreadset.h"
+
+1339334617 d:\programowanie\c\gra\mygame\src\mathematics.h
+	"structures.h"
+
+1339321800 source:d:\programowanie\c\gra\mygame\src\mathematics.c
+	<math.h>
+	"mathematics.h"
+
+1339092357 source:d:\programowanie\c\gra\mygame\src\structures\zone.c
+	<stdlib.h>
+	"zone.h"
+	"../structures.h"
+	"../mathematics.h"
+
+1339177739 d:\programowanie\c\gra\mygame\src\structures\level.h
+	<stdbool.h>
+	<allegro5/allegro.h>
+	"zone.h"
+	"collstructures.h"
+	"gameobjects.h"
+	"../structures.h"
+
+1339326802 source:d:\programowanie\c\gra\mygame\src\structures\level.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	"level.h"
+	"../structures.h"
+	"../mathematics.h"
+
+1339364732 d:\programowanie\c\gra\mygame\src\structures\gameobjects.h
+	<allegro5/allegro.h>
+	"collstructures.h"
+
+1339351160 source:d:\programowanie\c\gra\mygame\src\structures\gameobjects.c
+	<stdlib.h>
+	<math.h>
+	"gameobjects.h"
+	"../structures.h"
+	"../mathematics.h"
+	"../draw.h"
+
+1339932567 d:\programowanie\c\gra\mygame\src\structures\gameshareddata.h
+	<stdbool.h>
+	<allegro5/allegro.h>
+	<allegro5/allegro_font.h>
+	<allegro5/allegro_ttf.h>
+	<allegro5/allegro_image.h>
+	<allegro5/allegro_primitives.h>
+	"level.h"
+	"../menu.h"
+
+1340560110 source:d:\programowanie\c\gra\mygame\src\draw.c
+	<stdlib.h>
+	<math.h>
+	<allegro5/allegro.h>
+	<allegro5/allegro_image.h>
+	<allegro5/allegro_primitives.h>
+	"main.h"
+	"draw.h"
+	"structures.h"
+	"stringprocessing.h"
+	"mathematics.h"
+
+1339351008 d:\programowanie\c\gra\mygame\src\draw.h
+	"structures/gameshareddata.h"
+
+1339857235 source:d:\programowanie\c\gra\mygame\src\structures\gameshareddata.c
+	<stdio.h>
+	<stdlib.h>
+	<allegro5/allegro.h>
+	"gameshareddata.h"
+	"../mathematics.h"
+	"../stringprocessing.h"
+	"../menu.h"
+	"../draw.h"
+
+1339281878 d:\programowanie\c\gra\mygame\src\stringprocessing.h
+	<allegro5/allegro.h>
+
+1339281874 source:d:\programowanie\c\gra\mygame\src\stringprocessing.c
+	<stdio.h>
+	<string.h>
+	<stdbool.h>
+	"stringprocessing.h"
+	"mathematics.h"
+
+1339371696 d:\programowanie\c\gra\mygame\src\collisions.h
+	"structures.h"
+
+1339371770 source:d:\programowanie\c\gra\mygame\src\collisions.c
+	<stdlib.h>
+	<math.h>
+	"main.h"
+	"collisions.h"
+	"structures.h"
+	"mathematics.h"
+	"game.h"
+
+1339314349 d:\programowanie\c\gra\mygame\src\eventthread.h
+	<allegro5/allegro.h>
+
+1340560110 source:d:\programowanie\c\gra\mygame\src\eventthread.c
+	<stdio.h>
+	"main.h"
+	"eventthread.h"
+	"game.h"
+	"loading.h"
+	"menu.h"
+
+1339097808 source:d:\programowanie\c\gra\mygame\src\tests\rbtreesuite.c
+	<stdio.h>
+	"CuTest.h"
+	"../main.h"
+
+1340559045 source:d:\programowanie\c\gra\mygame\src\tests\collisionssuite.c
+	<stdio.h>
+	<math.h>
+	"CuTest.h"
+	"../collisions.h"
+	"../mathematics.h"
+
+1339097252 source:d:\programowanie\c\gra\mygame\src\tests\fastreadsetsuite.c
+	<stdio.h>
+	"CuTest.h"
+	"../structures/fastreadset.h"
+
+1339097944 source:d:\programowanie\c\gra\mygame\src\tests\heapsuite.c
+	"CuTest.h"
+	"../structures/collstructures.h"
+	"../mathematics.h"
+
+1339097462 source:d:\programowanie\c\gra\mygame\src\tests\levelsuite.c
+	<math.h>
+	"CuTest.h"
+	"../structures/level.h"
+
+1339097655 source:d:\programowanie\c\gra\mygame\src\tests\mathematicssuite.c
+	"CuTest.h"
+	"../mathematics.h"
+
+1339096896 source:d:\programowanie\c\gra\mygame\src\tests\stringprocessingsuite.c
+	"CuTest.h"
+	<string.h>
+	<allegro5/allegro.h>
+	"../stringprocessing.h"
+

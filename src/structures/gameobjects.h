@@ -38,23 +38,23 @@ typedef struct primitive_object_structure{
 }primitive_object;
 
 typedef struct point{
-    double x, y;
+    long double x, y;
 }point;
 
 typedef struct line{
-    double A, B, C,
+    long double A, B, C,
           sqrtAB; //cache
 }line;
 
 typedef struct segment{
     point A, B;
-    double ang; // direction of AB vector; to make collisions faster
+    long double ang; // direction of AB vector; to make collisions faster
     line line_equation; //for faster separation
 }segment;
 
 typedef struct circle{
     point center;
-    double r;
+    long double r;
 }circle;
 
 /**
@@ -70,9 +70,9 @@ typedef enum movable_object_type{
 typedef struct movable_object{
     movable_object_type type;
     void* object_data;
-    void (*draw)(void*, double dx, double dy);
-    double (*r)(void*, double);
-    double dx, dy;
+    void (*draw)(void*, long double dx, long double dy);
+    long double (*r)(void*, long double);
+    long double dx, dy;
     short int zones[4];
     collision_data *next_collision,
                     coll_with_fixed;
@@ -104,14 +104,14 @@ typedef struct movable_object{
 
 typedef struct movable_player{
     point center;
-    double r, vx, vy;
-    double ang;
+    long double r, vx, vy;
+    long double ang;
     int engine_state,
         energy_generator,
         shield_generator,
         gravity_generator,
         electrostatic_generator;
-    double mass,
+    long double mass,
            gravity,
            charge,
            r0,
@@ -134,16 +134,16 @@ typedef struct connected_objects{
 
 typedef struct movable_switch{
     point center;
-    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    long double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
-    double mass;
+    long double mass;
     switch_type type;
     connected_objects connected;
 
-    double vx, vy;
+    long double vx, vy;
 }movable_switch;
 
 typedef enum door_type{
@@ -152,24 +152,24 @@ typedef enum door_type{
 
 typedef struct movable_door{
     point center;
-    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    long double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 
     int pos;
-    double opening_time, mass;
+    long double opening_time, mass;
     door_type type;
 
-    double vx, vy;
+    long double vx, vy;
 }movable_door;
 
 typedef struct movable_particle{
     point center;
-    double r, mass, charge;
+    long double r, mass, charge;
     ALLEGRO_COLOR color;
 
-    double vx, vy;
-    double surface_field;
+    long double vx, vy;
+    long double surface_field;
 }movable_particle;
 
 
@@ -188,40 +188,40 @@ typedef struct fixed_object_structure{
     fixed_object_type type;
     void* object_data;
     void (*draw)(void*);
-    double (*r)(void*, double);
+    long double (*r)(void*, long double);
     short int zones[4];
 }fixed_object;
 
 typedef struct fixed_rectangle{
     point center;
-    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    long double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 }fixed_rectangle;
 
 typedef struct fixed_circle{
     point center;
-    double r, ang;
+    long double r, ang;
     ALLEGRO_COLOR color;
 }fixed_circle;
 
 typedef struct fixed_square{
     point center;
-    double r, bok, ang;
+    long double r, bok, ang;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 }fixed_square;
 
 typedef struct fixed_entrance{
     point center;
-    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    long double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 }fixed_entrance;
 
 typedef struct fixed_exit{
     point center;
-    double r, a, b, ang, fi0, fi02, wsp1, wsp2;
+    long double r, a, b, ang, fi0, fi02, wsp1, wsp2;
     point *v1, *v2, *v3, *v4;
     ALLEGRO_COLOR color;
 }fixed_exit;
@@ -260,10 +260,10 @@ void construct_door(movable_object *);
 void construct_switch(movable_object *);
 void construct_movable(movable_object *);
 
-double radius_square(void *object_data, double fi);
-double radius_circle(void *object_data, double fi);
-double radius_rectangle(void *object_data, double fi);
-double radius_player(void *object_data, double fi);
+long double radius_square(void *object_data, long double fi);
+long double radius_circle(void *object_data, long double fi);
+long double radius_rectangle(void *object_data, long double fi);
+long double radius_player(void *object_data, long double fi);
 
 void get_player_radius(movable_player *player);
 

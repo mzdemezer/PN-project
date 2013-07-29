@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
@@ -25,9 +26,9 @@ void draw_stat_bar(game_shared_data *);
 void highlight_zone(game_shared_data *Data, short int x, short int y, ALLEGRO_COLOR color);
 void draw_zones(game_shared_data *Data, movable_object *obj, ALLEGRO_COLOR color);
 void draw_grid(game_shared_data *Data);
-void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int size, ALLEGRO_COLOR color);
+void draw_arrow(game_shared_data *Data, long double cx, long double cy, long double ang, int size, ALLEGRO_COLOR color);
 
-ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac);
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, long double frac);
 void draw_tetragon(point *v1, point *v2, point *v3, point *v4, ALLEGRO_COLOR color);
 
 #define PLAYER_SHIELD_R 10
@@ -91,7 +92,7 @@ void draw_menu_content(game_shared_data *Data){
     int i, num_of_elems,
         flags, interline,
         first_line;
-    double align_x;
+    long double align_x;
     activation_argument arg;
     arg.Data = Data;
     ALLEGRO_FONT *regular_font, *select_font;
@@ -405,8 +406,8 @@ void draw_grid(game_shared_data *Data){
     #undef OFFSET
 }
 
-void draw_arrow(game_shared_data *Data, double cx, double cy, double ang, int size, ALLEGRO_COLOR color){
-    double fx = cx + size * 0.5 * cos(ang),
+void draw_arrow(game_shared_data *Data, long double cx, long double cy, long double ang, int size, ALLEGRO_COLOR color){
+    long double fx = cx + size * 0.5 * cos(ang),
           fy = cy + size * 0.5 * sin(ang);
 
     size *= 0.5;
@@ -431,7 +432,7 @@ void clear_stat_bar(game_shared_data *Data){
 
 void draw_time(game_shared_data *Data){
     char buffer[11];
-    double actual_time = al_get_time() - Data->level.start_time + Data->level.sum_time;
+    long double actual_time = al_get_time() - Data->level.start_time + Data->level.sum_time;
     ALLEGRO_TRANSFORM tempT;
 
     stringify_time(buffer, actual_time);
@@ -534,7 +535,7 @@ void draw_stat_bar(game_shared_data *Data){
 /**
     Scalling with linear filtering
     */
-ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac){
+ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, long double frac){
     return al_map_rgba_f(c1.r + frac * (c2.r - c1.r),
                          c1.g + frac * (c2.g - c1.g),
                          c1.b + frac * (c2.b - c1.b),
@@ -542,7 +543,7 @@ ALLEGRO_COLOR interpolate(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2, double frac){
 }
 
 void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
-    double source_x = al_get_bitmap_width(source),
+    long double source_x = al_get_bitmap_width(source),
            source_y = al_get_bitmap_height(source);
 	if (((int)source_x == width) && ((int)source_y == height)) {
 		al_draw_bitmap(source, 0, 0, 0);
@@ -554,7 +555,7 @@ void scale_bitmap(ALLEGRO_BITMAP* source, int width, int height) {
 
 	/* linear filtering code written by SiegeLord */
 
-    double pixy, pixy_f,
+    long double pixy, pixy_f,
            pixx, pixx_f;
     ALLEGRO_COLOR a, b, c, d,
                   ab, cd, result;
@@ -625,7 +626,11 @@ void draw_level_background(game_shared_data *Data){
         tempBitmap = NULL;
     }else{
         tempBitmap = al_load_bitmap(Data->level.filename);
+				if(tempBitmap == NULL) {
+					printf("unsuccessful loading\n");
+				}
     }
+		printf("Loading bitmap: '%s' into '%p'\n", Data->level.filename, tempBitmap);;
 
     /**
         Scaling and drawing
@@ -702,7 +707,7 @@ void draw_all_fixed_objects(level_data *level){
     }
 }
 
-void draw_shield(double x, double y, double radius, int r, int g, int b){
+void draw_shield(long double x, long double y, long double radius, int r, int g, int b){
     al_draw_filled_circle(x, y, radius * 1.12, al_map_rgba(r * 0.1, g * 0.1, b * 0.1, 0.01));
     al_draw_filled_circle(x, y, radius * 1.08, al_map_rgba(r * 0.2, g * 0.2, b * 0.2, 0.01));
     al_draw_filled_circle(x, y, radius * 1.04, al_map_rgba(r * 0.3, g * 0.3, b * 0.3, 0.01));
@@ -715,7 +720,7 @@ void draw_shield(double x, double y, double radius, int r, int g, int b){
     al_draw_filled_circle(x, y, radius * 0.72, al_map_rgba(r, g, b, 0.08));
 }
 
-void draw_player(void *object_data, double dx, double dy){
+void draw_player(void *object_data, long double dx, long double dy){
     #define obj_data ((movable_player*)object_data)
     al_draw_filled_circle(obj_data->center.x + dx, obj_data->center.y + dy, PLAYER_RADIUS, al_map_rgb(255, 255, 255));
     al_draw_filled_circle(obj_data->center.x + dx + PLAYER_RADIUS * 0.5 * cos(obj_data->ang),
@@ -766,13 +771,13 @@ void draw_ship(void *object_data, game_shared_data *Data){
     #undef obj_data
 }
 
-void draw_particle(void *object_data, double dx, double dy){
+void draw_particle(void *object_data, long double dx, long double dy){
     #define Data ((movable_particle*)object_data)
     al_draw_filled_circle(Data->center.x + dx, Data->center.y + dy, Data->r, Data->color);
     #undef Data
 }
 
-void draw_door(void *object_data, double dx, double dy){
+void draw_door(void *object_data, long double dx, long double dy){
     #define Data ((movable_door*)object_data)
     point dv1 = *Data->v1,
                  dv2 = *Data->v2,
@@ -790,7 +795,7 @@ void draw_door(void *object_data, double dx, double dy){
     #undef Data
 }
 
-void draw_switch(void *object_data, double dx, double dy){
+void draw_switch(void *object_data, long double dx, long double dy){
     #define Data ((movable_switch*)object_data)
     point dv1 = *Data->v1,
                  dv2 = *Data->v2,

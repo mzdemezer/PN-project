@@ -12,7 +12,7 @@
 
 #define ACC_2nd_DIM NumOfThreads + 2
 typedef struct move_arrays{
-    double x, y,
+    long double x, y,
           vx, vy,
           ax[ACC_2nd_DIM],
           ay[ACC_2nd_DIM];
@@ -52,10 +52,10 @@ typedef struct level_data{
 
     ALLEGRO_BITMAP *background;
     char filename[256];
-    double start_time, sum_time,
+    long double start_time, sum_time,
            last_time, dt;
     move_arrays *acc;
-    double dens, wind_vx, wind_vy;
+    long double dens, wind_vx, wind_vy;
 
     bool at_exit,
          victory;
@@ -96,7 +96,7 @@ void destroy_zones(level_data *level);
 void clear_zones(level_data *level);
 
 void initialize_zones_with_movable(level_data *level, short int *zones, short int index);
-void change_zones_for_movable(level_data *level, short int index, double t);
+void change_zones_for_movable(level_data *level, short int index, long double t);
 bool get_outer_zones_of_segment(const point *A, const point *B, short int *zones);
 void normalize_segment_zones(short int *zones);
 
@@ -106,7 +106,7 @@ void normalize_segment_zones(short int *zones);
 void add_segment(level_data *level, const point *A, const point *B);
 void add_borders(level_data *level);
 void add_point(level_data *level, point *A);
-void add_circle(level_data *level, double r, point center);
+void add_circle(level_data *level, long double r, point center);
 
 void add_square(level_data *level, fixed_square *square);
 void add_rectangle(level_data *level, fixed_rectangle *rectangle);

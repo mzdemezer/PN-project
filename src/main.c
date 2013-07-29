@@ -14,7 +14,7 @@
 void call_in_main_thread(void (*function_to_call)(game_shared_data*), game_shared_data *Data){
     al_lock_mutex(Data->mutex_special_main_call);
         al_lock_mutex(Data->mutex_thread_draw);
-            printf("Special call made\n");
+            printf("call_in_main_thread made\n");
             Data->special_main_call_procedure = function_to_call;
             Data->special_main_call = true;
 

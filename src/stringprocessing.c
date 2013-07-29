@@ -23,7 +23,7 @@ void int_to_str(int a, char *target){
     }
 }
 
-void stringify_time(char *buffer, double time){
+void stringify_time(char *buffer, long double time){
     int help = ((int)time) / 3600;
 
     time -= help * 3600;
@@ -31,7 +31,7 @@ void stringify_time(char *buffer, double time){
 
     help = ((int)time) / 60;
     time -= help * 60;
-    sprintf(buffer + 3, "%02d:%04.1lf", help, time);
+    sprintf(buffer + 3, "%02d:%04.1Lf", help, time);
     buffer[8] = '`'; //depending on the font
 }
 
